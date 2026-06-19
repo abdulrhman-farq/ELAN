@@ -1,6 +1,7 @@
 import "server-only";
 import { getServerSupabase, rpc } from "./supabase/server";
 import { dayBoundsUtc } from "./format";
+import { DEMO } from "./demo";
 import { mockBooking, mockBookings, mockCatalogue, mockClassById, mockClasses, mockMemberContext } from "./mock";
 
 export type DisplayStatus = "available" | "waitlist_open" | "fully_booked" | "booking_closed";
@@ -61,12 +62,14 @@ async function fetchBetween(startIso: string, endIso: string): Promise<ClassCard
 }
 
 export async function getTimetable(date: string) {
+  if (DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
   return rows.length ? rows : mockClasses(date);
 }
 
 export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string }> {
+  if (DEMO) return mockClassById(id);
   try {
     const now = Date.now();
     const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
@@ -82,6 +85,7 @@ export async function getClass(id: string): Promise<{ card: ClassCardData; eligi
 }
 
 export async function getMyBookings() {
+  if (DEMO) return mockBookings();
   try {
     const supabase = await getServerSupabase();
     const { data } = await supabase
@@ -102,6 +106,7 @@ export async function getMyBookings() {
 }
 
 export async function getMemberContext() {
+  if (DEMO) return mockMemberContext();
   try {
     const supabase = await getServerSupabase();
     const { data: member } = await supabase.from("members").select("id,full_name,phone,email").maybeSingle();
@@ -125,6 +130,7 @@ export async function getMemberContext() {
 }
 
 export async function getCatalogue() {
+  if (DEMO) return mockCatalogue();
   try {
     const supabase = await getServerSupabase();
     const [{ data: plans }, { data: packs }] = await Promise.all([
@@ -140,6 +146,7 @@ export async function getCatalogue() {
 }
 
 export async function getBooking(id: string) {
+ if (DEMO) return mockBooking(id);
  try {
   const supabase = await getServerSupabase();
   const { data } = await supabase

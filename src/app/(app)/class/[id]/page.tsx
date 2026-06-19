@@ -37,10 +37,10 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   const heading = locale === "en" ? "eyebrow" : "text-xs font-semibold tracking-wide text-status-full";
 
   return (
-    <section className="pb-28">
-      <div className="relative flex h-48 items-center justify-center bg-primary-100">
+    <section className="pb-44 md:pb-28">
+      <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-b-card bg-primary-100">
         <Icon name="self_improvement" className="text-6xl text-primary-400" />
-        <Link href="/schedule" className="absolute start-3 top-3 rounded-pill bg-surface/80 px-3 py-1 text-sm">‹ {t.common.back}</Link>
+        <Link href="/schedule" className="absolute start-3 top-3 rounded-pill bg-surface-elevated/80 px-3 py-1 text-sm text-primary-900">‹ {t.common.back}</Link>
       </div>
       <div className="space-y-4 p-5">
         <h1 className="font-display text-3xl font-medium text-primary-900">{name}</h1>

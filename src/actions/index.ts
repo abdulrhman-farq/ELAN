@@ -5,8 +5,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import { LOCALE_COOKIE, type Locale } from "@/lib/i18n";
+import { DEMO } from "@/lib/demo";
 
 export async function bookAction(classInstanceId: string) {
+  if (DEMO) {
+    revalidatePath("/"); revalidatePath("/schedule"); revalidatePath("/bookings");
+    return { ok: true as const, bookingId: "mock-bk-new" };
+  }
   const supabase = await getServerSupabase();
   const { data, error } = await rpc<{ id: string }>(supabase, "book_class_self", { p_class_instance_id: classInstanceId, p_source: "web" });
   revalidatePath("/");
@@ -17,6 +22,11 @@ export async function bookAction(classInstanceId: string) {
 }
 
 export async function cancelAction(bookingId: string, classInstanceId?: string) {
+  if (DEMO) {
+    revalidatePath("/"); revalidatePath("/schedule"); revalidatePath("/bookings");
+    if (classInstanceId) revalidatePath(`/class/${classInstanceId}`);
+    return { ok: true };
+  }
   const supabase = await getServerSupabase();
   const { error } = await rpc(supabase, "cancel_booking_self", { p_booking_id: bookingId });
   revalidatePath("/");
@@ -27,6 +37,10 @@ export async function cancelAction(bookingId: string, classInstanceId?: string) 
 }
 
 export async function purchaseAction(type: "membership" | "credit_pack", refId: string) {
+  if (DEMO) {
+    revalidatePath("/memberships"); revalidatePath("/profile");
+    return { ok: true };
+  }
   const supabase = await getServerSupabase();
   // Mock checkout: the PaymentProvider would redirect to Moyasar in production;
   // here we fulfill instantly via the sandbox RPC.
@@ -41,6 +55,7 @@ export async function setLocaleAction(locale: Locale) {
 }
 
 export async function signOutAction() {
+  if (DEMO) redirect("/login");
   const supabase = await getServerSupabase();
   await supabase.auth.signOut();
   redirect("/login");

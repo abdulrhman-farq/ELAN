@@ -40,7 +40,7 @@
   .btn { @apply rounded-pill px-6 py-3.5 text-center text-sm font-medium; }
   .btn-primary { @apply btn bg-primary text-ink; }
   .btn-outline { @apply btn border border-outline bg-surface-elevated text-primary-900; }
-  .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface-elevated px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky md:start-[240px]; }
+  .sticky-cta { @apply fixed inset-x-0 bottom-[4.75rem] z-40 px-4 md:bottom-0 md:start-[240px] md:border-t md:border-outline md:bg-surface-elevated md:pb-[max(1rem,env(safe-area-inset-bottom))] md:pt-3 md:shadow-sticky; }
 
   /* Brand helpers. */
   .eyebrow { @apply font-label text-[11px] uppercase tracking-[0.18em] text-status-full; }

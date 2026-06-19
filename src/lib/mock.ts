@@ -111,7 +111,7 @@ export function mockMemberContext() {
       current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
       membership_plans: { name_ar: "عضوية بريميَم", name_en: "Premium membership" },
     },
-    isAdmin: false,
+    isAdmin: true,
   };
 }
 
