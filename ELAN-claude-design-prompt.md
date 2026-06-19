@@ -1,16 +1,17 @@
-# ELAN (إيلان) — Claude Design Prompt
+# ÉLAN — Claude Design Prompt
 
 > **How to use this file:** The first two sections (**Project Intro** and **Design System**) set
 > global context — paste them into Claude Design first, or keep them pinned. Then paste **one screen
 > block at a time** (each is self-contained). Instructions are in English; all Arabic UI strings are
-> reproduced **exactly** as they appear in the live ELAN codebase — do not translate or rewrite them.
+> reproduced **exactly** as they appear in the live ÉLAN codebase — do not translate or rewrite them.
 > Anything not present in the code is marked **[assumption]**.
 
 ---
 
 ## Project Intro
 
-ELAN (**إيلان**) is a booking app for a **women's Pilates studio in Riyadh, Saudi Arabia**. It is
+ÉLAN (the brand wordmark is **ÉLAN**, used in both Arabic and English) is a booking app for a
+**women's Pilates studio in Riyadh, Saudi Arabia**. It is
 **Arabic-first and RTL by default** (English is a secondary toggle). The visual language is
 **Material Design 3**, with a calm, elegant, premium, minimal feel — a soft rose accent on warm
 off-white surfaces, generous rounded corners, and gentle shadows. The product has two surfaces:
@@ -37,7 +38,7 @@ off-white surfaces, generous rounded corners, and gentle shadows. The product ha
 
 ## Design System
 
-Use these **real tokens** taken from the ELAN Tailwind config and global CSS. Treat them as the
+Use these **real tokens** taken from the ÉLAN Tailwind config and global CSS. Treat them as the
 single source of truth across every screen.
 
 ### Color tokens
@@ -130,7 +131,7 @@ defaults to Arabic). Vertically centered, single column, `max-w-md`, padding ~24
 = `surface`.
 
 **Layout (top → bottom):**
-1. **Wordmark** — centered, large bold text **`إيلان`** in `primary-700`, `text-4xl`.
+1. **Wordmark** — centered, large bold text **`ÉLAN`** in `primary-700`, `text-4xl`.
 2. **Card** (`surface.container`, rounded-card, soft shadow, `p-6`) containing:
    - **Email field** — label **`البريد الإلكتروني`**; input is **LTR**, outlined (`border-outline`,
      rounded-card), focus border = primary. Prefilled demo value `noor@elan.demo`.
@@ -146,7 +147,7 @@ defaults to Arabic). Vertically centered, single column, `max-w-md`, padding ~24
 show `…`).
 
 **English equivalents (for the LTR variant):** title `Sign in`, `Email`, `Password`, submit `Sign in`,
-`Enter as demo member`, `Enter as admin`, hint `Demo: noor@elan.demo / elan1234`. App name `ELAN`.
+`Enter as demo member`, `Enter as admin`, hint `Demo: noor@elan.demo / elan1234`. App name `ÉLAN`.
 
 **RTL:** Card content right-aligned; labels above inputs; the two secondary buttons sit in a row that
 reads right-to-left (first button on the right). Inputs themselves are LTR for credentials. **[assumption]**
@@ -343,7 +344,7 @@ optional admin entry, logout. Bottom tab bar present (Profile active).
 **Layout (top → bottom):**
 1. **Profile header** (row, `gap-3`): a **circular avatar** (56×56, `primary-100` bg, 👤 placeholder);
    beside it a stack with the **member full name** (`text-lg` bold, `primary-800`, truncated; falls
-   back to **`حسابي`**) over the app name **`إيلان`** (`text-sm`, `status.full`).
+   back to **`حسابي`**) over the app name **`ÉLAN`** (`text-sm`, `status.full`).
 2. **Stats card** (`surface.container`, `p-4`):
    - Eyebrow (`text-xs font-semibold tracking-wide`, `status.full`): **`حسابي`**.
    - **`{n} حصة تم حضورها`** (classes attended count).
@@ -371,7 +372,7 @@ the **label is on the right**, control/chevron on the **left**; the admin chevro
 container, `max-w-3xl`, `p-6`, `space-y-5`. Explicitly direction-aware (`dir` set from locale).
 
 **Layout (top → bottom):**
-1. **Header row** (space-between): title **`لوحة الإدارة · إيلان`** (`text-2xl` bold, `primary-800`);
+1. **Header row** (space-between): title **`لوحة الإدارة · ÉLAN`** (`text-2xl` bold, `primary-800`);
    a trailing text link back to the member app **`التطبيق ›`** (`text-sm`, `primary-600`).
 2. **Stat tiles** — a 3-column grid (`grid-cols-3 gap-3`) of stat cards. Each tile (`surface.container`,
    `p-4`, centered): big value (`text-2xl` bold, `primary-700`) over a small label (`text-xs`,
@@ -389,7 +390,7 @@ container, `max-w-3xl`, `p-6`, `space-y-5`. Explicitly direction-aware (`dir` se
 4. **Footer note** — centered `text-xs`, `status.full`:
    **`هذه نسخة عرض للوحة الإدارة. إدارة الجدول والأعضاء والتقارير قيد الإكمال.`**
 
-**English equivalents:** title `Admin · ELAN`; back link `App ›`; tiles `Classes today / Fill rate /
+**English equivalents:** title `Admin · ÉLAN`; back link `App ›`; tiles `Classes today / Fill rate /
 Revenue today`; revenue unit `SAR`; row waitlist suffix `· +{n} wait`; empty `No classes today.`;
 footer `Read-only admin preview. Schedule, members, and reports management are in progress.`
 

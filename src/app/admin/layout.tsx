@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div dir={dirFor(locale)} className="mx-auto max-w-3xl space-y-5 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary-800">{ar ? "لوحة الإدارة · إيلان" : "Admin · ELAN"}</h1>
+        <h1 className="text-2xl font-bold text-primary-800">{ar ? "لوحة الإدارة · ÉLAN" : "Admin · ÉLAN"}</h1>
         <Link href="/" className="text-sm text-primary-600">{ar ? "التطبيق ›" : "App ›"}</Link>
       </header>
       <AdminNav items={nav} />

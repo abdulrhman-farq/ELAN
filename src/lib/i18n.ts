@@ -9,7 +9,7 @@ export function dirFor(locale: Locale): "rtl" | "ltr" {
 /** Translation dictionary. All copy lives here — none hardcoded in components. */
 export const dict = {
   ar: {
-    appName: "إيلان",
+    appName: "ÉLAN",
     tabs: { timetable: "الجدول", bookings: "حجوزاتي", memberships: "العضويات", profile: "حسابي" },
     common: { loading: "جارٍ التحميل…", error: "حدث خطأ", today: "اليوم", sar: "ر.س", buy: "شراء", cancel: "إلغاء", minutes: "دقيقة", back: "رجوع" },
     timetable: { title: "الجدول", filters: "تصفية", empty: "لا توجد حصص في هذا اليوم." },
@@ -23,7 +23,7 @@ export const dict = {
     login: { title: "تسجيل الدخول", email: "البريد الإلكتروني", password: "كلمة المرور", submit: "دخول", demo: "دخول كعضوة تجريبية", demoAdmin: "دخول كمسؤولة", hint: "للتجربة: noor@elan.demo / elan1234" },
   },
   en: {
-    appName: "ELAN",
+    appName: "ÉLAN",
     tabs: { timetable: "Timetable", bookings: "Bookings", memberships: "Memberships", profile: "Profile" },
     common: { loading: "Loading…", error: "Something went wrong", today: "Today", sar: "SAR", buy: "Buy", cancel: "Cancel", minutes: "mins", back: "Back" },
     timetable: { title: "Timetable", filters: "Filters", empty: "No classes scheduled for this day." },
