@@ -18,7 +18,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   if (!result) notFound();
   const { card: c, eligibility } = result;
 
-  const name = locale === "ar" ? c.name_ar : c.name_en;
+  const name = c.name_en; // class names always shown in English
   const instructor = locale === "ar" ? c.instructor_ar : c.instructor_en;
   const description = locale === "ar" ? c.description_ar : c.description_en;
 

@@ -16,7 +16,7 @@ export function ClassCard({
   statusLabels: Record<string, string>;
   ctaLabels: { book: string; joinWaitlist: string };
 }) {
-  const name = locale === "ar" ? card.name_ar : card.name_en;
+  const name = card.name_en; // class names always shown in English
   const instructor = locale === "ar" ? card.instructor_ar : card.instructor_en;
   const booked = card.my_status === "confirmed";
   const waitlisted = card.my_status === "waitlisted";

@@ -31,7 +31,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       ) : (
         <div className="space-y-3">
           {rows.map((b) => {
-            const name = locale === "ar" ? b.name_ar : b.name_en;
+            const name = b.name_en; // class names always shown in English
             const instructor = locale === "ar" ? b.instructor_ar : b.instructor_en;
             return (
               <div key={b.id} className="card space-y-2 p-5">

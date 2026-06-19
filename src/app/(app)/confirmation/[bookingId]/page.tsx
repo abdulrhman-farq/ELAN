@@ -16,7 +16,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
   const b = await getBooking(bookingId);
   if (!b) notFound();
 
-  const name = ar ? b.name_ar : b.name_en;
+  const name = b.name_en; // class names always shown in English
   const instructor = ar ? b.instructor_ar : b.instructor_en;
 
   return (

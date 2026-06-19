@@ -45,7 +45,7 @@ export default async function HomePage() {
       {next ? (
         <Link href="/bookings" className="card-ink block p-6">
           <p className="eyebrow text-primary-200">{t.home.nextClass}</p>
-          <p className="mt-3 font-display text-[26px] font-medium leading-none">{ar ? next.name_ar : next.name_en}</p>
+          <p className="mt-3 font-display text-[26px] font-medium leading-none">{next.name_en}</p>
           {(ar ? next.instructor_ar : next.instructor_en) ? (
             <p className="mt-1.5 text-sm text-ink/70">{ar ? next.instructor_ar : next.instructor_en}</p>
           ) : null}
@@ -82,8 +82,8 @@ export default async function HomePage() {
           <div className="flex gap-3">
             {discover.map((c) => (
               <Link key={c.id} href={`/class/${c.id}`} className="card flex-1 p-4">
-                <div className="mb-3 h-16 w-full rounded-[12px]" style={{ background: classGradient(ar ? c.name_ar : c.name_en) }} />
-                <div className="font-display text-base font-medium leading-tight">{ar ? c.name_ar : c.name_en}</div>
+                <div className="mb-3 h-16 w-full rounded-[12px]" style={{ background: classGradient(c.name_en) }} />
+                <div className="font-display text-base font-medium leading-tight">{c.name_en}</div>
                 <div className="mt-0.5 truncate text-[11px] text-status-full">
                   {fmtTime(c.starts_at, locale)}
                   {(ar ? c.instructor_ar : c.instructor_en) ? ` · ${ar ? c.instructor_ar : c.instructor_en}` : ""}
