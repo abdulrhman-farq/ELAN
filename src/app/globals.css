@@ -6,10 +6,15 @@
   body { @apply bg-surface text-primary-900 antialiased; margin: 0; }
   html, body { height: 100%; }
   [dir="rtl"] .chevron { transform: scaleX(-1); }
+  ::selection { background: #C2A05E; color: #FAF4E9; }   /* brass */
 }
 
 @layer components {
   .card { @apply rounded-card bg-surface-container shadow-card; }
   .chip { @apply inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium; }
   .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky; }
+
+  /* optional brand helpers */
+  .eyebrow { @apply font-label text-[10px] uppercase tracking-[0.26em] text-primary-600; }
+  .wordmark { @apply font-display tracking-[0.04em]; }
 }

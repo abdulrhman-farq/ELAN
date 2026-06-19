@@ -1,26 +1,33 @@
 import type { Config } from "tailwindcss";
 
-/** Material Design 3 tokens for ELAN — a calm rose accent + status colours. */
+/** ÉLAN quiet-luxury tokens — warm sand, brass, terracotta/clay. */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
+        // Terracotta / clay ramp — anchored on brand #B5704F (=500/DEFAULT)
         primary: {
-          DEFAULT: "#B0656F", 50: "#FBF1F2", 100: "#F6E1E4", 200: "#EAC2C8",
-          300: "#DD9CA6", 400: "#C97D88", 500: "#B0656F", 600: "#934E58",
-          700: "#763E47", 800: "#5A2F35", 900: "#3E2024",
+          DEFAULT: "#B5704F", 50: "#FBF4EE", 100: "#F2E3D5", 200: "#E6C9B3",
+          300: "#D8A48A", 400: "#C5876A", 500: "#B5704F", 600: "#A54E45",
+          700: "#8B4034", 800: "#6B3329", 900: "#4A3729",
         },
-        surface: { DEFAULT: "#FFFBFA", variant: "#F3EDEC", container: "#FAF3F2" },
-        outline: "#E4DAD9",
-        status: { available: "#B0656F", waitlist: "#2E7D5B", full: "#9A9494" },
+        surface: { DEFAULT: "#EFE7D8", variant: "#E4D6C1", container: "#FAF4E9" },
+        outline: "#DDCDB6",
+        // Brass accent for hairlines / selection / date underline (new, optional)
+        accent: "#C2A05E",
+        status: { available: "#B5704F", waitlist: "#8A6A2E", full: "#9B8C77" },
       },
       borderRadius: { card: "1.25rem", pill: "9999px" },
       boxShadow: {
-        card: "0 1px 3px rgba(58,32,36,0.08), 0 1px 2px rgba(58,32,36,0.04)",
-        sticky: "0 -2px 12px rgba(58,32,36,0.08)",
+        card: "0 1px 3px rgba(74,55,41,0.08), 0 1px 2px rgba(74,55,41,0.05)",
+        sticky: "0 -2px 12px rgba(74,55,41,0.08)",
       },
-      fontFamily: { sans: ["Tajawal", "system-ui", "sans-serif"] },
+      fontFamily: {
+        sans: ["Tajawal", "system-ui", "sans-serif"],          // UI body (AR + EN) — unchanged role
+        display: ["'Cormorant Garamond'", "Georgia", "serif"], // ÉLAN wordmark, hero titles (LTR)
+        label: ["Jost", "system-ui", "sans-serif"],            // uppercase eyebrow labels
+      },
     },
   },
   plugins: [],
