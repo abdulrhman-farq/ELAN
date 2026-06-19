@@ -14,13 +14,14 @@ const config: Config = {
           400: "#C9A878", 500: "#2E2A26", 600: "#4A423C", 700: "#9C7A45",
           800: "#3A332F", 900: "#3A332F",
         },
-        surface: { DEFAULT: "#F2EBE1", variant: "#E7DACB", container: "#FBF7F0", elevated: "#FFFDF9" },
-        outline: "#E8DCCB",
-        accent: "#B89766", // aged brass / champagne gold
-        sage: { DEFAULT: "#818263", 100: "#E8E9DF", 700: "#5F6049" },
+        surface: { DEFAULT: "#EDE8DD", variant: "#E8DFD0", container: "#FFFAF2", elevated: "#FFFAF2" },
+        outline: "#E3D8C8",
+        accent: "#C89F5F", // champagne gold
+        sage: { DEFAULT: "#8A9272", 100: "#E5E7DA", 700: "#5F6049" },
         ink: "#F8F5F1", // creamy text on charcoal / gold fills
-        brand: "#2E2A26", // dark charcoal for hero + admin sidebar
-        status: { available: "#818263", waitlist: "#B08D57", full: "#8D7E75" },
+        brand: "#211C18", // dark espresso for hero + admin sidebar
+        danger: "#BD493E",
+        status: { available: "#8A9272", waitlist: "#C89F5F", full: "#8B8177" },
       },
       borderRadius: { card: "1.75rem", pill: "9999px" },
       boxShadow: {

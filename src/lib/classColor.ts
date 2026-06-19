@@ -15,3 +15,17 @@ export function classGradient(name: string): string {
   const c = classAccent(name);
   return `linear-gradient(135deg, ${c}, ${c}99)`;
 }
+
+/** Photographic image per class type (SVG art in /public/assets). */
+export function classImage(name: string): string {
+  const n = (name || "").toLowerCase();
+  if (n.includes("power")) return "/assets/power-reformer.svg";
+  if (n.includes("reformer")) return "/assets/reformer-flow.svg";
+  if (n.includes("mat")) return "/assets/mat-pilates.svg";
+  if (n.includes("stretch")) return "/assets/stretching.svg";
+  if (n.includes("sculpt") || n.includes("tone")) return "/assets/power-reformer.svg";
+  return "/assets/reformer-flow.svg";
+}
+
+export const HERO_IMAGE = "/assets/studio-hero.svg";
+export const INSTRUCTOR_IMAGE = "/assets/instructor-lina.svg";

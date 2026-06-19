@@ -52,7 +52,7 @@ export function CancelLink({ bookingId, label }: { bookingId: string; label: str
     <button
       disabled={pending}
       onClick={() => start(() => cancelAction(bookingId).then(() => undefined))}
-      className="text-sm text-accent disabled:opacity-50"
+      className="text-sm text-danger disabled:opacity-50"
     >
       {pending ? "…" : label}
     </button>
@@ -92,7 +92,7 @@ export function LogoutButton({ label }: { label: string }) {
   const [pending, start] = useTransition();
   return (
     <button disabled={pending} onClick={() => start(() => signOutAction())}
-      className="w-full rounded-pill py-3 text-center text-accent disabled:opacity-50">
+      className="w-full rounded-pill py-3 text-center text-danger disabled:opacity-50">
       {label}
     </button>
   );

@@ -3,6 +3,7 @@ import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getMemberContext, getMyBookings } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
+import { HERO_IMAGE } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,18 @@ export default async function ProfilePage() {
     : null;
 
   return (
-    <section className="space-y-5 p-6">
-      <header className="pt-2 text-center">
-        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border border-accent bg-surface-variant font-display text-3xl text-primary-700">{initial}</div>
-        <h1 className="font-display text-2xl font-medium text-primary-900">{fullName}</h1>
-        <p className="text-[13px] text-status-full">{ctx.member?.email ?? t.appName}</p>
-      </header>
+    <section className="pb-6">
+      <div className="relative h-36 overflow-hidden rounded-b-[30px] md:mt-4 md:rounded-[30px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.1),rgba(33,28,24,.45))" }} />
+      </div>
+      <div className="space-y-5 px-6">
+        <header className="text-center">
+          <div className="mx-auto -mt-12 mb-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-surface bg-surface-variant font-display text-3xl text-accent">{initial}</div>
+          <h1 className="font-display text-2xl font-medium text-primary-900">{fullName}</h1>
+          <p className="text-[13px] text-status-full">{ctx.member?.email ?? t.appName}</p>
+        </header>
 
       <div className="card-ink space-y-3 p-5">
         <div className="flex items-center justify-between">
@@ -57,6 +64,7 @@ export default async function ProfilePage() {
 
       <LogoutButton label={t.profile.logout} />
       <p className="text-center text-xs text-status-full">{t.profile.version} 0.1.0</p>
+      </div>
     </section>
   );
 }
