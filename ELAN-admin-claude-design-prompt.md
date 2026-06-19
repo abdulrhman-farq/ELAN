@@ -1,4 +1,4 @@
-# ELAN (إيلان) — Admin Console · Claude Design Prompt
+# ÉLAN — Admin Console · Claude Design Prompt
 
 > Companion to **`ELAN-claude-design-prompt.md`**. That file's **Project Intro** and **Design System**
 > apply here unchanged — paste them first (same rose tokens, surfaces, status colors, `rounded-card`
@@ -8,7 +8,7 @@
 
 The admin console is the **studio owner's** surface. It is **wider than the member app**
 (`max-w-3xl` / ~768px, desktop-or-tablet first), has **no bottom tab bar**, and is **Arabic-first
-RTL** like the rest of ELAN. All admin screens share one shell (header + section nav) and then render
+RTL** like the rest of ÉLAN. All admin screens share one shell (header + section nav) and then render
 their own body.
 
 **Admin screens (6):**
@@ -32,14 +32,14 @@ their own body.
 
 **Layout (top → bottom):**
 1. **Header row** (space-between):
-   - Title **`لوحة الإدارة · إيلان`** (`text-2xl` bold, `primary-800`).
+   - Title **`لوحة الإدارة · ÉLAN`** (`text-2xl` bold, `primary-800`).
    - Trailing text link back to the member app **`التطبيق ›`** (`text-sm`, `primary-600`).
 2. **Section nav** — a row of **pill chips** (`flex flex-wrap gap-2`): **`اللوحة`** (Dashboard),
    **`الجدول`** (Schedule), **`الأعضاء`** (Members), **`التقارير`** (Reports). Active chip =
    `bg-primary` white; inactive = `surface.variant` bg + `primary-700` text.
 3. **Screen body** (one of A1–A6) renders below.
 
-**English equivalents:** title `Admin · ELAN`; back `App ›`; nav `Dashboard / Schedule / Members /
+**English equivalents:** title `Admin · ÉLAN`; back `App ›`; nav `Dashboard / Schedule / Members /
 Reports`.
 
 **RTL:** Title on the **right**, `التطبيق ›` link on the **left** with its chevron pointing **left**

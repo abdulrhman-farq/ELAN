@@ -5,8 +5,8 @@ import { dirFor, dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 
 export const metadata: Metadata = {
-  title: "إيلان · ELAN",
-  description: "ELAN — women's Pilates studio booking, Riyadh.",
+  title: "ÉLAN",
+  description: "ÉLAN — women's Pilates studio booking, Riyadh.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
