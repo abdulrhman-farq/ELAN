@@ -8,17 +8,19 @@ import { LOCALE_COOKIE, type Locale } from "@/lib/i18n";
 
 export async function bookAction(classInstanceId: string) {
   const supabase = await getServerSupabase();
-  const { error } = await rpc(supabase, "book_class_self", { p_class_instance_id: classInstanceId, p_source: "web" });
+  const { data, error } = await rpc<{ id: string }>(supabase, "book_class_self", { p_class_instance_id: classInstanceId, p_source: "web" });
   revalidatePath("/");
+  revalidatePath("/schedule");
   revalidatePath(`/class/${classInstanceId}`);
   revalidatePath("/bookings");
-  return error ? { error: error.message } : { ok: true };
+  return error ? { error: error.message } : { ok: true as const, bookingId: data?.id ?? null };
 }
 
 export async function cancelAction(bookingId: string, classInstanceId?: string) {
   const supabase = await getServerSupabase();
   const { error } = await rpc(supabase, "cancel_booking_self", { p_booking_id: bookingId });
   revalidatePath("/");
+  revalidatePath("/schedule");
   revalidatePath("/bookings");
   if (classInstanceId) revalidatePath(`/class/${classInstanceId}`);
   return error ? { error: error.message } : { ok: true };

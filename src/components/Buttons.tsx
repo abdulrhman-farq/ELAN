@@ -13,14 +13,23 @@ export function CtaButton({
   variant: "primary" | "muted" | "disabled";
   disabled?: boolean;
 }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const onClick = () =>
     start(async () => {
-      const res = bookingId
-        ? await cancelAction(bookingId, classInstanceId)
-        : await bookAction(classInstanceId);
-      if ("error" in res && res.error) setErr(res.error);
+      if (bookingId) {
+        const res = await cancelAction(bookingId, classInstanceId);
+        if ("error" in res && res.error) setErr(res.error);
+        return;
+      }
+      const res = await bookAction(classInstanceId);
+      if ("bookingId" in res) {
+        if (res.bookingId) router.push(`/confirmation/${res.bookingId}`);
+        else router.refresh();
+      } else {
+        setErr(res.error);
+      }
     });
   const bg = variant === "primary" ? "bg-primary" : variant === "muted" ? "bg-status-full" : "bg-status-full/50";
   return (
@@ -29,7 +38,7 @@ export function CtaButton({
       <button
         disabled={disabled || pending}
         onClick={onClick}
-        className={`w-full rounded-pill py-3 text-center font-medium text-white disabled:opacity-50 ${bg}`}
+        className={`w-full rounded-[2px] py-3.5 text-center font-medium text-surface disabled:opacity-50 ${bg}`}
       >
         {pending ? "…" : label}
       </button>
@@ -56,7 +65,7 @@ export function BuyButton({ type, refId, label }: { type: "membership" | "credit
     <button
       disabled={pending}
       onClick={() => start(() => purchaseAction(type, refId).then(() => undefined))}
-      className="shrink-0 rounded-pill bg-primary px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="shrink-0 rounded-[2px] bg-primary px-5 py-2.5 text-sm font-medium text-surface disabled:opacity-50"
     >
       {pending ? "…" : label}
     </button>

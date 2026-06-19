@@ -4,9 +4,10 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./Icon";
 
 const TABS = [
-  { href: "/", key: "timetable", icon: "calendar_month" },
-  { href: "/bookings", key: "bookings", icon: "confirmation_number" },
-  { href: "/memberships", key: "memberships", icon: "credit_card" },
+  { href: "/", key: "home", icon: "home" },
+  { href: "/schedule", key: "timetable", icon: "calendar_month" },
+  { href: "/bookings", key: "bookings", icon: "event_available" },
+  { href: "/memberships", key: "memberships", icon: "card_membership" },
   { href: "/profile", key: "profile", icon: "person" },
 ] as const;
 
@@ -19,8 +20,11 @@ export function BottomTabs({ labels }: { labels: Record<string, string> }) {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
           return (
             <li key={t.href} className="flex-1">
-              <Link href={t.href} className={`flex flex-col items-center gap-0.5 py-1 text-xs ${active ? "text-primary" : "text-status-full"}`}>
-                <Icon name={t.icon} filled={active} className="text-[22px]" />
+              <Link
+                href={t.href}
+                className={`flex flex-col items-center gap-0.5 py-1 text-[11px] ${active ? "text-primary" : "text-status-full"}`}
+              >
+                <Icon name={t.icon} filled={active} className="text-[20px]" />
                 <span>{labels[t.key]}</span>
               </Link>
             </li>

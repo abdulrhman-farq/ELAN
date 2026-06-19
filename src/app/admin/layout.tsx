@@ -18,20 +18,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const locale = await getLocale();
   const ar = locale === "ar";
   const nav = [
-    { href: "/admin", label: ar ? "اللوحة" : "Dashboard" },
-    { href: "/admin/schedule", label: ar ? "الجدول" : "Schedule" },
+    { href: "/admin", label: ar ? "لوحة التحكم" : "Dashboard" },
+    { href: "/admin/schedule", label: ar ? "الجدول والحصص" : "Schedule" },
     { href: "/admin/members", label: ar ? "الأعضاء" : "Members" },
-    { href: "/admin/reports", label: ar ? "التقارير" : "Reports" },
+    { href: "/admin/reports", label: ar ? "التقارير المالية" : "Reports" },
   ];
 
   return (
-    <div dir={dirFor(locale)} className="mx-auto max-w-3xl space-y-5 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary-800">{ar ? "لوحة الإدارة · ÉLAN" : "Admin · ÉLAN"}</h1>
-        <Link href="/" className="text-sm text-primary-600">{ar ? "التطبيق ›" : "App ›"}</Link>
-      </header>
-      <AdminNav items={nav} />
-      {children}
+    <div dir={dirFor(locale)} className="mx-auto flex min-h-screen max-w-[1200px] flex-col md:flex-row">
+      <aside className="card-ink flex flex-col gap-8 rounded-none p-7 md:w-[230px] md:shrink-0">
+        <div className="wordmark text-3xl">ÉLAN</div>
+        <AdminNav items={nav} />
+        <Link href="/" className="mt-auto text-sm text-surface/60 hover:text-surface">{ar ? "التطبيق ›" : "App ›"}</Link>
+      </aside>
+      <main className="flex-1 space-y-6 p-6 md:p-8">{children}</main>
     </div>
   );
 }
