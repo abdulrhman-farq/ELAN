@@ -3,6 +3,7 @@ import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getMemberContext, getMyBookings } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
+import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function ProfilePage() {
   return (
     <section className="space-y-4 p-4">
       <header className="flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-2xl">👤</div>
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100"><Icon name="person" className="text-2xl text-primary-500" /></div>
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-primary-800">{ctx.member?.full_name ?? t.profile.title}</h1>
           <p className="text-sm text-status-full">{t.appName}</p>

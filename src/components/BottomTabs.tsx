@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Icon } from "./Icon";
 
 const TABS = [
-  { href: "/", key: "timetable", icon: "📅" },
-  { href: "/bookings", key: "bookings", icon: "🎟️" },
-  { href: "/memberships", key: "memberships", icon: "💳" },
-  { href: "/profile", key: "profile", icon: "👤" },
+  { href: "/", key: "timetable", icon: "calendar_month" },
+  { href: "/bookings", key: "bookings", icon: "confirmation_number" },
+  { href: "/memberships", key: "memberships", icon: "credit_card" },
+  { href: "/profile", key: "profile", icon: "person" },
 ] as const;
 
 export function BottomTabs({ labels }: { labels: Record<string, string> }) {
@@ -19,7 +20,7 @@ export function BottomTabs({ labels }: { labels: Record<string, string> }) {
           return (
             <li key={t.href} className="flex-1">
               <Link href={t.href} className={`flex flex-col items-center gap-0.5 py-1 text-xs ${active ? "text-primary" : "text-status-full"}`}>
-                <span aria-hidden className="text-lg leading-none">{t.icon}</span>
+                <Icon name={t.icon} filled={active} className="text-[22px]" />
                 <span>{labels[t.key]}</span>
               </Link>
             </li>

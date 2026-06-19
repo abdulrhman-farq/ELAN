@@ -3,6 +3,7 @@ import type { Locale } from "@/lib/i18n";
 import type { ClassCardData } from "@/lib/queries";
 import { fmtTime, levelLabel } from "@/lib/format";
 import { StatusChip } from "./StatusChip";
+import { Icon } from "./Icon";
 
 export function ClassCard({
   card, locale, minutesLabel, statusLabels,
@@ -14,7 +15,7 @@ export function ClassCard({
   const grey = (card.display_status === "fully_booked" || card.display_status === "booking_closed") && !card.my_status;
   return (
     <Link href={`/class/${card.id}`} className={`card flex items-center gap-3 p-3 ${grey ? "opacity-60" : ""}`}>
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-primary-100 text-2xl">🧘‍♀️</div>
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card bg-primary-100"><Icon name="self_improvement" className="text-3xl text-primary-500" /></div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <h3 className="truncate font-bold text-primary-900">{name}</h3>

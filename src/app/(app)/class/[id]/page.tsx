@@ -6,6 +6,7 @@ import { getClass } from "@/lib/queries";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { ctaState, type Eligibility } from "@/lib/cta";
 import { CtaButton } from "@/components/Buttons";
+import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +34,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   const disabled = cta.disabled;
   const bookingId = cta.isCancel ? c.my_booking_id : null;
 
-  const heading = "text-xs font-semibold tracking-wide text-status-full";
+  const heading = locale === "en" ? "eyebrow" : "text-xs font-semibold tracking-wide text-status-full";
 
   return (
     <section className="pb-28">
-      <div className="relative flex h-48 items-center justify-center bg-primary-100 text-5xl">
-        🧘‍♀️
+      <div className="relative flex h-48 items-center justify-center bg-primary-100">
+        <Icon name="self_improvement" className="text-6xl text-primary-400" />
         <Link href="/" className="absolute start-3 top-3 rounded-pill bg-surface/80 px-3 py-1 text-sm">‹ {t.common.back}</Link>
       </div>
       <div className="space-y-4 p-4">
@@ -51,7 +52,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         ) : null}
 
         <div><p className={heading}>{t.detail.time}</p><p>{fmtLongDateTime(c.starts_at, c.ends_at, locale)}</p></div>
-        {instructor ? <div><p className={heading}>{t.detail.instructor}</p><p>👩‍🏫 {instructor}</p></div> : null}
+        {instructor ? <div><p className={heading}>{t.detail.instructor}</p><p className="flex items-center gap-1"><Icon name="person" className="text-base text-primary-400" />{instructor}</p></div> : null}
         <div><p className={heading}>{t.detail.level}</p><p>{levelLabel(c.level, locale)}</p></div>
         {description ? <div><p className={heading}>{t.detail.description}</p><p className="text-sm leading-relaxed">{description}</p></div> : null}
       </div>
