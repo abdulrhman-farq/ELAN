@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
 import { adminMock as M } from "@/lib/adminMock";
+import { classImage } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,11 @@ export default async function AdminDashboard() {
             {M.todayClasses.map((c, i) => (
               <div key={i} className="flex items-center gap-2 border-b border-outline py-3 last:border-0">
                 <span className="w-14 shrink-0 font-display text-[15px] text-primary-900">{c.time}</span>
-                <span className="flex-1 text-primary-900">{c.name}</span>
+                <span className="flex flex-1 items-center gap-2 text-primary-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={classImage(c.name)} alt="" className="h-8 w-8 rounded-[8px] object-cover" />
+                  {c.name}
+                </span>
                 <span className="w-16 shrink-0 text-status-full">{c.instr}</span>
                 <span className="w-14 shrink-0 text-status-full">{c.booked}</span>
                 <span className={`w-14 shrink-0 ${c.open ? "text-sage" : "text-primary"}`}>{c.status}</span>

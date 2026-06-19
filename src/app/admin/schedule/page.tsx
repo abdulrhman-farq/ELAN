@@ -1,5 +1,6 @@
 import { getLocale } from "@/lib/locale-server";
 import { adminMock as M } from "@/lib/adminMock";
+import { classImage } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
 
@@ -29,16 +30,18 @@ export default async function AdminSchedule() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {M.weekClasses.map((c, i) => (
-          <div key={i} className="card flex items-stretch overflow-hidden p-0">
-            <div className="w-1.5 shrink-0" style={{ background: c.accent }} />
-            <div className="flex-1 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-display text-lg text-primary-900">{c.name}</h3>
-                <span className={`text-[12px] ${c.open ? "text-sage" : "text-primary"}`}>{c.status}</span>
-              </div>
-              <p className="mt-1 text-[12px] text-status-full">{c.time}</p>
-              <div className="mt-4 flex items-center gap-3 border-t border-outline pt-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-variant font-display text-sm text-primary">{c.initial}</div>
+          <div key={i} className="card overflow-hidden p-0">
+            <div className="relative h-24">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={classImage(c.name)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 30%,rgba(17,13,10,.85))" }} />
+              <span className={`absolute end-3 top-3 rounded-pill px-2.5 py-1 text-[11px] font-medium ${c.open ? "bg-sage text-ink" : "bg-surface-elevated/90 text-accent"}`}>{c.status}</span>
+              <h3 className="absolute inset-x-4 bottom-3 font-display text-lg font-medium text-ink">{c.name}</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-[12px] text-status-full">{c.time}</p>
+              <div className="mt-3 flex items-center gap-3 border-t border-outline pt-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-variant font-display text-sm text-primary-700">{c.initial}</div>
                 <span className="flex-1 text-[13px] text-primary-900">{ar ? `المدرّبة ${c.instr}` : c.instr}</span>
                 <div className="text-end">
                   <div className="text-[11px] text-status-full">{c.note}</div>
