@@ -58,7 +58,7 @@ export default async function AdminDashboard() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-4 text-center">
-      <p className="font-display text-3xl font-medium text-primary">{value}</p>
+      <p className="font-display text-3xl font-medium text-primary-700">{value}</p>
       <p className="text-xs text-status-full">{label}</p>
     </div>
   );

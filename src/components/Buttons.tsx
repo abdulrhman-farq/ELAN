@@ -31,14 +31,14 @@ export function CtaButton({
         setErr(res.error);
       }
     });
-  const bg = variant === "primary" ? "bg-primary" : variant === "muted" ? "bg-status-full" : "bg-status-full/50";
+  const cls = variant === "primary" ? "bg-primary text-ink" : variant === "muted" ? "bg-status-full text-surface" : "bg-status-full/40 text-surface";
   return (
     <div>
-      {err ? <p className="mb-2 text-center text-sm text-primary-600">{err}</p> : null}
+      {err ? <p className="mb-2 text-center text-sm text-accent">{err}</p> : null}
       <button
         disabled={disabled || pending}
         onClick={onClick}
-        className={`w-full rounded-[2px] py-3.5 text-center font-medium text-surface disabled:opacity-50 ${bg}`}
+        className={`w-full rounded-pill py-4 text-center font-medium disabled:opacity-50 ${cls}`}
       >
         {pending ? "…" : label}
       </button>
@@ -52,7 +52,7 @@ export function CancelLink({ bookingId, label }: { bookingId: string; label: str
     <button
       disabled={pending}
       onClick={() => start(() => cancelAction(bookingId).then(() => undefined))}
-      className="text-sm text-primary-600 disabled:opacity-50"
+      className="text-sm text-accent disabled:opacity-50"
     >
       {pending ? "…" : label}
     </button>
@@ -65,7 +65,7 @@ export function BuyButton({ type, refId, label }: { type: "membership" | "credit
     <button
       disabled={pending}
       onClick={() => start(() => purchaseAction(type, refId).then(() => undefined))}
-      className="shrink-0 rounded-[2px] bg-primary px-5 py-2.5 text-sm font-medium text-surface disabled:opacity-50"
+      className="shrink-0 rounded-pill bg-primary px-6 py-3 text-sm font-medium text-ink disabled:opacity-50"
     >
       {pending ? "…" : label}
     </button>
@@ -80,7 +80,7 @@ export function LangToggle({ current }: { current: Locale }) {
     <div className="inline-flex rounded-pill border border-outline p-0.5 text-sm">
       {(["ar", "en"] as const).map((loc) => (
         <button key={loc} disabled={pending} onClick={() => set(loc)}
-          className={`rounded-pill px-3 py-1 ${current === loc ? "bg-primary text-white" : "text-status-full"}`}>
+          className={`rounded-pill px-3 py-1 ${current === loc ? "bg-primary text-ink" : "text-status-full"}`}>
           {loc === "ar" ? "عربي" : "EN"}
         </button>
       ))}
@@ -92,7 +92,7 @@ export function LogoutButton({ label }: { label: string }) {
   const [pending, start] = useTransition();
   return (
     <button disabled={pending} onClick={() => start(() => signOutAction())}
-      className="w-full rounded-card py-3 text-center text-primary-600 disabled:opacity-50">
+      className="w-full rounded-pill py-3 text-center text-accent disabled:opacity-50">
       {label}
     </button>
   );

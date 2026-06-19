@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 @layer base {
-  body { @apply bg-surface text-primary-900 antialiased; margin: 0; }
+  body { @apply bg-surface text-primary-900 antialiased leading-relaxed; margin: 0; }
   html, body { height: 100%; }
   [dir="rtl"] .chevron { transform: scaleX(-1); }
-  ::selection { background: #B4654A; color: #FBF8F3; }
+  ::selection { background: #D6B47A; color: #2B2723; }
 
   .material-symbols-rounded {
     font-family: "Material Symbols Rounded";
@@ -25,15 +25,20 @@
 }
 
 @layer components {
-  /* Flat, hairline-bordered ivory card — the editorial look. */
-  .card { @apply rounded-card border border-outline bg-surface-container; }
-  /* Espresso "feature" card for hero / membership / dark panels. */
-  .card-ink { @apply rounded-card bg-ink text-surface; }
+  /* Warm light content card — rounded, soft shadow, hairline border. */
+  .card { @apply rounded-card border border-outline bg-surface-container shadow-card; }
+  /* Dark brand "moment" — hero / membership feature / sidebar. */
+  .card-ink {
+    @apply rounded-card text-surface;
+    background: linear-gradient(180deg, #2F2A25 0%, #211D19 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 44px -22px rgba(33, 29, 25, 0.65);
+  }
   .chip { @apply inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium; }
-  /* Near-square tailored button. */
-  .btn { @apply rounded-[2px] px-5 py-3 text-center text-sm font-medium; }
-  .btn-primary { @apply btn bg-primary text-surface; }
-  .btn-outline { @apply btn border border-outline bg-transparent text-primary-700; }
+  /* Pill buttons — gold CTA carries dark ink text. */
+  .btn { @apply rounded-pill px-6 py-3.5 text-center text-sm font-medium; }
+  .btn-primary { @apply btn bg-primary text-ink; }
+  .btn-outline { @apply btn border border-primary bg-transparent text-primary-700; }
   .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky; }
 
   /* Brand helpers. */

@@ -1,37 +1,37 @@
 import type { Config } from "tailwindcss";
 
-/** ÉLAN editorial-luxury tokens — warm bone, terracotta, espresso ink. */
+/** ÉLAN "Hybrid Luxury" tokens — warm light content surfaces, dark brand moments,
+ *  gold + sage accents. */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Terracotta accent (100–700) graduating to espresso ink (800/900).
+        // Gold accent (100–700) graduating to espresso ink for text (800/900).
         primary: {
-          DEFAULT: "#B4654A",
-          50: "#FBF8F3", 100: "#E8D5CB", 200: "#DCC2B2", 300: "#D0A88F",
-          400: "#C2876B", 500: "#B4654A", 600: "#A2573F", 700: "#8E4A37",
-          800: "#2B2622", 900: "#2B2622",
+          DEFAULT: "#D6B47A",
+          50: "#FAF6EE", 100: "#F1E7D2", 200: "#E7D4AE", 300: "#DEC592",
+          400: "#D9BC84", 500: "#D6B47A", 600: "#BE9A5C", 700: "#9C7C44",
+          800: "#2B2723", 900: "#2B2723",
         },
-        surface: { DEFAULT: "#F4EFE8", variant: "#EAE2D6", container: "#FBF8F3" },
-        outline: "#E5DBCB",
-        accent: "#B4654A",
-        ink: "#2B2622",
-        status: { available: "#B4654A", waitlist: "#8A6A2E", full: "#8A7F73" },
+        surface: { DEFAULT: "#F5F1EB", variant: "#EEE8DF", container: "#FBF8F3" },
+        outline: "#E6DECF",
+        accent: "#C78B73", // rose-clay
+        sage: { DEFAULT: "#A9B39B", 100: "#E8ECE2", 700: "#6E7A60" },
+        ink: "#2B2723", // body text
+        brand: "#211D19", // dark brand background
+        status: { available: "#6E7A60", waitlist: "#C78B73", full: "#8A8377" },
       },
-      borderRadius: { card: "0.375rem", pill: "9999px" },
+      borderRadius: { card: "1.75rem", pill: "9999px" },
       boxShadow: {
-        card: "0 1px 3px rgba(43,38,34,0.06), 0 1px 2px rgba(43,38,34,0.04)",
-        sticky: "0 -2px 12px rgba(43,38,34,0.08)",
-        frame: "0 36px 70px -28px rgba(43,38,34,0.45)",
+        card: "0 8px 30px rgba(43,38,34,0.10), 0 2px 8px rgba(43,38,34,0.05)",
+        sticky: "0 -2px 16px rgba(43,38,34,0.10)",
       },
       fontFamily: {
-        // Latin → DM Sans, Arabic → Noto Naskh Arabic (per-glyph fallback).
-        sans: ["'DM Sans'", "'Noto Naskh Arabic'", "system-ui", "sans-serif"],
-        // Editorial display: Cormorant for Latin, Naskh for Arabic.
-        display: ["'Cormorant Garamond'", "'Noto Naskh Arabic'", "Georgia", "serif"],
-        label: ["'DM Sans'", "system-ui", "sans-serif"],
-        arabic: ["'Noto Naskh Arabic'", "serif"],
+        sans: ["Inter", "'IBM Plex Sans Arabic'", "system-ui", "sans-serif"],
+        display: ["'Cormorant Garamond'", "'IBM Plex Sans Arabic'", "Georgia", "serif"],
+        label: ["Inter", "system-ui", "sans-serif"],
+        arabic: ["'IBM Plex Sans Arabic'", "sans-serif"],
       },
     },
   },
