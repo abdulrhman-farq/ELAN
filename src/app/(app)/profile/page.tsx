@@ -22,7 +22,7 @@ export default async function ProfilePage() {
   return (
     <section className="space-y-5 p-6">
       <header className="pt-2 text-center">
-        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border border-primary-200 bg-primary-100 font-display text-3xl text-primary">{initial}</div>
+        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border border-primary bg-surface-variant font-display text-3xl text-primary">{initial}</div>
         <h1 className="font-display text-2xl font-medium text-primary-900">{fullName}</h1>
         <p className="text-[13px] text-status-full">{ctx.member?.email ?? t.appName}</p>
       </header>
@@ -32,11 +32,11 @@ export default async function ProfilePage() {
           <p className="font-display text-lg">{planName ?? t.memberships.noMembership}</p>
           {planName ? <span className="rounded-pill border border-white/25 px-3 py-1 text-[11px] text-primary-200">{t.profile.active}</span> : null}
         </div>
-        <p className="text-[13px] text-surface/70">
+        <p className="text-[13px] text-primary-900/70">
           {ctx.balance > 0 ? t.memberships.credits.replace("{n}", String(ctx.balance)) : t.memberships.noCredits}
           {` · ${t.profile.attended.replace("{n}", String(attended))}`}
         </p>
-        {renews ? <p className="text-[11px] text-surface/50">{t.profile.renews.replace("{d}", renews)}</p> : null}
+        {renews ? <p className="text-[11px] text-primary-900/50">{t.profile.renews.replace("{d}", renews)}</p> : null}
       </div>
 
       <div className="card overflow-hidden">

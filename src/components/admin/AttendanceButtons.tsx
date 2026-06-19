@@ -29,7 +29,7 @@ export function AttendanceButtons({
         <button
           disabled={pending}
           onClick={() => run(markAttendedAction)}
-          className="rounded-pill bg-primary px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
+          className="rounded-pill bg-primary px-3 py-1 text-xs font-medium text-ink disabled:opacity-50"
         >
           {attendedLabel}
         </button>

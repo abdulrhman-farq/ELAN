@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <aside className="card-ink flex flex-col gap-8 rounded-none p-7 md:w-[230px] md:shrink-0">
         <div className="wordmark text-3xl">ÉLAN</div>
         <AdminNav items={nav} />
-        <Link href="/" className="mt-auto text-sm text-surface/60 hover:text-surface">{ar ? "التطبيق ›" : "App ›"}</Link>
+        <Link href="/" className="mt-auto text-sm text-primary-900/60 hover:text-primary-900">{ar ? "التطبيق ›" : "App ›"}</Link>
       </aside>
       <main className="flex-1 space-y-6 p-6 md:p-8">{children}</main>
     </div>

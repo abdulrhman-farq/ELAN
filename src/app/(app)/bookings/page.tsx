@@ -22,8 +22,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     <section className="space-y-5 p-6">
       <h1 className="font-display text-2xl font-medium text-primary-900">{t.bookings.title}</h1>
       <div className="flex gap-2">
-        <a href="/bookings" className={`chip ${tab === "upcoming" ? "bg-ink text-surface" : "border border-outline text-primary-700"}`}>{t.bookings.upcoming}</a>
-        <a href="/bookings?tab=past" className={`chip ${tab === "past" ? "bg-ink text-surface" : "border border-outline text-primary-700"}`}>{t.bookings.past}</a>
+        <a href="/bookings" className={`chip ${tab === "upcoming" ? "bg-primary text-ink" : "border border-outline text-primary-700"}`}>{t.bookings.upcoming}</a>
+        <a href="/bookings?tab=past" className={`chip ${tab === "past" ? "bg-primary text-ink" : "border border-outline text-primary-700"}`}>{t.bookings.past}</a>
       </div>
 
       {rows.length === 0 ? (

@@ -3,10 +3,15 @@
 @tailwind utilities;
 
 @layer base {
-  body { @apply bg-surface text-primary-900 antialiased leading-relaxed; margin: 0; }
+  body {
+    @apply text-primary-900 antialiased leading-relaxed;
+    margin: 0;
+    background: linear-gradient(180deg, #2C241F 0%, #241E1A 100%);
+    background-attachment: fixed;
+  }
   html, body { height: 100%; }
   [dir="rtl"] .chevron { transform: scaleX(-1); }
-  ::selection { background: #D6B47A; color: #2B2723; }
+  ::selection { background: #D6B47A; color: #241E1A; }
 
   .material-symbols-rounded {
     font-family: "Material Symbols Rounded";
@@ -25,23 +30,27 @@
 }
 
 @layer components {
-  /* Warm light content card — rounded, soft shadow, hairline border. */
+  /* Elevated dark card with gold hairline + soft shadow. */
   .card { @apply rounded-card border border-outline bg-surface-container shadow-card; }
-  /* Dark brand "moment" — hero / membership feature / sidebar. */
+  /* Cover / hero card with warm brown gradient. */
   .card-ink {
-    @apply rounded-card text-surface;
-    background: linear-gradient(180deg, #2F2A25 0%, #211D19 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 18px 44px -22px rgba(33, 29, 25, 0.65);
+    @apply rounded-card text-primary-900;
+    background: linear-gradient(140deg, #6b5238, #3a2c20);
+    border: 1px solid rgba(214, 180, 122, 0.18);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
   }
   .chip { @apply inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium; }
-  /* Pill buttons — gold CTA carries dark ink text. */
+  /* Gold gradient CTA carries dark ink text. */
   .btn { @apply rounded-pill px-6 py-3.5 text-center text-sm font-medium; }
-  .btn-primary { @apply btn bg-primary text-ink; }
-  .btn-outline { @apply btn border border-primary bg-transparent text-primary-700; }
+  .btn-primary {
+    @apply btn text-ink;
+    background: linear-gradient(135deg, #E4C58E, #D6B47A);
+    box-shadow: 0 14px 30px -12px rgba(214, 180, 122, 0.5);
+  }
+  .btn-outline { @apply btn border border-outline bg-transparent text-primary; }
   .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky; }
 
   /* Brand helpers. */
-  .eyebrow { @apply font-label text-[11px] uppercase tracking-[0.16em] text-status-full; }
+  .eyebrow { @apply font-label text-[10px] uppercase tracking-[0.14em] text-status-full; }
   .wordmark { @apply font-display tracking-[0.06em]; }
 }

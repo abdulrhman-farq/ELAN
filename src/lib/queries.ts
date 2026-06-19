@@ -1,6 +1,7 @@
 import "server-only";
 import { getServerSupabase, rpc } from "./supabase/server";
 import { dayBoundsUtc } from "./format";
+import { mockBooking, mockBookings, mockCatalogue, mockClassById, mockClasses, mockMemberContext } from "./mock";
 
 export type DisplayStatus = "available" | "waitlist_open" | "fully_booked" | "booking_closed";
 
@@ -54,16 +55,17 @@ async function fetchBetween(startIso: string, endIso: string): Promise<ClassCard
   });
 }
 
-export function getTimetable(date: string) {
+export async function getTimetable(date: string) {
   const { start, end } = dayBoundsUtc(date);
-  return fetchBetween(start, end);
+  const rows = await fetchBetween(start, end);
+  return rows.length ? rows : mockClasses(date);
 }
 
 export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string } | null> {
   const now = Date.now();
   const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
   const card = all.find((c) => c.id === id);
-  if (!card) return null;
+  if (!card) return mockClassById(id);
   const supabase = await getServerSupabase();
   const { data: elig } = await rpc<string>(supabase, "booking_eligibility_self", { p_class_instance_id: id });
   return { card, eligibility: elig ?? "NO_CREDITS" };
@@ -75,20 +77,20 @@ export async function getMyBookings() {
     .from("bookings")
     .select("id,status,waitlist_position,created_at,class_instances(starts_at,ends_at,class_types(name_ar,name_en),instructors(name_ar,name_en))")
     .order("created_at", { ascending: false });
-  return (data ?? []).map((b) => ({
+  const rows = (data ?? []).map((b) => ({
     id: b.id, status: b.status, waitlist_position: b.waitlist_position,
     starts_at: b.class_instances?.starts_at ?? "", ends_at: b.class_instances?.ends_at ?? "",
     name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
     instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
   }));
+  return rows.length ? rows : (mockBookings() as typeof rows);
 }
 
 export async function getMemberContext() {
-  const empty = { member: null, balance: 0, membership: null as MembershipCtx, isAdmin: false };
   try {
     const supabase = await getServerSupabase();
     const { data: member } = await supabase.from("members").select("id,full_name,phone,email").maybeSingle();
-    if (!member) return empty;
+    if (!member) return mockMemberContext();
     const [{ data: balance }, { data: membership }, { data: isAdmin }] = await Promise.all([
       rpc<number>(supabase, "elan_credit_balance", { p_member: member.id }),
       supabase.from("member_memberships").select("status,current_period_end,membership_plans(name_ar,name_en)").eq("status", "active").order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
@@ -103,11 +105,9 @@ export async function getMemberContext() {
     return { member, balance: balance ?? 0, membership: normalized, isAdmin: Boolean(isAdmin) };
   } catch (e) {
     console.error("getMemberContext failed", e);
-    return empty;
+    return mockMemberContext();
   }
 }
-
-type MembershipCtx = { current_period_end: string; membership_plans: { name_ar: string; name_en: string } | null } | null;
 
 export async function getCatalogue() {
   try {
@@ -116,10 +116,11 @@ export async function getCatalogue() {
       supabase.from("membership_plans").select("*").eq("active", true).order("price_sar"),
       supabase.from("credit_packs").select("*").eq("active", true).order("price_sar"),
     ]);
+    if ((plans?.length ?? 0) === 0 && (packs?.length ?? 0) === 0) return mockCatalogue();
     return { plans: plans ?? [], packs: packs ?? [] };
   } catch (e) {
     console.error("getCatalogue failed", e);
-    return { plans: [], packs: [] };
+    return mockCatalogue();
   }
 }
 
@@ -130,7 +131,7 @@ export async function getBooking(id: string) {
     .select("id,status,class_instances(starts_at,ends_at,class_types(name_ar,name_en,duration_minutes),instructors(name_ar,name_en))")
     .eq("id", id)
     .maybeSingle();
-  if (!data) return null;
+  if (!data) return mockBooking(id);
   return {
     id: data.id,
     status: data.status,
