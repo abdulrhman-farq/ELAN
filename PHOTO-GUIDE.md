@@ -49,8 +49,39 @@ each apparatus + a few detail/texture frames) covers every screen above
 and makes the app unmistakably ÉLAN. Deliver web-optimized exports
 (~150–250 KB each, sRGB) at the sizes in the table.
 
-## Optional: manage photos without redeploys
+## Manage photos without redeploys — Supabase Storage (wired)
 
-If you'd rather upload/swap photos from a dashboard instead of committing
-files, we can store them in **Supabase Storage** (a public `media` bucket)
-and have the resolver read public URLs. Say the word and I'll wire it.
+The resolver now supports a remote photo source. When the env var
+`NEXT_PUBLIC_ELAN_MEDIA_BASE` is set, every image loads from there as
+`<name>.jpg`; when it's unset, it falls back to the bundled SVG art. So
+you can upload/replace photos from the Supabase dashboard — no redeploy.
+
+### One-time setup
+
+1. **Create a public bucket** named `media`. In Supabase → Storage → New
+   bucket → name `media`, toggle **Public**. (Or run the SQL below in the
+   SQL editor.)
+
+   ```sql
+   insert into storage.buckets (id, name, public)
+   values ('media', 'media', true)
+   on conflict (id) do update set public = true;
+   ```
+
+2. **Upload the photos** to the bucket root with these exact keys:
+   `studio-hero.jpg`, `reformer-flow.jpg`, `power-reformer.jpg`,
+   `mat-pilates.jpg`, `stretching.jpg`, `instructor-lina.jpg`.
+
+3. **Set the env var** in Vercel → Project → Settings → Environment
+   Variables (Production), then redeploy once:
+
+   ```
+   NEXT_PUBLIC_ELAN_MEDIA_BASE = https://<your-ref>.supabase.co/storage/v1/object/public/media
+   ```
+
+After that, swapping a photo = re-upload the same filename in Supabase
+Storage. The public URL stays the same, so the app updates with no code
+change or redeploy.
+
+> Photos are referenced as `.jpg`. If you prefer `.webp`/`.png`, tell me
+> and I'll change the extension in the resolver.
