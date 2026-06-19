@@ -4,6 +4,7 @@ import { getTimetable } from "@/lib/queries";
 import { todayInRiyadh } from "@/lib/format";
 import { DateStrip } from "@/components/DateStrip";
 import { ClassCard } from "@/components/ClassCard";
+import { Icon } from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function TimetablePage({ searchParams }: { searchParams: Pr
 
       {classes.length === 0 ? (
         <div className="card flex flex-col items-center gap-2 p-10 text-center text-status-full">
-          <span className="text-3xl" aria-hidden>🧘‍♀️</span>
+          <Icon name="self_improvement" className="text-4xl text-primary-300" />
           <p>{t.timetable.empty}</p>
         </div>
       ) : (

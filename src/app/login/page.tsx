@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   return (
     <div dir="rtl" className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 p-6">
-      <h1 className="text-center text-4xl font-bold text-primary-700">{dict.ar.appName}</h1>
+      <h1 className="wordmark text-center text-5xl font-medium text-primary-900">{dict.ar.appName}</h1>
       <div className="card space-y-4 p-6">
         <label className="block space-y-1">
           <span className="text-sm font-medium">{t.email}</span>

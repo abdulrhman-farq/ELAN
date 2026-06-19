@@ -18,7 +18,7 @@ const config: Config = {
         accent: "#C2A05E",
         status: { available: "#B5704F", waitlist: "#8A6A2E", full: "#9B8C77" },
       },
-      borderRadius: { card: "1.25rem", pill: "9999px" },
+      borderRadius: { card: "1rem", pill: "9999px" },
       boxShadow: {
         card: "0 1px 3px rgba(74,55,41,0.08), 0 1px 2px rgba(74,55,41,0.05)",
         sticky: "0 -2px 12px rgba(74,55,41,0.08)",
