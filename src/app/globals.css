@@ -48,7 +48,7 @@
     box-shadow: 0 14px 30px -12px rgba(214, 180, 122, 0.5);
   }
   .btn-outline { @apply btn border border-outline bg-transparent text-primary; }
-  .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky; }
+  .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky md:start-[240px]; }
 
   /* Brand helpers. */
   .eyebrow { @apply font-label text-[10px] uppercase tracking-[0.14em] text-status-full; }
