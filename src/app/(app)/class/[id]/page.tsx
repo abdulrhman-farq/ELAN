@@ -7,6 +7,7 @@ import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { ctaState, type Eligibility } from "@/lib/cta";
 import { CtaButton } from "@/components/Buttons";
 import { Icon } from "@/components/Icon";
+import { classImage } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,11 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
 
   return (
     <section className="pb-44 md:pb-28">
-      <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-b-card bg-primary-100">
-        <Icon name="self_improvement" className="text-6xl text-primary-400" />
-        <Link href="/schedule" className="absolute start-3 top-3 rounded-pill bg-surface-elevated/80 px-3 py-1 text-sm text-primary-900">‹ {t.common.back}</Link>
+      <div className="relative h-56 overflow-hidden rounded-b-[30px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={classImage(c.name_en)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.15),rgba(33,28,24,.55))" }} />
+        <Link href="/schedule" className="absolute start-3 top-3 rounded-pill bg-surface-elevated/85 px-3 py-1 text-sm text-primary-900">‹ {t.common.back}</Link>
       </div>
       <div className="space-y-4 p-5">
         <h1 className="font-display text-3xl font-medium text-primary-900">{name}</h1>

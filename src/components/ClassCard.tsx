@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { ClassCardData } from "@/lib/queries";
 import { fmtTime } from "@/lib/format";
-import { classGradient } from "@/lib/classColor";
+import { classImage } from "@/lib/classColor";
 
 export function ClassCard({
   card,
@@ -37,7 +37,8 @@ export function ClassCard({
       <div className="min-w-[2.5rem] shrink-0 text-center">
         <div className="font-display text-lg font-medium text-primary-900">{fmtTime(card.starts_at, locale)}</div>
       </div>
-      <div className="h-14 w-14 shrink-0 rounded-[16px] ring-1 ring-outline" style={{ background: classGradient(name) }} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={classImage(name)} alt="" className="h-14 w-14 shrink-0 rounded-[16px] object-cover ring-1 ring-outline" />
       <div className="min-w-0 flex-1">
         <div className="font-display text-base font-medium leading-tight text-primary-900">{name}</div>
         <div className="mt-0.5 truncate text-[11px] text-status-full">{meta}</div>
