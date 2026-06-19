@@ -40,6 +40,12 @@ export function fmtLongDateTime(startIso: string, endIso: string, locale: Locale
   return `${day}، ${fmtTime(startIso, locale)} – ${fmtTime(endIso, locale)}`;
 }
 
+export function fmtDayHeading(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
+    timeZone: TZ, weekday: "long", day: "numeric", month: "long",
+  }).format(new Date(iso));
+}
+
 export function levelLabel(level: "level_1" | "level_1_5" | "level_2", locale: Locale): string {
   if (locale === "ar") return level === "level_1" ? "المستوى 1" : level === "level_1_5" ? "المستوى 1.5" : "المستوى 2";
   return level === "level_1" ? "Level 1" : level === "level_1_5" ? "Level 1.5" : "Level 2";
