@@ -22,7 +22,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
   return (
     <section className="flex min-h-screen flex-col justify-center p-7">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-primary text-primary">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-sage text-sage-700">
           <Icon name="check" className="text-4xl" />
         </div>
         <h1 className="font-display text-3xl font-medium text-primary-900">{t.confirmation.title}</h1>

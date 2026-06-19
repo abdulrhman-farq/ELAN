@@ -42,12 +42,12 @@ export default function LoginPage() {
           <span className={label}>{t.password}</span>
           <input dir="ltr" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
         </label>
-        {err ? <p className="text-sm text-primary-600">{err}</p> : null}
+        {err ? <p className="text-sm text-accent">{err}</p> : null}
 
-        <button disabled={busy} onClick={() => signIn()} className="w-full rounded-[2px] bg-primary py-4 text-base font-medium text-surface disabled:opacity-50">{t.submit}</button>
+        <button disabled={busy} onClick={() => signIn()} className="w-full rounded-pill bg-primary py-4 text-base font-medium text-ink disabled:opacity-50">{t.submit}</button>
         <div className="flex gap-2.5">
-          <button disabled={busy} onClick={() => signIn("noor@elan.demo", "elan1234")} className="flex-1 rounded-[2px] border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demo}</button>
-          <button disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="flex-1 rounded-[2px] border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demoAdmin}</button>
+          <button disabled={busy} onClick={() => signIn("noor@elan.demo", "elan1234")} className="flex-1 rounded-pill border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demo}</button>
+          <button disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="flex-1 rounded-pill border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demoAdmin}</button>
         </div>
         <p className="text-center text-[13px] text-status-full">{t.hint}</p>
       </div>
