@@ -31,7 +31,7 @@ export function CtaButton({
         setErr(res.error);
       }
     });
-  const cls = variant === "primary" ? "bg-primary text-ink" : variant === "muted" ? "bg-status-full text-surface" : "bg-status-full/40 text-surface";
+  const cls = variant === "primary" ? "bg-primary text-ink" : variant === "muted" ? "bg-status-full text-primary-900" : "bg-status-full/40 text-primary-900";
   return (
     <div>
       {err ? <p className="mb-2 text-center text-sm text-accent">{err}</p> : null}

@@ -36,7 +36,7 @@ export default async function HomePage() {
         </div>
         <Link
           href="/profile"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-primary-200 bg-primary-100 font-display text-lg text-primary-700"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-primary bg-surface-variant font-display text-lg text-primary"
         >
           {initial}
         </Link>
@@ -47,9 +47,9 @@ export default async function HomePage() {
           <p className="eyebrow text-primary-200">{t.home.nextClass}</p>
           <p className="mt-3 font-display text-[26px] font-medium leading-none">{ar ? next.name_ar : next.name_en}</p>
           {(ar ? next.instructor_ar : next.instructor_en) ? (
-            <p className="mt-1.5 text-sm text-surface/70">{ar ? next.instructor_ar : next.instructor_en}</p>
+            <p className="mt-1.5 text-sm text-primary-900/70">{ar ? next.instructor_ar : next.instructor_en}</p>
           ) : null}
-          <p className="mt-4 text-sm text-surface/80">{fmtLongDateTime(next.starts_at, next.ends_at, locale)}</p>
+          <p className="mt-4 text-sm text-primary-900/80">{fmtLongDateTime(next.starts_at, next.ends_at, locale)}</p>
           <span className="mt-5 inline-block rounded-pill bg-primary px-6 py-2.5 text-sm text-ink">{t.home.viewDetails}</span>
         </Link>
       ) : (
@@ -66,7 +66,7 @@ export default async function HomePage() {
           <div className="text-[12px] text-status-full">{t.home.balance}</div>
         </div>
         <div className="card flex-1 p-5">
-          <div className="font-display text-3xl text-sage-700">{attended}</div>
+          <div className="font-display text-3xl text-sage">{attended}</div>
           <div className="text-[12px] text-status-full">{t.home.attended}</div>
         </div>
       </div>
