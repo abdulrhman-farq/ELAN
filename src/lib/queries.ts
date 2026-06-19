@@ -22,6 +22,7 @@ export interface ClassCardData {
 }
 
 async function fetchBetween(startIso: string, endIso: string): Promise<ClassCardData[]> {
+ try {
   const supabase = await getServerSupabase();
   const { data: rows } = await supabase
     .from("class_instances")
@@ -53,6 +54,10 @@ async function fetchBetween(startIso: string, endIso: string): Promise<ClassCard
       my_booking_id: b?.id ?? null,
     };
   });
+ } catch (e) {
+  console.error("fetchBetween failed", e);
+  return [];
+ }
 }
 
 export async function getTimetable(date: string) {
@@ -61,29 +66,39 @@ export async function getTimetable(date: string) {
   return rows.length ? rows : mockClasses(date);
 }
 
-export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string } | null> {
-  const now = Date.now();
-  const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
-  const card = all.find((c) => c.id === id);
-  if (!card) return mockClassById(id);
-  const supabase = await getServerSupabase();
-  const { data: elig } = await rpc<string>(supabase, "booking_eligibility_self", { p_class_instance_id: id });
-  return { card, eligibility: elig ?? "NO_CREDITS" };
+export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string }> {
+  try {
+    const now = Date.now();
+    const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
+    const card = all.find((c) => c.id === id);
+    if (!card) return mockClassById(id);
+    const supabase = await getServerSupabase();
+    const { data: elig } = await rpc<string>(supabase, "booking_eligibility_self", { p_class_instance_id: id });
+    return { card, eligibility: elig ?? "NO_CREDITS" };
+  } catch (e) {
+    console.error("getClass failed", e);
+    return mockClassById(id);
+  }
 }
 
 export async function getMyBookings() {
-  const supabase = await getServerSupabase();
-  const { data } = await supabase
-    .from("bookings")
-    .select("id,status,waitlist_position,created_at,class_instances(starts_at,ends_at,class_types(name_ar,name_en),instructors(name_ar,name_en))")
-    .order("created_at", { ascending: false });
-  const rows = (data ?? []).map((b) => ({
-    id: b.id, status: b.status, waitlist_position: b.waitlist_position,
-    starts_at: b.class_instances?.starts_at ?? "", ends_at: b.class_instances?.ends_at ?? "",
-    name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
-    instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
-  }));
-  return rows.length ? rows : (mockBookings() as typeof rows);
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await supabase
+      .from("bookings")
+      .select("id,status,waitlist_position,created_at,class_instances(starts_at,ends_at,class_types(name_ar,name_en),instructors(name_ar,name_en))")
+      .order("created_at", { ascending: false });
+    const rows = (data ?? []).map((b) => ({
+      id: b.id, status: b.status as string, waitlist_position: b.waitlist_position as number | null,
+      starts_at: b.class_instances?.starts_at ?? "", ends_at: b.class_instances?.ends_at ?? "",
+      name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
+      instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
+    }));
+    return rows.length ? rows : mockBookings();
+  } catch (e) {
+    console.error("getMyBookings failed", e);
+    return mockBookings();
+  }
 }
 
 export async function getMemberContext() {
@@ -125,6 +140,7 @@ export async function getCatalogue() {
 }
 
 export async function getBooking(id: string) {
+ try {
   const supabase = await getServerSupabase();
   const { data } = await supabase
     .from("bookings")
@@ -143,4 +159,8 @@ export async function getBooking(id: string) {
     instructor_ar: data.class_instances?.instructors?.name_ar ?? null,
     instructor_en: data.class_instances?.instructors?.name_en ?? null,
   };
+ } catch (e) {
+  console.error("getBooking failed", e);
+  return mockBooking(id);
+ }
 }
