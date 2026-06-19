@@ -3,13 +3,16 @@ import { redirect } from "next/navigation";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
+import { DEMO } from "@/lib/demo";
 import { BottomTabs } from "@/components/BottomTabs";
 import { MemberSidebar } from "@/components/MemberSidebar";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const supabase = await getServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login");
+  if (!DEMO) {
+    const supabase = await getServerSupabase();
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) redirect("/login");
+  }
 
   const locale = await getLocale();
   return (

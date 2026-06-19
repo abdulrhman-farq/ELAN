@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { dict } from "@/lib/i18n";
+import { DEMO } from "@/lib/demo";
 
 export default function LoginPage() {
   // Login is locale-agnostic; default to Arabic copy.
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   async function signIn(e?: string, p?: string) {
+    if (DEMO) { router.push("/"); router.refresh(); return; }
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: e ?? email, password: p ?? password });
     setBusy(false);
