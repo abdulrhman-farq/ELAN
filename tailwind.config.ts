@@ -1,36 +1,37 @@
 import type { Config } from "tailwindcss";
 
-/** ÉLAN v3 — dark wellness. Espresso surfaces, gold + sage, light text. */
+/** ÉLAN — warm cream quiet-luxury with charcoal + champagne-gold and dark
+ *  photographic "brand moments" (per the reference). */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Gold accent at low/mid steps; light parchment text at 800/900.
+        // Champagne tints (100–400) for fills; brass at 700; charcoal at 500/800/900 (buttons + text).
         primary: {
-          DEFAULT: "#D6B47A",
-          50: "#FBF6EE", 100: "#F1E7D2", 200: "#E7D4AE", 300: "#DEC592",
-          400: "#E4C58E", 500: "#D6B47A", 600: "#E4C58E", 700: "#D6B47A",
-          800: "#ECE6DC", 900: "#F5F1EB",
+          DEFAULT: "#2E2A26",
+          50: "#F8F5F1", 100: "#EFE2D2", 200: "#E6D3BC", 300: "#D8BE9C",
+          400: "#C9A878", 500: "#2E2A26", 600: "#4A423C", 700: "#9C7A45",
+          800: "#3A332F", 900: "#3A332F",
         },
-        surface: { DEFAULT: "#241E1A", variant: "#2C241F", container: "#342B25" },
-        outline: "rgba(214,180,122,0.18)",
-        accent: "#C78B73", // rose-clay
-        sage: { DEFAULT: "#A9B39B", 100: "#E8ECE2", 700: "#8FA07E" },
-        ink: "#241E1A", // dark text on gold
-        brand: "#241E1A",
-        status: { available: "#A9B39B", waitlist: "#C78B73", full: "#8E8478" },
+        surface: { DEFAULT: "#F2EBE1", variant: "#E7DACB", container: "#FBF7F0", elevated: "#FFFDF9" },
+        outline: "#E8DCCB",
+        accent: "#B89766", // aged brass / champagne gold
+        sage: { DEFAULT: "#818263", 100: "#E8E9DF", 700: "#5F6049" },
+        ink: "#F8F5F1", // creamy text on charcoal / gold fills
+        brand: "#2E2A26", // dark charcoal for hero + admin sidebar
+        status: { available: "#818263", waitlist: "#B08D57", full: "#8D7E75" },
       },
-      borderRadius: { card: "1.25rem", pill: "9999px" },
+      borderRadius: { card: "1.75rem", pill: "9999px" },
       boxShadow: {
-        card: "0 10px 34px rgba(0,0,0,0.32)",
-        sticky: "0 -2px 16px rgba(0,0,0,0.4)",
-        glow: "0 14px 30px -12px rgba(214,180,122,0.5)",
+        card: "0 14px 44px rgba(58,51,47,0.10), 0 4px 12px rgba(58,51,47,0.05)",
+        sticky: "0 8px 30px rgba(58,51,47,0.12)",
+        glow: "0 16px 40px -16px rgba(184,151,102,0.4)",
       },
       fontFamily: {
-        sans: ["'IBM Plex Sans'", "'IBM Plex Sans Arabic'", "system-ui", "sans-serif"],
+        sans: ["Inter", "'IBM Plex Sans Arabic'", "system-ui", "sans-serif"],
         display: ["'Cormorant Garamond'", "'IBM Plex Sans Arabic'", "Georgia", "serif"],
-        label: ["'IBM Plex Sans'", "system-ui", "sans-serif"],
+        label: ["Inter", "system-ui", "sans-serif"],
         arabic: ["'IBM Plex Sans Arabic'", "sans-serif"],
       },
     },

@@ -36,7 +36,7 @@ export default async function HomePage() {
         </div>
         <Link
           href="/profile"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-primary bg-surface-variant font-display text-lg text-primary"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-accent bg-surface-variant font-display text-lg text-primary-700"
         >
           {initial}
         </Link>
@@ -47,16 +47,16 @@ export default async function HomePage() {
           <p className="eyebrow text-primary-200">{t.home.nextClass}</p>
           <p className="mt-3 font-display text-[26px] font-medium leading-none">{ar ? next.name_ar : next.name_en}</p>
           {(ar ? next.instructor_ar : next.instructor_en) ? (
-            <p className="mt-1.5 text-sm text-primary-900/70">{ar ? next.instructor_ar : next.instructor_en}</p>
+            <p className="mt-1.5 text-sm text-ink/70">{ar ? next.instructor_ar : next.instructor_en}</p>
           ) : null}
-          <p className="mt-4 text-sm text-primary-900/80">{fmtLongDateTime(next.starts_at, next.ends_at, locale)}</p>
-          <span className="mt-5 inline-block rounded-pill bg-primary px-6 py-2.5 text-sm text-ink">{t.home.viewDetails}</span>
+          <p className="mt-4 text-sm text-ink/80">{fmtLongDateTime(next.starts_at, next.ends_at, locale)}</p>
+          <span className="mt-5 inline-block rounded-pill bg-accent px-6 py-2.5 text-sm text-primary-900">{t.home.viewDetails}</span>
         </Link>
       ) : (
         <div className="card-ink p-6">
           <p className="eyebrow text-primary-200">{t.home.nextClass}</p>
           <p className="mt-3 font-display text-xl">{t.home.none}</p>
-          <Link href="/schedule" className="mt-4 inline-block rounded-pill bg-primary px-6 py-2.5 text-sm text-ink">{t.timetable.title}</Link>
+          <Link href="/schedule" className="mt-4 inline-block rounded-pill bg-accent px-6 py-2.5 text-sm text-primary-900">{t.timetable.title}</Link>
         </div>
       )}
 

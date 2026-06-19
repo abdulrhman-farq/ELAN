@@ -22,7 +22,7 @@ export default function LoginPage() {
     router.push("/"); router.refresh();
   }
 
-  const field = "w-full border-0 border-b border-outline bg-transparent pb-2.5 text-[15px] outline-none focus:border-primary";
+  const field = "w-full rounded-[14px] border border-outline bg-surface-elevated px-4 py-3.5 text-[15px] outline-none focus:border-accent";
   const label = "mb-1.5 block text-[11px] uppercase tracking-[0.1em] text-status-full";
 
   return (
