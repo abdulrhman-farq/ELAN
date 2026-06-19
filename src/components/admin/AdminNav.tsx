@@ -17,7 +17,7 @@ export function AdminNav({ items }: { items: AdminNavItem[] }) {
           <Link
             key={it.href}
             href={it.href}
-            className={`whitespace-nowrap rounded-[10px] px-3.5 py-3 ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
+            className={`whitespace-nowrap rounded-[10px] px-3.5 py-3 ${active ? "bg-white/10 text-accent" : "text-ink/60 hover:text-ink"}`}
           >
             {it.label}
           </Link>

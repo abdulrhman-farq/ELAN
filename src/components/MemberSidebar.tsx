@@ -15,7 +15,7 @@ const TABS = [
 export function MemberSidebar({ labels }: { labels: Record<string, string> }) {
   const path = usePathname();
   return (
-    <aside className="sticky top-0 hidden h-screen shrink-0 flex-col gap-8 border-e border-outline bg-brand p-7 md:flex md:w-[240px]">
+    <aside className="sticky top-0 hidden h-screen shrink-0 flex-col gap-8 border-e border-outline bg-surface-elevated p-7 md:flex md:w-[240px]">
       <div className="wordmark text-3xl text-primary-900">ÉLAN</div>
       <nav className="flex flex-col gap-1.5">
         {TABS.map((t) => {

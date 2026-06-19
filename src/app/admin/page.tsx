@@ -25,7 +25,7 @@ export default async function AdminDashboard() {
         <div className="card-ink p-5">
           <div className="text-[12px] text-primary-200">{ar ? "إيراد الشهر" : "Revenue (month)"}</div>
           <div className="mt-2 font-display text-3xl">{M.overview.revenueMonth}</div>
-          <div className="text-[11px] text-primary-900/70">{ar ? "ريال سعودي" : "SAR"}</div>
+          <div className="text-[11px] text-ink/70">{ar ? "ريال سعودي" : "SAR"}</div>
         </div>
       </div>
 

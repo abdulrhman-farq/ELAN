@@ -20,7 +20,7 @@ export default async function MembershipsPage() {
 
       <div className="card-ink space-y-1 p-6">
         <p className="font-display text-xl">{planName ?? t.memberships.noMembership}</p>
-        <p className="text-sm text-primary-900/70">
+        <p className="text-sm text-ink/70">
           {ctx.balance > 0 ? t.memberships.credits.replace("{n}", String(ctx.balance)) : t.memberships.noCredits}
         </p>
       </div>
