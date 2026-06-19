@@ -84,22 +84,62 @@ export async function getMyBookings() {
 }
 
 export async function getMemberContext() {
-  const supabase = await getServerSupabase();
-  const { data: member } = await supabase.from("members").select("id,full_name,phone,email").maybeSingle();
-  if (!member) return { member: null, balance: 0, membership: null, isAdmin: false };
-  const [{ data: balance }, { data: membership }, { data: isAdmin }] = await Promise.all([
-    rpc<number>(supabase, "elan_credit_balance", { p_member: member.id }),
-    supabase.from("member_memberships").select("status,current_period_end,membership_plans(name_ar,name_en)").eq("status", "active").order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
-    rpc<boolean>(supabase, "is_admin"),
-  ]);
-  return { member, balance: balance ?? 0, membership, isAdmin: Boolean(isAdmin) };
+  const empty = { member: null, balance: 0, membership: null as MembershipCtx, isAdmin: false };
+  try {
+    const supabase = await getServerSupabase();
+    const { data: member } = await supabase.from("members").select("id,full_name,phone,email").maybeSingle();
+    if (!member) return empty;
+    const [{ data: balance }, { data: membership }, { data: isAdmin }] = await Promise.all([
+      rpc<number>(supabase, "elan_credit_balance", { p_member: member.id }),
+      supabase.from("member_memberships").select("status,current_period_end,membership_plans(name_ar,name_en)").eq("status", "active").order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
+      rpc<boolean>(supabase, "is_admin"),
+    ]);
+    // Supabase may type the embed as an array; normalise to a single object.
+    const planRaw = (membership as { membership_plans?: unknown } | null)?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    const normalized = membership
+      ? { current_period_end: (membership as { current_period_end: string }).current_period_end, membership_plans: (plan as { name_ar: string; name_en: string } | null) ?? null }
+      : null;
+    return { member, balance: balance ?? 0, membership: normalized, isAdmin: Boolean(isAdmin) };
+  } catch (e) {
+    console.error("getMemberContext failed", e);
+    return empty;
+  }
 }
 
+type MembershipCtx = { current_period_end: string; membership_plans: { name_ar: string; name_en: string } | null } | null;
+
 export async function getCatalogue() {
+  try {
+    const supabase = await getServerSupabase();
+    const [{ data: plans }, { data: packs }] = await Promise.all([
+      supabase.from("membership_plans").select("*").eq("active", true).order("price_sar"),
+      supabase.from("credit_packs").select("*").eq("active", true).order("price_sar"),
+    ]);
+    return { plans: plans ?? [], packs: packs ?? [] };
+  } catch (e) {
+    console.error("getCatalogue failed", e);
+    return { plans: [], packs: [] };
+  }
+}
+
+export async function getBooking(id: string) {
   const supabase = await getServerSupabase();
-  const [{ data: plans }, { data: packs }] = await Promise.all([
-    supabase.from("membership_plans").select("*").eq("active", true).order("price_sar"),
-    supabase.from("credit_packs").select("*").eq("active", true).order("price_sar"),
-  ]);
-  return { plans: plans ?? [], packs: packs ?? [] };
+  const { data } = await supabase
+    .from("bookings")
+    .select("id,status,class_instances(starts_at,ends_at,class_types(name_ar,name_en,duration_minutes),instructors(name_ar,name_en))")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id,
+    status: data.status,
+    starts_at: data.class_instances?.starts_at ?? "",
+    ends_at: data.class_instances?.ends_at ?? "",
+    duration: data.class_instances?.class_types?.duration_minutes ?? 0,
+    name_ar: data.class_instances?.class_types?.name_ar ?? "",
+    name_en: data.class_instances?.class_types?.name_en ?? "",
+    instructor_ar: data.class_instances?.instructors?.name_ar ?? null,
+    instructor_en: data.class_instances?.instructors?.name_en ?? null,
+  };
 }

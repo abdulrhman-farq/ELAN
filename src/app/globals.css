@@ -6,7 +6,7 @@
   body { @apply bg-surface text-primary-900 antialiased; margin: 0; }
   html, body { height: 100%; }
   [dir="rtl"] .chevron { transform: scaleX(-1); }
-  ::selection { background: #C2A05E; color: #FAF4E9; }   /* brass */
+  ::selection { background: #B4654A; color: #FBF8F3; }
 
   .material-symbols-rounded {
     font-family: "Material Symbols Rounded";
@@ -25,11 +25,18 @@
 }
 
 @layer components {
-  .card { @apply rounded-card bg-surface-container shadow-card; }
+  /* Flat, hairline-bordered ivory card — the editorial look. */
+  .card { @apply rounded-card border border-outline bg-surface-container; }
+  /* Espresso "feature" card for hero / membership / dark panels. */
+  .card-ink { @apply rounded-card bg-ink text-surface; }
   .chip { @apply inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium; }
+  /* Near-square tailored button. */
+  .btn { @apply rounded-[2px] px-5 py-3 text-center text-sm font-medium; }
+  .btn-primary { @apply btn bg-primary text-surface; }
+  .btn-outline { @apply btn border border-outline bg-transparent text-primary-700; }
   .sticky-cta { @apply fixed inset-x-0 bottom-0 z-20 border-t border-outline bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-sticky; }
 
-  /* optional brand helpers */
-  .eyebrow { @apply font-label text-[10px] uppercase tracking-[0.26em] text-primary-600; }
-  .wordmark { @apply font-display tracking-[0.04em]; }
+  /* Brand helpers. */
+  .eyebrow { @apply font-label text-[11px] uppercase tracking-[0.16em] text-status-full; }
+  .wordmark { @apply font-display tracking-[0.06em]; }
 }

@@ -13,7 +13,8 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-3">
+      <h1 className="font-display text-2xl font-medium text-primary-900">{ar ? "لوحة التحكم" : "Dashboard"}</h1>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat label={ar ? "حصص اليوم" : "Classes today"} value={String(overview.classesToday)} />
         <Stat label={ar ? "نسبة الإشغال" : "Fill rate"} value={overview.fillRateToday === null ? "—" : `${overview.fillRateToday}%`} />
         <Stat label={ar ? "إيراد اليوم" : "Revenue today"} value={`${overview.revenueToday} ${sar}`} />
@@ -24,7 +25,7 @@ export default async function AdminDashboard() {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-primary-800">{ar ? "حصص اليوم" : "Today's classes"}</h2>
+          <h2 className="font-display text-lg font-medium text-primary-900">{ar ? "حصص اليوم" : "Today's classes"}</h2>
           <Link href="/admin/schedule" className="text-sm text-primary-600">{ar ? "كل الجدول ›" : "Full schedule ›"}</Link>
         </div>
         <div className="card divide-y divide-outline">
@@ -57,7 +58,7 @@ export default async function AdminDashboard() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-4 text-center">
-      <p className="text-2xl font-bold text-primary-700">{value}</p>
+      <p className="font-display text-3xl font-medium text-primary">{value}</p>
       <p className="text-xs text-status-full">{label}</p>
     </div>
   );

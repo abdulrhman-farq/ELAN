@@ -14,11 +14,11 @@ export function DateStrip({ selected, locale, todayLabel }: { selected: string; 
         return (
           <button
             key={d}
-            onClick={() => router.push(d === today ? "/" : `/?date=${d}`)}
-            className={`flex min-w-[3.5rem] flex-col items-center rounded-card border-b-2 px-3 py-2 ${isSel ? "border-accent bg-primary text-white" : "border-transparent bg-surface-container text-primary-800"}`}
+            onClick={() => router.push(d === today ? "/schedule" : `/schedule?date=${d}`)}
+            className={`flex min-w-[3.25rem] flex-col items-center rounded-card px-3 py-2 ${isSel ? "bg-ink text-surface" : "border border-outline text-primary-900"}`}
           >
-            <span className="text-xs opacity-80">{d === today ? todayLabel : fmtWeekday(d, locale)}</span>
-            <span className="text-base font-bold">{fmtDayNum(d)}</span>
+            <span className="text-[11px] opacity-70">{d === today ? todayLabel : fmtWeekday(d, locale)}</span>
+            <span className="font-display text-lg font-medium leading-tight">{fmtDayNum(d)}</span>
           </button>
         );
       })}
