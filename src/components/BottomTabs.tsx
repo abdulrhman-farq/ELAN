@@ -14,7 +14,7 @@ const TABS = [
 export function BottomTabs({ labels }: { labels: Record<string, string> }) {
   const path = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline bg-surface pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 md:hidden">
       <ul className="mx-auto flex max-w-md items-stretch justify-around">
         {TABS.map((t) => {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);

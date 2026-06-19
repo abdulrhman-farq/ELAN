@@ -35,7 +35,8 @@ export default async function AdminDashboard() {
             <h2 className="font-display text-lg font-medium text-primary-900">{ar ? "حصص اليوم" : "Today's classes"}</h2>
             <Link href="/admin/schedule" className="text-[12px] text-primary">{ar ? "عرض الجدول الكامل" : "Full schedule"}</Link>
           </div>
-          <div className="text-[13px]">
+          <div className="overflow-x-auto">
+           <div className="min-w-[460px] text-[13px]">
             <div className="flex items-center gap-2 border-b border-outline pb-2 text-[11px] text-status-full">
               <span className="w-14 shrink-0">{ar ? "الوقت" : "Time"}</span>
               <span className="flex-1">{ar ? "الحصة" : "Class"}</span>
@@ -52,6 +53,7 @@ export default async function AdminDashboard() {
                 <span className={`w-14 shrink-0 ${c.open ? "text-sage" : "text-primary"}`}>{c.status}</span>
               </div>
             ))}
+           </div>
           </div>
         </section>
 

@@ -4,6 +4,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { BottomTabs } from "@/components/BottomTabs";
+import { MemberSidebar } from "@/components/MemberSidebar";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await getServerSupabase();
@@ -12,8 +13,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const locale = await getLocale();
   return (
-    <div className="mx-auto min-h-screen max-w-md pb-20">
-      {children}
+    <div className="md:flex md:min-h-screen">
+      <MemberSidebar labels={dict[locale].tabs} />
+      <div className="mx-auto w-full max-w-md pb-24 md:max-w-3xl md:pb-10">{children}</div>
       <BottomTabs labels={dict[locale].tabs} />
     </div>
   );

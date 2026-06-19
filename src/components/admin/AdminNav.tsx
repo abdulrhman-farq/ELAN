@@ -10,14 +10,14 @@ export interface AdminNavItem {
 export function AdminNav({ items }: { items: AdminNavItem[] }) {
   const path = usePathname();
   return (
-    <nav className="flex flex-col gap-1.5 text-sm">
+    <nav className="flex flex-row gap-1.5 overflow-x-auto text-sm md:flex-col">
       {items.map((it) => {
         const active = it.href === "/admin" ? path === "/admin" : path.startsWith(it.href);
         return (
           <Link
             key={it.href}
             href={it.href}
-            className={`rounded-[10px] px-3.5 py-3 ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
+            className={`whitespace-nowrap rounded-[10px] px-3.5 py-3 ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
           >
             {it.label}
           </Link>

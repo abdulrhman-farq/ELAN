@@ -26,26 +26,30 @@ export default async function AdminMembers() {
         <Kpi label={ar ? "عضوات تجريبية" : "Trials"} value={M.members.trials} />
       </div>
 
-      <div className="card overflow-hidden p-6">
-        <div className="flex items-center gap-3 border-b border-outline pb-3 text-[11px] text-status-full">
-          <span className="flex-1">{ar ? "العضوة" : "Member"}</span>
-          <span className="w-24 shrink-0">{ar ? "العضوية" : "Plan"}</span>
-          <span className="w-24 shrink-0">{ar ? "الحصص المتبقية" : "Credits"}</span>
-          <span className="w-20 shrink-0">{ar ? "آخر حضور" : "Last seen"}</span>
-          <span className="w-20 shrink-0">{ar ? "الحالة" : "Status"}</span>
-        </div>
-        {M.members.list.map((m, i) => (
-          <div key={i} className="flex items-center gap-3 border-b border-outline py-3.5 text-[13px] last:border-0">
-            <div className="flex flex-1 items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-variant font-display text-sm text-primary">{m.initial}</div>
-              <div className="min-w-0"><div className="truncate text-primary-900">{m.name}</div><div className="truncate text-[11px] text-status-full">{m.email}</div></div>
+      <div className="card p-6">
+        <div className="overflow-x-auto">
+          <div className="min-w-[560px]">
+            <div className="flex items-center gap-3 border-b border-outline pb-3 text-[11px] text-status-full">
+              <span className="flex-1">{ar ? "العضوة" : "Member"}</span>
+              <span className="w-24 shrink-0">{ar ? "العضوية" : "Plan"}</span>
+              <span className="w-24 shrink-0">{ar ? "الحصص المتبقية" : "Credits"}</span>
+              <span className="w-20 shrink-0">{ar ? "آخر حضور" : "Last seen"}</span>
+              <span className="w-20 shrink-0">{ar ? "الحالة" : "Status"}</span>
             </div>
-            <span className="w-24 shrink-0 text-status-full">{m.plan}</span>
-            <span className="w-24 shrink-0 text-status-full">{m.left}</span>
-            <span className="w-20 shrink-0 text-status-full">{m.last}</span>
-            <span className="w-20 shrink-0" style={{ color: toneColor[m.tone] }}>{m.status}</span>
+            {M.members.list.map((m, i) => (
+              <div key={i} className="flex items-center gap-3 border-b border-outline py-3.5 text-[13px] last:border-0">
+                <div className="flex flex-1 items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-variant font-display text-sm text-primary">{m.initial}</div>
+                  <div className="min-w-0"><div className="truncate text-primary-900">{m.name}</div><div className="truncate text-[11px] text-status-full">{m.email}</div></div>
+                </div>
+                <span className="w-24 shrink-0 text-status-full">{m.plan}</span>
+                <span className="w-24 shrink-0 text-status-full">{m.left}</span>
+                <span className="w-20 shrink-0 text-status-full">{m.last}</span>
+                <span className="w-20 shrink-0" style={{ color: toneColor[m.tone] }}>{m.status}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
