@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberDetail, getMemberTasks } from "@/lib/admin";
+import { getMemberDetail, getMemberTasks, getMemberFinancials } from "@/lib/admin";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
+import { fmtHalalas } from "@/lib/pricing";
 import { MemberStatusSelect } from "@/components/admin/MemberStatusSelect";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { EditMemberDialog } from "@/components/admin/EditMemberDialog";
 import { WhatsAppActions } from "@/components/admin/WhatsAppActions";
 import { MemberTasks } from "@/components/admin/MemberTasks";
+import { SellBundleDialog, BookingMoneyControls } from "@/components/admin/MemberMoney";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +33,11 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
   const { id } = await params;
   const locale = await getLocale();
   const ar = locale === "ar";
-  const [detail, tasks] = await Promise.all([getMemberDetail(id), getMemberTasks(id)]);
+  const [detail, tasks, fin] = await Promise.all([getMemberDetail(id), getMemberTasks(id), getMemberFinancials(id)]);
   if (!detail) notFound();
   const { member, balance, notes } = detail;
   const plan = ar ? detail.membershipPlanAr : detail.membershipPlanEn;
+  const sar = (h: number) => `${fmtHalalas(h, ar ? "ar" : "en")} ${ar ? "ر.س" : "SAR"}`;
 
   return (
     <div className="space-y-6">
@@ -96,6 +99,21 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
       </div>
 
       <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "الملخص المالي" : "Financial summary"}</h3>
+          <SellBundleDialog memberId={member.id} ar={ar} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <MoneyStat label={ar ? "إجمالي المدفوع" : "Total paid"} value={sar(fin.totalPaidHalalas)} />
+          <MoneyStat label={ar ? "إجمالي الخصومات" : "Total discount"} value={sar(fin.totalDiscountHalalas)} />
+          <MoneyStat label={ar ? "قيمة الحصص المحضورة" : "Attended value"} value={sar(fin.attendedValueHalalas)} />
+          <MoneyStat label={ar ? "قيمة الرصيد المتبقي" : "Remaining package value"} value={sar(fin.remainingPackageHalalas)} />
+          <MoneyStat label={ar ? "قيمة عدم الحضور" : "No-show value"} value={sar(fin.noShowValueHalalas)} />
+          <MoneyStat label={ar ? "قيمة الحصص المجانية" : "Complimentary value"} value={sar(fin.compValueHalalas)} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "سجل المتابعة" : "Follow-up log"}</h3>
         <div className="card space-y-3 p-5">
           <AddNoteForm memberId={member.id} ar={ar} />
@@ -128,12 +146,24 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
                     {b.starts_at ? fmtLongDateTime(b.starts_at, b.ends_at, locale) : ""}
                   </p>
                 </div>
-                <span className="chip bg-surface-variant text-primary-700">{bstatusLabel(b.status, ar)}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <BookingMoneyControls bookingId={b.id} ar={ar} />
+                  <span className="chip bg-surface-variant text-primary-700">{bstatusLabel(b.status, ar)}</span>
+                </div>
               </div>
             ))
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function MoneyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="card p-4">
+      <p className="text-caption text-status-full">{label}</p>
+      <p className="mt-1 font-display text-lead text-primary-900">{value}</p>
     </div>
   );
 }
