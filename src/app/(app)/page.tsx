@@ -34,7 +34,7 @@ export default async function HomePage() {
             <div className="wordmark text-3xl text-ink">ÉLAN</div>
             <Link href="/profile" className="flex h-12 w-12 items-center justify-center rounded-full border border-accent/50 bg-surface-elevated font-display text-lg text-accent">{initial}</Link>
           </div>
-          <div className="mt-auto">
+          <div className="mt-auto pb-14">
             <p className="text-sm text-ink/80">{t.home.greeting}</p>
             <h1 className="font-display text-3xl font-medium leading-tight text-ink">{fullName}</h1>
             <p className="mt-1 text-[13px] text-ink/70">{next ? `${t.home.nextClass} · ${t.common.today}` : t.home.none}</p>

@@ -39,7 +39,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
 
   return (
     <section className="pb-44 md:pb-28">
-      <div className="relative h-56 overflow-hidden rounded-b-[30px]">
+      <div className="relative h-56 overflow-hidden rounded-b-[30px] md:mt-4 md:rounded-[30px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={classImage(c.name_en)} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.15),rgba(33,28,24,.55))" }} />

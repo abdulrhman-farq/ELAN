@@ -22,7 +22,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
 
   return (
     <section className="pb-10">
-      <div className="relative h-56 overflow-hidden rounded-b-[30px]">
+      <div className="relative h-56 overflow-hidden rounded-b-[30px] md:mt-4 md:rounded-[30px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.25),rgba(33,28,24,.92))" }} />
@@ -37,10 +37,14 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
 
       <div className="px-6">
         <div className="card relative -mt-10 p-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={INSTRUCTOR_IMAGE} alt="" className="float-left me-0 ms-3 h-14 w-14 rounded-full object-cover ring-1 ring-outline" />
-          <p className="font-display text-2xl font-medium text-primary-900">{name}</p>
-          {instructor ? <p className="mt-0.5 text-[13px] text-status-full">{t.confirmation.with} {instructor}</p> : null}
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={INSTRUCTOR_IMAGE} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-outline" />
+            <div className="min-w-0">
+              <p className="font-display text-2xl font-medium leading-tight text-primary-900">{name}</p>
+              {instructor ? <p className="mt-0.5 text-[13px] text-status-full">{t.confirmation.with} {instructor}</p> : null}
+            </div>
+          </div>
           <div className="mt-5 space-y-3.5 text-sm">
             <Row label={t.confirmation.date} value={fmtDayHeading(b.starts_at, locale)} />
             <Row label={t.confirmation.time} value={`${fmtTime(b.starts_at, locale)} · ${b.duration} ${t.common.minutes}`} top />
