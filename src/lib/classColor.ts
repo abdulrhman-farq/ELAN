@@ -27,7 +27,11 @@ function asset(name: string): string {
   return MEDIA_BASE ? `${MEDIA_BASE}/${name}.jpg` : `/assets/${name}.jpg`;
 }
 
-/** Photographic image per class type. */
+/** Photographic image per class type.
+ *  TODO(media): "Power Reformer" and "Reformer Flow" currently resolve to two
+ *  distinct keys (power-reformer / reformer-flow), but "Sculpt"/"Tone" reuses
+ *  the power-reformer photo. Add a dedicated sculpt/tone asset when available
+ *  so each class type has its own image. Do not invent assets meanwhile. */
 export function classImage(name: string): string {
   const n = (name || "").toLowerCase();
   if (n.includes("power")) return asset("power-reformer");

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
@@ -22,38 +23,36 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
 
   return (
     <section className="pb-10">
-      <div className="relative h-56 overflow-hidden rounded-b-[30px] md:mt-4 md:rounded-[30px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="relative h-56 overflow-hidden rounded-b-xl md:mt-4 md:rounded-xl">
+        <Image src={HERO_IMAGE} alt="" fill sizes="(min-width:768px) 768px, 100vw" className="object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.25),rgba(33,28,24,.92))" }} />
         <div className="relative flex h-full flex-col items-center justify-center px-6 text-center text-ink">
           <div className="mb-3 flex h-[68px] w-[68px] items-center justify-center rounded-full border-2 border-accent text-accent">
             <Icon name="check" className="text-3xl" />
           </div>
-          <h1 className="font-display text-3xl font-medium text-ink">{t.confirmation.title}</h1>
-          <p className="mt-1.5 text-sm text-ink/75">{t.confirmation.subtitle}</p>
+          <h1 className="font-display text-page-title font-medium text-ink">{t.confirmation.title}</h1>
+          <p className="mt-1.5 text-body text-ink/75">{t.confirmation.subtitle}</p>
         </div>
       </div>
 
       <div className="px-6">
         <div className="card relative -mt-10 p-6">
           <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={INSTRUCTOR_IMAGE} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-outline" />
+            <Image src={INSTRUCTOR_IMAGE} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-outline" />
             <div className="min-w-0">
-              <p className="font-display text-2xl font-medium leading-tight text-primary-900">{name}</p>
-              {instructor ? <p className="mt-0.5 text-[13px] text-status-full">{t.confirmation.with} {instructor}</p> : null}
+              <p className="font-display text-title font-medium leading-tight text-primary-900">{name}</p>
+              {instructor ? <p className="mt-0.5 text-meta text-status-full">{t.confirmation.with} {instructor}</p> : null}
             </div>
           </div>
-          <div className="mt-5 space-y-3.5 text-sm">
+          <div className="mt-5 space-y-3.5 text-body">
             <Row label={t.confirmation.date} value={fmtDayHeading(b.starts_at, locale)} />
             <Row label={t.confirmation.time} value={`${fmtTime(b.starts_at, locale)} · ${b.duration} ${t.common.minutes}`} top />
             <Row label={t.confirmation.place} value={t.confirmation.studio} top />
           </div>
         </div>
 
-        <Link href="/bookings" className="btn-primary mt-5 block">{t.confirmation.viewBookings}</Link>
-        <Link href="/schedule" className="btn-outline mt-2.5 block">{t.timetable.title}</Link>
+        <Link href="/bookings" className="btn-primary mt-5 w-full">{t.confirmation.viewBookings}</Link>
+        <Link href="/schedule" className="btn-outline mt-2.5 w-full">{t.timetable.title}</Link>
       </div>
     </section>
   );

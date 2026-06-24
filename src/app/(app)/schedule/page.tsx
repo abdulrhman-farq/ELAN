@@ -4,7 +4,7 @@ import { getTimetable } from "@/lib/queries";
 import { todayInRiyadh } from "@/lib/format";
 import { DateStrip } from "@/components/DateStrip";
 import { ClassCard } from "@/components/ClassCard";
-import { Icon } from "@/components/Icon";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +15,12 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const classes = await getTimetable(date);
 
   return (
-    <section className="space-y-5 p-6">
-      <h1 className="font-display text-2xl font-medium text-primary-900">{t.timetable.title}</h1>
+    <section className="space-y-6 p-6">
+      <h1 className="font-display text-page-title font-medium text-primary-900">{t.timetable.title}</h1>
       <DateStrip selected={date} locale={locale} todayLabel={t.common.today} />
 
       {classes.length === 0 ? (
-        <div className="card flex flex-col items-center gap-2 p-10 text-center text-status-full">
-          <Icon name="self_improvement" className="text-4xl text-primary-300" />
-          <p>{t.timetable.empty}</p>
-        </div>
+        <EmptyState icon="self_improvement" title={t.empty.noClasses} hint={t.empty.noClassesHint} />
       ) : (
         <div className="space-y-3">
           {classes.map((c) => (

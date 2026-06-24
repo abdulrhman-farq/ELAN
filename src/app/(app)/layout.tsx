@@ -6,6 +6,7 @@ import { getLocale } from "@/lib/locale-server";
 import { DEMO } from "@/lib/demo";
 import { BottomTabs } from "@/components/BottomTabs";
 import { MemberSidebar } from "@/components/MemberSidebar";
+import { ToastProvider } from "@/components/Toast";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!DEMO) {
@@ -16,10 +17,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const locale = await getLocale();
   return (
-    <div className="md:flex md:min-h-screen">
-      <MemberSidebar labels={dict[locale].tabs} />
-      <div className="mx-auto w-full max-w-md pb-24 md:max-w-3xl md:pb-10">{children}</div>
-      <BottomTabs labels={dict[locale].tabs} />
-    </div>
+    <ToastProvider dismissLabel={dict[locale].toast.dismiss}>
+      <div className="md:flex md:min-h-screen">
+        <MemberSidebar labels={dict[locale].tabs} />
+        <div className="mx-auto w-full max-w-md pb-24 md:max-w-3xl md:pb-10">{children}</div>
+        <BottomTabs labels={dict[locale].tabs} />
+      </div>
+    </ToastProvider>
   );
 }
