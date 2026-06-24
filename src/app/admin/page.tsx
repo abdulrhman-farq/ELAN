@@ -34,6 +34,36 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
+      {(() => {
+        const full = d.today.filter((c) => c.booked >= c.capacity);
+        const almost = d.today.filter((c) => c.capacity - c.booked === 1);
+        if (full.length === 0 && almost.length === 0 && d.newBookingsToday === 0) return null;
+        return (
+          <section className="card border-s-4 border-s-accent p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-lead font-medium text-primary-900">{ar ? "تنبيهات الحصص" : "Class alerts"}</h2>
+              <span className="font-number rounded-pill bg-sage/15 px-2.5 py-0.5 text-caption text-sage">
+                {ar ? `${d.newBookingsToday} حجز جديد اليوم` : `${d.newBookingsToday} new today`}
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {full.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 text-body">
+                  <span className="text-primary-900">{c.name_en} · <span className="font-number">{fmtTime(c.starts_at, locale)}</span></span>
+                  <span className="rounded-pill bg-danger/10 px-2.5 py-0.5 text-caption text-danger">{ar ? "اكتملت" : "Full"}</span>
+                </li>
+              ))}
+              {almost.map((c) => (
+                <li key={c.id} className="flex items-center justify-between gap-3 text-body">
+                  <span className="text-primary-900">{c.name_en} · <span className="font-number">{fmtTime(c.starts_at, locale)}</span></span>
+                  <span className="rounded-pill bg-status-waitlist/15 px-2.5 py-0.5 text-caption text-primary-700">{ar ? "باقي مقعد واحد" : "1 seat left"}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
+
       {overdue.length > 0 ? (
         <section className="card border-s-4 border-s-danger p-6">
           <div className="mb-3 flex items-center justify-between">
@@ -82,7 +112,9 @@ export default async function AdminDashboard() {
                     </span>
                     <span className="w-16 shrink-0 text-status-full">{(ar ? c.instructor_ar : c.instructor_en) ?? "—"}</span>
                     <span className="w-14 shrink-0 font-number text-status-full">{c.booked} / {c.capacity}</span>
-                    <span className={`w-16 shrink-0 ${c.open ? "text-sage" : "text-primary-700"}`}>{c.open ? (ar ? "مفتوحة" : "Open") : ar ? "مكتملة" : "Full"}</span>
+                    <span className={`w-16 shrink-0 ${!c.open ? "text-danger" : c.capacity - c.booked === 1 ? "text-primary-700" : "text-sage"}`}>
+                      {!c.open ? (ar ? "مكتملة" : "Full") : c.capacity - c.booked === 1 ? (ar ? "باقي مقعد" : "1 left") : ar ? "مفتوحة" : "Open"}
+                    </span>
                   </div>
                 ))}
               </div>

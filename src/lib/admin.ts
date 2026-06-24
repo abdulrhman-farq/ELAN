@@ -485,6 +485,7 @@ export interface DashboardData {
   }[];
   waitlist: { name: string; class_ar: string; class_en: string; starts_at: string }[];
   topClass: { name_en: string; pct: number } | null;
+  newBookingsToday: number;
 }
 
 export async function getDashboard(): Promise<DashboardData> {
@@ -504,7 +505,7 @@ export async function getDashboard(): Promise<DashboardData> {
   const cls = classes ?? [];
   const ids = cls.map((c) => c.id);
 
-  const [{ data: avail }, { data: wl }, { count: newMembersWeek }, { data: pays }] = await Promise.all([
+  const [{ data: avail }, { data: wl }, { count: newMembersWeek }, { data: pays }, { count: newBookingsToday }] = await Promise.all([
     ids.length
       ? supabase.from("class_instance_availability").select("class_instance_id,confirmed_count").in("class_instance_id", ids)
       : Promise.resolve({ data: [] as { class_instance_id: string; confirmed_count: number | null }[] }),
@@ -517,6 +518,12 @@ export async function getDashboard(): Promise<DashboardData> {
       : Promise.resolve({ data: [] as { members: { full_name: string } | null; class_instances: { starts_at: string; class_types: { name_ar: string; name_en: string } | null } | null }[] }),
     supabase.from("members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
     supabase.from("payments").select("amount_sar").eq("status", "paid").gte("created_at", monthStartIso),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "confirmed")
+      .gte("created_at", today.start)
+      .lt("created_at", today.end),
   ]);
 
   const conf = new Map((avail ?? []).map((a) => [a.class_instance_id, a.confirmed_count ?? 0]));
@@ -555,6 +562,7 @@ export async function getDashboard(): Promise<DashboardData> {
       starts_at: w.class_instances?.starts_at ?? "",
     })),
     topClass,
+    newBookingsToday: newBookingsToday ?? 0,
   };
 }
 
