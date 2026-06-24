@@ -3,6 +3,7 @@ import { getAdminSchedule, getScheduleFormOptions, type ScheduleRow } from "@/li
 import { fmtTime, fmtDayHeading } from "@/lib/format";
 import { classImage } from "@/lib/classColor";
 import { ScheduleGenerator } from "@/components/admin/ScheduleGenerator";
+import { ClassRowActions } from "@/components/admin/ClassRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,7 @@ export default async function AdminSchedule() {
                           <div className="font-number text-body text-primary-900">{c.confirmed} / {c.capacity}</div>
                         </div>
                       </div>
+                      <ClassRowActions id={c.id} confirmed={c.confirmed} cancelled={c.status === "cancelled"} ar={ar} />
                     </div>
                   </div>
                 );
