@@ -2,6 +2,8 @@ import "server-only";
 import { getServerSupabase, rpc } from "./supabase/server";
 import { dayBoundsUtc, todayInRiyadh } from "./format";
 
+type ServerSupabase = Awaited<ReturnType<typeof getServerSupabase>>;
+
 /** Returns ISO bounds for "now minus N days" up to now. */
 function lastDaysIso(days: number) {
   const end = new Date();
@@ -215,12 +217,21 @@ export async function getMembersDirectory(search?: string): Promise<MemberRow[]>
   return (data ?? []) as MemberRow[];
 }
 
+export interface MemberNote {
+  id: string;
+  body: string;
+  created_at: string;
+}
+
 export interface MemberDetail {
   member: MemberRow & { locale: string | null };
+  leadStatus: string | null;
+  source: string | null;
   balance: number;
   membershipPlanAr: string | null;
   membershipPlanEn: string | null;
   membershipEnd: string | null;
+  notes: MemberNote[];
   bookings: {
     id: string;
     status: string;
@@ -231,16 +242,23 @@ export interface MemberDetail {
   }[];
 }
 
+/** member_notes is a new table not yet in the generated Database types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function notesTable(supabase: ServerSupabase): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as unknown as { from: (t: string) => any }).from("member_notes");
+}
+
 export async function getMemberDetail(id: string): Promise<MemberDetail | null> {
   const supabase = await getServerSupabase();
   const { data: member } = await supabase
     .from("members")
-    .select("id,full_name,phone,email,level,locale,created_at")
+    .select("id,full_name,phone,email,level,locale,created_at,lead_status,source")
     .eq("id", id)
     .maybeSingle();
   if (!member) return null;
 
-  const [{ data: balance }, { data: membership }, { data: bookings }] = await Promise.all([
+  const [{ data: balance }, { data: membership }, { data: bookings }, { data: notes }] = await Promise.all([
     rpc<number>(supabase, "elan_credit_balance", { p_member: id }),
     supabase
       .from("member_memberships")
@@ -256,14 +274,21 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
       .eq("member_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
+    notesTable(supabase)
+      .select("id,body,created_at")
+      .eq("member_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   return {
     member: member as MemberRow & { locale: string | null },
+    leadStatus: (member as { lead_status: string | null }).lead_status ?? null,
+    source: (member as { source: string | null }).source ?? null,
     balance: balance ?? 0,
     membershipPlanAr: membership?.membership_plans?.name_ar ?? null,
     membershipPlanEn: membership?.membership_plans?.name_en ?? null,
     membershipEnd: membership?.current_period_end ?? null,
+    notes: (notes ?? []) as MemberNote[],
     bookings: (bookings ?? []).map((b) => ({
       id: b.id,
       status: b.status,
@@ -303,4 +328,125 @@ export async function getReports(): Promise<AdminReports> {
   for (const b of books ?? []) bookingsByStatus[b.status] = (bookingsByStatus[b.status] ?? 0) + 1;
 
   return { revenue30, revenueByType, paymentsCount: (pays ?? []).length, bookingsByStatus };
+}
+
+export interface MemberListRow {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  lead_status: string | null;
+  credits: number;
+  plan_ar: string | null;
+  plan_en: string | null;
+  period_end: string | null;
+  last_seen: string | null;
+  created_at: string;
+}
+
+export interface MembersKpis {
+  total: number;
+  active: number;
+  expiring: number;
+  trials: number;
+  newWeek: number;
+}
+
+export interface MembersOverview {
+  kpis: MembersKpis;
+  rows: MemberListRow[];
+}
+
+/** Real members directory + KPIs for the admin console (gated by RLS is_admin). */
+export async function getMembersOverview(search?: string, status?: string): Promise<MembersOverview> {
+  const supabase = await getServerSupabase();
+  const now = Date.now();
+  const weekAgoIso = new Date(now - 7 * 86400000).toISOString();
+  const nowIso = new Date(now).toISOString();
+  const soonIso = new Date(now + 7 * 86400000).toISOString();
+
+  // KPIs across ALL members (independent of the filtered list).
+  const [{ count: total }, { count: newWeek }, { count: trials }, { count: active }, { count: expiring }] =
+    await Promise.all([
+      supabase.from("members").select("id", { count: "exact", head: true }),
+      supabase.from("members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
+      supabase.from("members").select("id", { count: "exact", head: true }).eq("lead_status", "trial"),
+      supabase.from("member_memberships").select("id", { count: "exact", head: true }).eq("status", "active"),
+      supabase
+        .from("member_memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .gte("current_period_end", nowIso)
+        .lte("current_period_end", soonIso),
+    ]);
+
+  // Filtered list.
+  let q = supabase
+    .from("members")
+    .select("id,full_name,email,phone,lead_status,created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (status && status.trim()) q = q.eq("lead_status", status.trim());
+  if (search && search.trim()) {
+    const s = search.trim().replace(/[%,()]/g, " ");
+    q = q.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
+  }
+  const { data: members } = await q;
+  const list = members ?? [];
+  const ids = list.map((m) => m.id);
+
+  const [memberships, lastSeenRows, balances] = await Promise.all([
+    ids.length
+      ? supabase
+          .from("member_memberships")
+          .select("member_id,current_period_end,membership_plans(name_ar,name_en)")
+          .eq("status", "active")
+          .in("member_id", ids)
+      : Promise.resolve({ data: [] as { member_id: string; current_period_end: string | null; membership_plans: { name_ar: string; name_en: string } | { name_ar: string; name_en: string }[] | null }[] }),
+    ids.length
+      ? supabase.from("bookings").select("member_id,created_at").in("member_id", ids)
+      : Promise.resolve({ data: [] as { member_id: string; created_at: string }[] }),
+    Promise.all(list.map((m) => rpc<number>(supabase, "elan_credit_balance", { p_member: m.id }).then((r) => r.data ?? 0))),
+  ]);
+
+  const mmById = new Map<string, { current_period_end: string | null; plan_ar: string | null; plan_en: string | null }>();
+  for (const mm of memberships.data ?? []) {
+    if (mmById.has(mm.member_id)) continue;
+    const planRaw = mm.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    mmById.set(mm.member_id, { current_period_end: mm.current_period_end, plan_ar: plan?.name_ar ?? null, plan_en: plan?.name_en ?? null });
+  }
+  const lastById = new Map<string, string>();
+  for (const b of lastSeenRows.data ?? []) {
+    const prev = lastById.get(b.member_id);
+    if (!prev || new Date(b.created_at) > new Date(prev)) lastById.set(b.member_id, b.created_at);
+  }
+
+  const rows: MemberListRow[] = list.map((m, i) => {
+    const mm = mmById.get(m.id);
+    return {
+      id: m.id,
+      full_name: m.full_name,
+      email: m.email,
+      phone: m.phone,
+      lead_status: m.lead_status,
+      credits: balances[i] ?? 0,
+      plan_ar: mm?.plan_ar ?? null,
+      plan_en: mm?.plan_en ?? null,
+      period_end: mm?.current_period_end ?? null,
+      last_seen: lastById.get(m.id) ?? null,
+      created_at: m.created_at,
+    };
+  });
+
+  return {
+    kpis: {
+      total: total ?? 0,
+      active: active ?? 0,
+      expiring: expiring ?? 0,
+      trials: trials ?? 0,
+      newWeek: newWeek ?? 0,
+    },
+    rows,
+  };
 }
