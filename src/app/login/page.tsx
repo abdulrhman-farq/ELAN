@@ -14,6 +14,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("elan1234");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  // Subscriber login: email magic link. Admin creates the client with her email;
+  // she signs in via the link and the app resolves her real profile by email.
+  async function memberMagicLink() {
+    if (!email.trim()) { setErr(t.error); return; }
+    setBusy(true); setErr(null);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setBusy(false);
+    if (error) { setErr(t.error); return; }
+    setSent(true);
+  }
 
   // Real Supabase auth — required for the admin console; routes admins to /admin.
   async function signIn(e?: string, p?: string) {
@@ -58,6 +73,17 @@ export default function LoginPage() {
           <button type="button" disabled={busy} onClick={demoMember} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
           <button type="button" disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demoAdmin}</button>
         </div>
+
+        <div className="border-t border-outline pt-4">
+          {sent ? (
+            <p className="text-center text-meta text-sage" role="status">تم إرسال رابط الدخول إلى بريدك ✦ افتحيه من جوالك للدخول.</p>
+          ) : (
+            <button type="button" disabled={busy} onClick={memberMagicLink} className="btn button-md w-full border border-outline text-primary-700">
+              دخول العميلة برابط عبر البريد
+            </button>
+          )}
+        </div>
+
         <p className="text-center text-meta text-status-full">{t.hint}</p>
       </div>
     </div>

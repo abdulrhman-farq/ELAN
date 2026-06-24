@@ -106,6 +106,45 @@ export async function getMyBookings() {
 }
 
 export async function getMemberContext() {
+  // Resolve a real authenticated subscriber first — by email — so the app shows
+  // her real name/credits even while the timetable showcase stays in demo mode.
+  try {
+    const supabase = await getServerSupabase();
+    const { data: auth } = await supabase.auth.getUser();
+    const email = auth.user?.email;
+    if (email) {
+      const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
+      if (!isAdmin) {
+        const { data: real } = await supabase
+          .from("members")
+          .select("id,full_name,phone,email")
+          .ilike("email", email)
+          .maybeSingle();
+        if (real) {
+          const [{ data: bal }, { data: mem }] = await Promise.all([
+            rpc<number>(supabase, "elan_credit_balance", { p_member: real.id }),
+            supabase
+              .from("member_memberships")
+              .select("status,current_period_end,membership_plans(name_ar,name_en)")
+              .eq("member_id", real.id)
+              .eq("status", "active")
+              .order("current_period_end", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          ]);
+          const planRaw = (mem as { membership_plans?: unknown } | null)?.membership_plans;
+          const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+          const membership = mem
+            ? { current_period_end: (mem as { current_period_end: string }).current_period_end, membership_plans: (plan as { name_ar: string; name_en: string } | null) ?? null }
+            : null;
+          return { member: real, balance: bal ?? 0, membership, isAdmin: false };
+        }
+      }
+    }
+  } catch (e) {
+    console.error("getMemberContext (real) failed", e);
+  }
+
   if (DEMO) return mockMemberContext();
   try {
     const supabase = await getServerSupabase();
