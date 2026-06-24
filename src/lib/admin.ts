@@ -330,6 +330,125 @@ export async function getReports(): Promise<AdminReports> {
   return { revenue30, revenueByType, paymentsCount: (pays ?? []).length, bookingsByStatus };
 }
 
+export interface DashboardData {
+  bookingsToday: number;
+  fillRate: number | null;
+  newMembersWeek: number;
+  revenueMonth: number;
+  today: {
+    id: string;
+    starts_at: string;
+    name_ar: string;
+    name_en: string;
+    instructor_ar: string | null;
+    instructor_en: string | null;
+    booked: number;
+    capacity: number;
+    open: boolean;
+  }[];
+  waitlist: { name: string; class_ar: string; class_en: string; starts_at: string }[];
+  topClass: { name_en: string; pct: number } | null;
+}
+
+export async function getDashboard(): Promise<DashboardData> {
+  const supabase = await getServerSupabase();
+  const today = dayBoundsUtc(todayInRiyadh());
+  const weekAgoIso = new Date(Date.now() - 7 * 86400000).toISOString();
+  const d = new Date();
+  const monthStartIso = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
+
+  const { data: classes } = await supabase
+    .from("class_instances")
+    .select("id,starts_at,capacity,class_types(name_ar,name_en),instructors(name_ar,name_en)")
+    .gte("starts_at", today.start)
+    .lt("starts_at", today.end)
+    .eq("status", "scheduled")
+    .order("starts_at", { ascending: true });
+  const cls = classes ?? [];
+  const ids = cls.map((c) => c.id);
+
+  const [{ data: avail }, { data: wl }, { count: newMembersWeek }, { data: pays }] = await Promise.all([
+    ids.length
+      ? supabase.from("class_instance_availability").select("class_instance_id,confirmed_count").in("class_instance_id", ids)
+      : Promise.resolve({ data: [] as { class_instance_id: string; confirmed_count: number | null }[] }),
+    ids.length
+      ? supabase
+          .from("bookings")
+          .select("id,members(full_name),class_instances(starts_at,class_types(name_ar,name_en))")
+          .eq("status", "waitlisted")
+          .in("class_instance_id", ids)
+      : Promise.resolve({ data: [] as { members: { full_name: string } | null; class_instances: { starts_at: string; class_types: { name_ar: string; name_en: string } | null } | null }[] }),
+    supabase.from("members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
+    supabase.from("payments").select("amount_sar").eq("status", "paid").gte("created_at", monthStartIso),
+  ]);
+
+  const conf = new Map((avail ?? []).map((a) => [a.class_instance_id, a.confirmed_count ?? 0]));
+  const booked = cls.reduce((s, c) => s + (conf.get(c.id) ?? 0), 0);
+  const cap = cls.reduce((s, c) => s + c.capacity, 0);
+
+  let topClass: { name_en: string; pct: number } | null = null;
+  for (const c of cls) {
+    const pct = c.capacity ? Math.round(((conf.get(c.id) ?? 0) / c.capacity) * 100) : 0;
+    if (!topClass || pct > topClass.pct) topClass = { name_en: c.class_types?.name_en ?? "", pct };
+  }
+
+  return {
+    bookingsToday: booked,
+    fillRate: cap ? Math.round((booked / cap) * 100) : null,
+    newMembersWeek: newMembersWeek ?? 0,
+    revenueMonth: (pays ?? []).reduce((s, p) => s + Number(p.amount_sar), 0),
+    today: cls.map((c) => {
+      const b = conf.get(c.id) ?? 0;
+      return {
+        id: c.id,
+        starts_at: c.starts_at,
+        name_ar: c.class_types?.name_ar ?? "",
+        name_en: c.class_types?.name_en ?? "",
+        instructor_ar: c.instructors?.name_ar ?? null,
+        instructor_en: c.instructors?.name_en ?? null,
+        booked: b,
+        capacity: c.capacity,
+        open: b < c.capacity,
+      };
+    }),
+    waitlist: (wl ?? []).map((w) => ({
+      name: w.members?.full_name ?? "—",
+      class_ar: w.class_instances?.class_types?.name_ar ?? "",
+      class_en: w.class_instances?.class_types?.name_en ?? "",
+      starts_at: w.class_instances?.starts_at ?? "",
+    })),
+    topClass,
+  };
+}
+
+export interface TrainerRow {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  bio_ar: string | null;
+  bio_en: string | null;
+  classesThisWeek: number;
+}
+
+export async function getInstructors(): Promise<TrainerRow[]> {
+  const supabase = await getServerSupabase();
+  const week = nextDaysIso(7);
+  const [{ data: trainers }, { data: cls }] = await Promise.all([
+    supabase.from("instructors").select("id,name_ar,name_en,bio_ar,bio_en").eq("active", true).order("name_en"),
+    supabase.from("class_instances").select("instructor_id").gte("starts_at", week.start).lt("starts_at", week.end).eq("status", "scheduled"),
+  ]);
+  const counts = new Map<string, number>();
+  for (const c of cls ?? []) if (c.instructor_id) counts.set(c.instructor_id, (counts.get(c.instructor_id) ?? 0) + 1);
+  return (trainers ?? []).map((t) => ({
+    id: t.id,
+    name_ar: t.name_ar,
+    name_en: t.name_en,
+    bio_ar: t.bio_ar,
+    bio_en: t.bio_en,
+    classesThisWeek: counts.get(t.id) ?? 0,
+  }));
+}
+
 export interface MemberListRow {
   id: string;
   full_name: string;
