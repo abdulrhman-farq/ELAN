@@ -6,6 +6,19 @@ import { mockBooking, mockBookings, mockCatalogue, mockClassById, mockClasses, m
 
 export type DisplayStatus = "available" | "waitlist_open" | "fully_booked" | "booking_closed";
 
+/** Member id for a real signed-in subscriber (resolved via auth_user_id link).
+ *  Null when logged out or admin. When non-null the member app uses real data
+ *  + real booking RPCs; otherwise it falls back to the demo showcase. */
+async function currentRealMemberId(): Promise<string | null> {
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await rpc<string>(supabase, "current_member_id");
+    return (data as string | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface ClassCardData {
   id: string;
   starts_at: string;
@@ -62,14 +75,17 @@ async function fetchBetween(startIso: string, endIso: string): Promise<ClassCard
 }
 
 export async function getTimetable(date: string) {
-  if (DEMO) return mockClasses(date);
+  const realId = await currentRealMemberId();
+  if (!realId && DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
+  if (realId) return rows; // real subscriber: show real timetable (even if empty)
   return rows.length ? rows : mockClasses(date);
 }
 
 export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string }> {
-  if (DEMO) return mockClassById(id);
+  const realId = await currentRealMemberId();
+  if (!realId && DEMO) return mockClassById(id);
   try {
     const now = Date.now();
     const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
@@ -85,7 +101,8 @@ export async function getClass(id: string): Promise<{ card: ClassCardData; eligi
 }
 
 export async function getMyBookings() {
-  if (DEMO) return mockBookings();
+  const realId = await currentRealMemberId();
+  if (!realId && DEMO) return mockBookings();
   try {
     const supabase = await getServerSupabase();
     const { data } = await supabase
@@ -98,6 +115,7 @@ export async function getMyBookings() {
       name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
       instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
     }));
+    if (realId) return rows; // real subscriber: show real bookings (even if empty)
     return rows.length ? rows : mockBookings();
   } catch (e) {
     console.error("getMyBookings failed", e);

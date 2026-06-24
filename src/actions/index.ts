@@ -7,12 +7,18 @@ import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import { LOCALE_COOKIE, type Locale } from "@/lib/i18n";
 import { DEMO } from "@/lib/demo";
 
+/** True when a real subscriber (auth_user_id linked) is signed in. */
+async function isRealMember(supabase: Awaited<ReturnType<typeof getServerSupabase>>): Promise<boolean> {
+  const { data } = await rpc<string>(supabase, "current_member_id");
+  return Boolean(data);
+}
+
 export async function bookAction(classInstanceId: string) {
-  if (DEMO) {
+  const supabase = await getServerSupabase();
+  if (DEMO && !(await isRealMember(supabase))) {
     revalidatePath("/"); revalidatePath("/schedule"); revalidatePath("/bookings");
     return { ok: true as const, bookingId: "mock-bk-new" };
   }
-  const supabase = await getServerSupabase();
   const { data, error } = await rpc<{ id: string }>(supabase, "book_class_self", { p_class_instance_id: classInstanceId, p_source: "web" });
   revalidatePath("/");
   revalidatePath("/schedule");
@@ -22,12 +28,12 @@ export async function bookAction(classInstanceId: string) {
 }
 
 export async function cancelAction(bookingId: string, classInstanceId?: string) {
-  if (DEMO) {
+  const supabase = await getServerSupabase();
+  if (DEMO && !(await isRealMember(supabase))) {
     revalidatePath("/"); revalidatePath("/schedule"); revalidatePath("/bookings");
     if (classInstanceId) revalidatePath(`/class/${classInstanceId}`);
     return { ok: true };
   }
-  const supabase = await getServerSupabase();
   const { error } = await rpc(supabase, "cancel_booking_self", { p_booking_id: bookingId });
   revalidatePath("/");
   revalidatePath("/schedule");
