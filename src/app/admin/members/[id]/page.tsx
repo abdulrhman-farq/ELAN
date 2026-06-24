@@ -89,7 +89,7 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
 
       <div className="grid grid-cols-2 gap-3">
         <div className="card p-5 text-center">
-          <p className="font-display text-3xl text-primary-700">{balance}</p>
+          <p className="font-number text-3xl text-primary-700">{balance}</p>
           <p className="text-caption text-status-full">{ar ? "رصيد الحصص" : "Credits"}</p>
         </div>
         <div className="card p-5 text-center">
@@ -124,7 +124,7 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
               {notes.map((n) => (
                 <li key={n.id} className="py-3">
                   <p className="whitespace-pre-wrap text-body text-primary-900">{n.body}</p>
-                  <p className="mt-1 text-caption text-status-full">{fmtDateTime(n.created_at, ar)}</p>
+                  <p className="mt-1 font-number text-caption text-status-full">{fmtDateTime(n.created_at, ar)}</p>
                 </li>
               ))}
             </ul>
@@ -163,7 +163,7 @@ function MoneyStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-4">
       <p className="text-caption text-status-full">{label}</p>
-      <p className="mt-1 font-display text-lead text-primary-900">{value}</p>
+      <p className="mt-1 font-number text-lead text-primary-900">{value}</p>
     </div>
   );
 }

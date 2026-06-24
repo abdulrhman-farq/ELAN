@@ -61,11 +61,11 @@ export default async function HomePage() {
 
         <div className="flex gap-3">
           <div className="card flex-1 p-5 text-center">
-            <div className="font-display text-3xl text-primary-700">{ctx.balance}</div>
+            <div className="font-number text-3xl text-primary-700">{ctx.balance}</div>
             <div className="text-caption text-status-full">{t.home.balance}</div>
           </div>
           <div className="card flex-1 p-5 text-center">
-            <div className="font-display text-3xl text-sage">{attended}</div>
+            <div className="font-number text-3xl text-sage">{attended}</div>
             <div className="text-caption text-status-full">{t.home.attended}</div>
           </div>
         </div>

@@ -48,12 +48,12 @@ export default async function AdminSchedule() {
                       <h3 className="absolute inset-x-4 bottom-3 font-display text-lead font-medium text-ink">{c.name_en}</h3>
                     </div>
                     <div className="p-5">
-                      <p className="text-meta text-status-full">{fmtTime(c.starts_at, locale)}</p>
+                      <p className="font-number text-meta text-status-full">{fmtTime(c.starts_at, locale)}</p>
                       <div className="mt-3 flex items-center gap-3 border-t border-outline pt-3">
                         <span className="flex-1 text-body text-primary-900">{(ar ? c.instructor_ar : c.instructor_en) ?? "—"}</span>
                         <div className="text-end">
                           <div className="text-caption text-status-full">{ar ? "الإشغال" : "Booked"}{c.waitlist > 0 ? ` · ${c.waitlist} ${ar ? "بالانتظار" : "waiting"}` : ""}</div>
-                          <div className="font-display text-body text-primary-900">{c.confirmed} / {c.capacity}</div>
+                          <div className="font-number text-body text-primary-900">{c.confirmed} / {c.capacity}</div>
                         </div>
                       </div>
                     </div>

@@ -64,10 +64,10 @@ export default async function AdminReports() {
                 <div key={type}>
                   <div className="mb-1.5 flex justify-between text-body">
                     <span className="text-primary-900">{PTYPE[type]?.[ar ? 0 : 1] ?? type}</span>
-                    <span className="text-primary-700">{sar(v)}</span>
+                    <span className="font-number text-primary-700">{sar(v)}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-pill bg-surface-variant">
-                    <div className="h-full rounded-pill" style={{ width: `${Math.round((v / maxType) * 100)}%`, background: "linear-gradient(90deg,#D6B47A,#E4C58E)" }} />
+                    <div className="h-full rounded-pill" style={{ width: `${Math.round((v / maxType) * 100)}%`, background: "linear-gradient(90deg,#B89B72,#C8A98A)" }} />
                   </div>
                 </div>
               ))}
@@ -84,12 +84,12 @@ export default async function AdminReports() {
               {bookings.map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between border-b border-outline pb-2 text-body last:border-0">
                   <span className="text-primary-900">{BSTATUS[status]?.[ar ? 0 : 1] ?? status}</span>
-                  <span className="font-display text-primary-700">{count}</span>
+                  <span className="font-number text-primary-700">{count}</span>
                 </div>
               ))}
               <div className="flex items-center justify-between pt-1 text-body">
                 <span className="text-status-full">{ar ? "قيمة الإلغاءات" : "Cancellation value"}</span>
-                <span className="text-status-full">{sar(r.cancellationValueHalalas)}</span>
+                <span className="font-number text-status-full">{sar(r.cancellationValueHalalas)}</span>
               </div>
             </div>
           )}
@@ -103,7 +103,7 @@ function Kpi({ label, value, strong, sub }: { label: string; value: string; stro
   return (
     <div className={sub ? "card p-5 bg-surface-variant/40" : "card p-5"}>
       <div className="text-caption text-status-full">{label}</div>
-      <div className={`mt-2 font-display ${strong ? "text-2xl text-primary-900" : "text-xl text-primary-900"}`}>{value}</div>
+      <div className={`mt-2 font-number ${strong ? "text-2xl text-primary-900" : "text-xl text-primary-900"}`}>{value}</div>
     </div>
   );
 }

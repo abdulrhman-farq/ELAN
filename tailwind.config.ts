@@ -7,22 +7,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Champagne tints (100–400) for fills; brass at 700; charcoal at 500/800/900 (buttons + text).
+        // ÉLAN brand identity (handoff §01): Peach Protein / Blush Beet / Honey Oatmilk
+        // / Coconut Cream / Sage. Ink for text, Brass for lines & accent, Dark for
+        // photographic "brand moments". Green is a sparing botanical accent only.
         primary: {
-          DEFAULT: "#2E2A26",
-          50: "#F8F5F1", 100: "#EFE2D2", 200: "#E6D3BC", 300: "#D8BE9C",
-          400: "#C9A878", 500: "#2E2A26", 600: "#4A423C", 700: "#9C7A45",
-          800: "#3A332F", 900: "#3A332F",
+          DEFAULT: "#3B2D27", // Ink
+          50: "#F8F5F1", // Coconut Cream
+          100: "#F6EAD4", // Honey Oatmilk
+          200: "#EFD7CF", // Peach Protein
+          300: "#DDBAAE", // Blush Beet
+          400: "#C8A98A", // brass-tinted fill
+          500: "#3B2D27", // Ink
+          600: "#5B4A41", // ink-soft
+          700: "#846532", // deep brass — accessible accent text on cream
+          800: "#2B2420", // Dark
+          900: "#3B2D27", // Ink (headings)
         },
-        surface: { DEFAULT: "#EDE8DD", variant: "#E8DFD0", container: "#FFFAF2", elevated: "#FFFAF2" },
-        outline: "#E3D8C8",
-        accent: "#C89F5F", // champagne gold
-        sage: { DEFAULT: "#8A9272", 100: "#E5E7DA", 700: "#5F6049" },
-        ink: "#F8F5F1", // creamy text on charcoal / gold fills
-        brand: "#211C18", // dark espresso for hero + admin sidebar
-        danger: "#BD493E",
-        // status.full darkened from #8B8177 → #6B625A for WCAG AA (≥4.5:1) on cream.
-        status: { available: "#8A9272", waitlist: "#C89F5F", full: "#6B625A" },
+        surface: { DEFAULT: "#F4EBDD", variant: "#EFE0CF", container: "#FBF6EF", elevated: "#FBF6EF" },
+        outline: "#E7D9C4", // brass line ~40%
+        accent: "#B89B72", // Brass
+        sage: { DEFAULT: "#818263", 100: "#E6E7DC", 700: "#5F6049" },
+        ink: "#F8F5F1", // Coconut Cream text on dark / brass fills
+        brand: "#2B2420", // Dark — hero + admin sidebar
+        danger: "#9A5B3E", // warning / error
+        status: { available: "#818263", waitlist: "#B89B72", full: "#6F5D52" },
       },
       borderRadius: {
         // Unified radius scale: sm 12 / md 16 / lg 20 / xl 28. `card` aliases xl.
@@ -49,10 +57,13 @@ const config: Config = {
         glow: "0 16px 40px -16px rgba(184,151,102,0.4)",
       },
       fontFamily: {
-        sans: ["Inter", "'IBM Plex Sans Arabic'", "system-ui", "sans-serif"],
-        display: ["'Cormorant Garamond'", "'IBM Plex Sans Arabic'", "Georgia", "serif"],
-        label: ["Inter", "system-ui", "sans-serif"],
-        arabic: ["'IBM Plex Sans Arabic'", "sans-serif"],
+        // Handoff §01: Amiri = Arabic headings (Display); Tajawal = Arabic body;
+        // Bodoni Moda = wordmark, Latin & all numbers (prices, dates, counters).
+        sans: ["'Tajawal'", "'IBM Plex Sans Arabic'", "system-ui", "sans-serif"],
+        display: ["'Amiri'", "'Bodoni Moda'", "Georgia", "serif"],
+        label: ["'Bodoni Moda'", "Georgia", "serif"],
+        arabic: ["'Tajawal'", "sans-serif"],
+        number: ["'Bodoni Moda'", "Georgia", "serif"],
       },
     },
   },

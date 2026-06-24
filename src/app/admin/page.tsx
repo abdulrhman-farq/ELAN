@@ -18,7 +18,7 @@ export default async function AdminDashboard() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-page-title font-medium text-primary-900">{ar ? "لوحة التحكم" : "Dashboard"}</h1>
-          <p className="text-meta text-status-full">{date}</p>
+          <p className="font-number text-meta text-status-full">{date}</p>
         </div>
         <Link href="/admin/members" className="inline-flex min-h-[44px] items-center rounded-lg bg-primary px-5 text-sm font-semibold text-ink">{ar ? "إدارة العميلات" : "Manage clients"}</Link>
       </div>
@@ -29,7 +29,7 @@ export default async function AdminDashboard() {
         <Kpi label={ar ? "عضوات جدد" : "New members"} value={String(d.newMembersWeek)} note={ar ? "هذا الأسبوع" : "this week"} good />
         <div className="card-ink p-5">
           <div className="text-caption text-primary-200">{ar ? "إيراد الشهر" : "Revenue (month)"}</div>
-          <div className="mt-2 font-display text-3xl">{d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
+          <div className="mt-2 font-number text-3xl">{d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
           <div className="text-caption text-ink/70">{ar ? "ريال سعودي" : "SAR"}</div>
         </div>
       </div>
@@ -38,7 +38,7 @@ export default async function AdminDashboard() {
         <section className="card border-s-4 border-s-danger p-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-display text-lead font-medium text-primary-900">{ar ? "مهام متابعة مستحقة" : "Due follow-up tasks"}</h2>
-            <span className="rounded-pill bg-danger/10 px-2.5 py-0.5 text-caption text-danger">{overdue.length}</span>
+            <span className="font-number rounded-pill bg-danger/10 px-2.5 py-0.5 text-caption text-danger">{overdue.length}</span>
           </div>
           <ul className="divide-y divide-outline">
             {overdue.map((t) => (
@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
                   <p className="truncate text-body text-primary-900">{t.title}</p>
                   <Link href={`/admin/members/${t.member_id}`} className="text-caption text-primary-700">{t.member_name}</Link>
                 </div>
-                <span className="shrink-0 text-caption text-danger">{dueFmt(t.due_date)}</span>
+                <span className="font-number shrink-0 text-caption text-danger">{dueFmt(t.due_date)}</span>
               </li>
             ))}
           </ul>
@@ -74,14 +74,14 @@ export default async function AdminDashboard() {
                 </div>
                 {d.today.map((c) => (
                   <div key={c.id} className="flex items-center gap-2 border-b border-outline py-3 last:border-0">
-                    <span className="w-16 shrink-0 font-display text-primary-900">{fmtTime(c.starts_at, locale)}</span>
+                    <span className="w-16 shrink-0 font-number text-primary-900">{fmtTime(c.starts_at, locale)}</span>
                     <span className="flex flex-1 items-center gap-2 text-primary-900">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={classImage(c.name_en)} alt="" className="h-8 w-8 rounded-md object-cover" />
                       {c.name_en}
                     </span>
                     <span className="w-16 shrink-0 text-status-full">{(ar ? c.instructor_ar : c.instructor_en) ?? "—"}</span>
-                    <span className="w-14 shrink-0 text-status-full">{c.booked} / {c.capacity}</span>
+                    <span className="w-14 shrink-0 font-number text-status-full">{c.booked} / {c.capacity}</span>
                     <span className={`w-16 shrink-0 ${c.open ? "text-sage" : "text-primary-700"}`}>{c.open ? (ar ? "مفتوحة" : "Open") : ar ? "مكتملة" : "Full"}</span>
                   </div>
                 ))}
@@ -110,7 +110,7 @@ export default async function AdminDashboard() {
           <div className="mt-5 border-t border-outline pt-4">
             <div className="mb-2 font-display text-body text-primary-900">{ar ? "الأعلى إشغالًا اليوم" : "Top fill today"}</div>
             {d.topClass ? (
-              <div className="flex justify-between text-body text-status-full"><span>{d.topClass.name_en}</span><span className="text-primary-700">{d.topClass.pct}٪</span></div>
+              <div className="flex justify-between text-body text-status-full"><span>{d.topClass.name_en}</span><span className="font-number text-primary-700">{d.topClass.pct}٪</span></div>
             ) : (
               <p className="text-meta text-status-full">—</p>
             )}
@@ -125,7 +125,7 @@ function Kpi({ label, value, note, good }: { label: string; value: string; note:
   return (
     <div className="card p-5">
       <div className="text-caption text-status-full">{label}</div>
-      <div className="mt-2 font-display text-3xl text-primary-900">{value}</div>
+      <div className="mt-2 font-number text-3xl text-primary-900">{value}</div>
       <div className={`text-caption ${good ? "text-sage" : "text-status-full"}`}>{note}</div>
     </div>
   );
