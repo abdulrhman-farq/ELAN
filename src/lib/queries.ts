@@ -133,11 +133,22 @@ export async function getMemberContext() {
     if (email) {
       const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
       if (!isAdmin) {
-        const { data: real } = await supabase
-          .from("members")
-          .select("id,full_name,phone,email")
-          .ilike("email", email)
-          .maybeSingle();
+        // Prefer the linked member (unique via auth_user_id); fall back to email.
+        const { data: mid } = await rpc<string>(supabase, "current_member_id");
+        let real: { id: string; full_name: string; phone: string | null; email: string | null } | null = null;
+        if (mid) {
+          const { data } = await supabase.from("members").select("id,full_name,phone,email").eq("id", mid).maybeSingle();
+          real = data ?? null;
+        }
+        if (!real) {
+          const { data } = await supabase
+            .from("members")
+            .select("id,full_name,phone,email")
+            .ilike("email", email)
+            .order("created_at", { ascending: true })
+            .limit(1);
+          real = data?.[0] ?? null;
+        }
         if (real) {
           const [{ data: bal }, { data: mem }] = await Promise.all([
             rpc<number>(supabase, "elan_credit_balance", { p_member: real.id }),
