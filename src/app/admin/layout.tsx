@@ -4,19 +4,18 @@ import { redirect } from "next/navigation";
 import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale-server";
 import { dirFor } from "@/lib/i18n";
-import { DEMO } from "@/lib/demo";
 import { AdminNav } from "@/components/admin/AdminNav";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  if (!DEMO) {
-    const supabase = await getServerSupabase();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) redirect("/login");
-    const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
-    if (!isAdmin) redirect("/");
-  }
+  // The admin console is a real management tool — always require a real admin
+  // session (the member-facing app stays in demo mode independently).
+  const supabase = await getServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect("/login");
+  const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
+  if (!isAdmin) redirect("/");
 
   const locale = await getLocale();
   const ar = locale === "ar";

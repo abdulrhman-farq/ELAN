@@ -15,13 +15,20 @@ export default function LoginPage() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Real Supabase auth — required for the admin console; routes admins to /admin.
   async function signIn(e?: string, p?: string) {
-    if (DEMO) { router.push("/"); router.refresh(); return; }
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: e ?? email, password: p ?? password });
+    if (error) { setBusy(false); setErr(t.error); return; }
+    const { data: isAdmin } = await supabase.rpc("is_admin");
     setBusy(false);
-    if (error) { setErr(t.error); return; }
-    router.push("/"); router.refresh();
+    router.push(isAdmin ? "/admin" : "/"); router.refresh();
+  }
+
+  // The member-facing app is a demo showcase — quick entry without real auth.
+  function demoMember() {
+    if (DEMO) { router.push("/"); router.refresh(); return; }
+    void signIn("noor@elan.demo", "elan1234");
   }
 
   const field = "w-full rounded-sm border border-outline bg-surface-elevated px-4 py-3.5 text-body outline-none focus:border-accent";
@@ -48,7 +55,7 @@ export default function LoginPage() {
 
         <button type="button" disabled={busy} onClick={() => signIn()} className="btn button-lg w-full bg-primary text-ink">{busy ? <span className="spinner" aria-hidden /> : t.submit}</button>
         <div className="flex gap-2.5">
-          <button type="button" disabled={busy} onClick={() => signIn("noor@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
+          <button type="button" disabled={busy} onClick={demoMember} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
           <button type="button" disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demoAdmin}</button>
         </div>
         <p className="text-center text-meta text-status-full">{t.hint}</p>
