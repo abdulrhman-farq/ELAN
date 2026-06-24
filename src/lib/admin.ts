@@ -235,6 +235,7 @@ export interface MemberDetail {
   member: MemberRow & { locale: string | null };
   leadStatus: string | null;
   source: string | null;
+  recommendedClass: string | null;
   balance: number;
   membershipPlanAr: string | null;
   membershipPlanEn: string | null;
@@ -259,9 +260,8 @@ function notesTable(supabase: ServerSupabase): any {
 
 export async function getMemberDetail(id: string): Promise<MemberDetail | null> {
   const supabase = await getServerSupabase();
-  const { data: member } = await supabase
-    .from("members")
-    .select("id,full_name,phone,email,level,locale,created_at,lead_status,source")
+  const { data: member } = await anyFrom(supabase, "members")
+    .select("id,full_name,phone,email,level,locale,created_at,lead_status,source,recommended_class")
     .eq("id", id)
     .maybeSingle();
   if (!member) return null;
@@ -292,6 +292,7 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     member: member as MemberRow & { locale: string | null },
     leadStatus: (member as { lead_status: string | null }).lead_status ?? null,
     source: (member as { source: string | null }).source ?? null,
+    recommendedClass: (member as { recommended_class: string | null }).recommended_class ?? null,
     balance: balance ?? 0,
     membershipPlanAr: membership?.membership_plans?.name_ar ?? null,
     membershipPlanEn: membership?.membership_plans?.name_en ?? null,

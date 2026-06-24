@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createMemberAction, sellPackageAction } from "@/admin-actions";
+import { ClassQuiz } from "@/components/admin/ClassQuiz";
+import { CLASS_INFO, type ClassRec } from "@/lib/quiz";
 
 const STATUSES: { v: string; ar: string; en: string }[] = [
   { v: "lead", ar: "مهتمة", en: "Lead" },
@@ -26,6 +28,8 @@ export function NewMemberDialog({ ar }: { ar: boolean }) {
   const [err, setErr] = useState<string | null>(null);
   const [f, setF] = useState({ full_name: "", phone: "", email: "", source: "", lead_status: "lead" });
   const [bundle, setBundle] = useState("none");
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [rec, setRec] = useState<ClassRec | "">("");
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   const field = "w-full rounded-md border border-outline bg-surface-container px-4 py-3 text-body text-primary-900 outline-none focus:border-accent";
@@ -34,7 +38,7 @@ export function NewMemberDialog({ ar }: { ar: boolean }) {
   const submit = () =>
     start(async () => {
       setErr(null);
-      const res = await createMemberAction(f);
+      const res = await createMemberAction({ ...f, recommended_class: rec || undefined });
       if (!res.ok) {
         setErr(res.error === "name_required" ? (ar ? "الاسم مطلوب" : "Name is required") : ar ? "تعذّر الحفظ — تأكدي من صلاحية الدخول" : "Couldn't save — check you're signed in as admin");
         return;
@@ -50,6 +54,8 @@ export function NewMemberDialog({ ar }: { ar: boolean }) {
       }
       setF({ full_name: "", phone: "", email: "", source: "", lead_status: "lead" });
       setBundle("none");
+      setRec("");
+      setShowQuiz(false);
       setOpen(false);
       router.refresh();
     });
@@ -104,6 +110,22 @@ export function NewMemberDialog({ ar }: { ar: boolean }) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className={lab}>{ar ? "الكلاس المناسب (اختبار قصير)" : "Class fit (quick quiz)"}</label>
+              {rec ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-accent/40 bg-surface-variant/40 px-3 py-2.5">
+                  <span className="text-body text-primary-900">{ar ? "المنصوح: " : "Recommended: "}<span className="font-medium">{CLASS_INFO[rec].name_ar}</span></span>
+                  <button type="button" onClick={() => { setRec(""); setShowQuiz(true); }} className="text-meta text-primary-700 underline">{ar ? "إعادة" : "Redo"}</button>
+                </div>
+              ) : showQuiz ? (
+                <ClassQuiz onResult={(r) => { setRec(r); setShowQuiz(false); }} />
+              ) : (
+                <button type="button" onClick={() => setShowQuiz(true)} className="w-full rounded-md border border-outline bg-surface-container px-4 py-3 text-body text-primary-700 hover:border-accent">
+                  {ar ? "ابدئي اختبار الكلاس المناسب" : "Start the class-fit quiz"}
+                </button>
+              )}
             </div>
 
             <div>

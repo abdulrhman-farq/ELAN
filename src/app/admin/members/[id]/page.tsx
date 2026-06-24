@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/locale-server";
 import { getMemberDetail, getMemberTasks, getMemberFinancials } from "@/lib/admin";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { fmtHalalas } from "@/lib/pricing";
+import { CLASS_INFO, type ClassRec } from "@/lib/quiz";
 import { MemberStatusSelect } from "@/components/admin/MemberStatusSelect";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
 import { EditMemberDialog } from "@/components/admin/EditMemberDialog";
@@ -56,6 +57,12 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
               {levelLabel(member.level, locale)}
               {detail.source ? ` · ${ar ? "المصدر" : "Source"}: ${detail.source}` : ""}
             </p>
+            {detail.recommendedClass ? (
+              <p className="text-meta text-primary-700">
+                {ar ? "الكلاس المنصوح: " : "Recommended class: "}
+                {CLASS_INFO[detail.recommendedClass as ClassRec]?.name_ar ?? detail.recommendedClass}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-col items-end gap-2">
             <span className="text-caption text-status-full">{ar ? "حالة المتابعة" : "Follow-up status"}</span>
