@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberDetail } from "@/lib/admin";
+import { getMemberDetail, getMemberTasks } from "@/lib/admin";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { MemberStatusSelect } from "@/components/admin/MemberStatusSelect";
 import { AddNoteForm } from "@/components/admin/AddNoteForm";
+import { EditMemberDialog } from "@/components/admin/EditMemberDialog";
+import { WhatsAppActions } from "@/components/admin/WhatsAppActions";
+import { MemberTasks } from "@/components/admin/MemberTasks";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +31,7 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
   const { id } = await params;
   const locale = await getLocale();
   const ar = locale === "ar";
-  const detail = await getMemberDetail(id);
+  const [detail, tasks] = await Promise.all([getMemberDetail(id), getMemberTasks(id)]);
   if (!detail) notFound();
   const { member, balance, notes } = detail;
   const plan = ar ? detail.membershipPlanAr : detail.membershipPlanEn;
@@ -51,10 +54,33 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
               {detail.source ? ` · ${ar ? "المصدر" : "Source"}: ${detail.source}` : ""}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-2">
             <span className="text-caption text-status-full">{ar ? "حالة المتابعة" : "Follow-up status"}</span>
             <MemberStatusSelect memberId={member.id} current={detail.leadStatus} ar={ar} />
+            <EditMemberDialog
+              memberId={member.id}
+              ar={ar}
+              initial={{
+                full_name: member.full_name,
+                phone: member.phone ?? "",
+                email: member.email ?? "",
+                source: detail.source ?? "",
+                lead_status: detail.leadStatus ?? "lead",
+              }}
+            />
           </div>
+        </div>
+
+        <div className="border-t border-outline pt-3">
+          <p className="mb-2 text-caption text-status-full">{ar ? "تواصل واتساب سريع" : "WhatsApp quick actions"}</p>
+          <WhatsAppActions phone={member.phone} name={member.full_name} ar={ar} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "مهام المتابعة" : "Follow-up tasks"}</h3>
+        <div className="card p-5">
+          <MemberTasks memberId={member.id} ar={ar} tasks={tasks} />
         </div>
       </section>
 

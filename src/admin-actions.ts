@@ -40,6 +40,63 @@ export async function createMemberAction(input: {
   return { ok: true, id: data.id };
 }
 
+export async function updateMemberAction(
+  memberId: string,
+  input: { full_name: string; phone?: string; email?: string; source?: string; lead_status?: string },
+): Promise<ActionResult> {
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, error: "forbidden" };
+  const full_name = input.full_name?.trim();
+  if (!full_name) return { ok: false, error: "name_required" };
+  const { error } = await supabase
+    .from("members")
+    .update({
+      full_name,
+      phone: input.phone?.trim() || null,
+      email: input.email?.trim() || null,
+      source: input.source?.trim() || null,
+      lead_status: input.lead_status?.trim() || null,
+      modified: new Date().toISOString(),
+    })
+    .eq("id", memberId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/admin/members");
+  return { ok: true };
+}
+
+export async function createTaskAction(memberId: string, title: string, dueDate?: string): Promise<ActionResult> {
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, error: "forbidden" };
+  const t = title?.trim();
+  if (!t) return { ok: false, error: "title_required" };
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await (supabase as unknown as {
+    from: (x: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
+  })
+    .from("member_tasks")
+    .insert({ member_id: memberId, title: t, due_date: dueDate?.trim() || null, status: "open", created_by: auth.user?.id ?? null });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function setTaskStatusAction(taskId: string, status: "open" | "done", memberId: string): Promise<ActionResult> {
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, error: "forbidden" };
+  const { error } = await (supabase as unknown as {
+    from: (x: string) => { update: (v: Record<string, unknown>) => { eq: (c: string, val: string) => Promise<{ error: { message: string } | null }> } };
+  })
+    .from("member_tasks")
+    .update({ status })
+    .eq("id", taskId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function setLeadStatusAction(memberId: string, status: string): Promise<ActionResult> {
   const supabase = await adminClient();
   if (!supabase) return { ok: false, error: "forbidden" };

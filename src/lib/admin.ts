@@ -455,6 +455,7 @@ export interface MemberListRow {
   email: string | null;
   phone: string | null;
   lead_status: string | null;
+  source: string | null;
   credits: number;
   plan_ar: string | null;
   plan_en: string | null;
@@ -502,7 +503,7 @@ export async function getMembersOverview(search?: string, status?: string): Prom
   // Filtered list.
   let q = supabase
     .from("members")
-    .select("id,full_name,email,phone,lead_status,created_at")
+    .select("id,full_name,email,phone,lead_status,source,created_at")
     .order("created_at", { ascending: false })
     .limit(200);
   if (status && status.trim()) q = q.eq("lead_status", status.trim());
@@ -549,6 +550,7 @@ export async function getMembersOverview(search?: string, status?: string): Prom
       email: m.email,
       phone: m.phone,
       lead_status: m.lead_status,
+      source: m.source,
       credits: balances[i] ?? 0,
       plan_ar: mm?.plan_ar ?? null,
       plan_en: mm?.plan_en ?? null,
@@ -568,4 +570,99 @@ export async function getMembersOverview(search?: string, status?: string): Prom
     },
     rows,
   };
+}
+
+export interface MemberExportRow {
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  lead_status: string | null;
+  source: string | null;
+  membership_status: string;
+  credits: number;
+  created_at: string;
+}
+
+export async function getMembersForExport(): Promise<MemberExportRow[]> {
+  const supabase = await getServerSupabase();
+  const { data: members } = await supabase
+    .from("members")
+    .select("id,full_name,phone,email,lead_status,source,created_at")
+    .order("created_at", { ascending: false });
+  const list = members ?? [];
+  const ids = list.map((m) => m.id);
+  const [memberships, balances] = await Promise.all([
+    ids.length
+      ? supabase.from("member_memberships").select("member_id,status,current_period_end").in("member_id", ids)
+      : Promise.resolve({ data: [] as { member_id: string; status: string; current_period_end: string | null }[] }),
+    Promise.all(list.map((m) => rpc<number>(supabase, "elan_credit_balance", { p_member: m.id }).then((r) => r.data ?? 0))),
+  ]);
+  const now = Date.now();
+  const byMember = new Map<string, { active: boolean; any: boolean }>();
+  for (const mm of memberships.data ?? []) {
+    const cur = byMember.get(mm.member_id) ?? { active: false, any: false };
+    cur.any = true;
+    if (mm.status === "active" && mm.current_period_end && new Date(mm.current_period_end).getTime() > now) cur.active = true;
+    byMember.set(mm.member_id, cur);
+  }
+  return list.map((m, i) => {
+    const ms = byMember.get(m.id);
+    return {
+      full_name: m.full_name,
+      phone: m.phone,
+      email: m.email,
+      lead_status: m.lead_status,
+      source: m.source,
+      membership_status: ms?.active ? "active" : ms?.any ? "expired" : "none",
+      credits: balances[i] ?? 0,
+      created_at: m.created_at,
+    };
+  });
+}
+
+export interface MemberTask {
+  id: string;
+  title: string;
+  due_date: string | null;
+  status: string;
+  member_id?: string;
+  member_name?: string;
+}
+
+/** member_tasks is a new table not yet in the generated Database types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function tasksTable(supabase: ServerSupabase): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as unknown as { from: (t: string) => any }).from("member_tasks");
+}
+
+export async function getMemberTasks(memberId: string): Promise<MemberTask[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await tasksTable(supabase)
+    .select("id,title,due_date,status")
+    .eq("member_id", memberId)
+    .order("status", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false });
+  return (data ?? []) as MemberTask[];
+}
+
+export async function getOverdueTasks(): Promise<MemberTask[]> {
+  const supabase = await getServerSupabase();
+  const today = todayInRiyadh();
+  const { data } = await tasksTable(supabase)
+    .select("id,title,due_date,status,member_id,members(full_name)")
+    .eq("status", "open")
+    .not("due_date", "is", null)
+    .lte("due_date", today)
+    .order("due_date", { ascending: true })
+    .limit(20);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((t) => ({
+    id: t.id,
+    title: t.title,
+    due_date: t.due_date,
+    status: t.status,
+    member_id: t.member_id,
+    member_name: t.members?.full_name ?? "—",
+  }));
 }
