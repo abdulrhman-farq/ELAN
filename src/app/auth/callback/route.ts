@@ -10,6 +10,19 @@ export async function GET(req: Request) {
   if (code) {
     const supabase = await getServerSupabase();
     await supabase.auth.exchangeCodeForSession(code);
+    // Link this auth user to the admin-created member row (matched by email) so
+    // the self booking RPCs (auth_user_id = auth.uid()) resolve her member.
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user?.email) {
+      await (supabase.from("members") as unknown as {
+        update: (v: Record<string, unknown>) => {
+          ilike: (c: string, p: string) => { is: (c: string, v: null) => Promise<unknown> };
+        };
+      })
+        .update({ auth_user_id: auth.user.id })
+        .ilike("email", auth.user.email)
+        .is("auth_user_id", null);
+    }
   }
   return NextResponse.redirect(new URL("/", url.origin));
 }
