@@ -26,6 +26,7 @@ export async function createMemberAction(input: {
   email?: string;
   source?: string;
   lead_status?: string;
+  recommended_class?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const supabase = await adminClient();
   if (!supabase) return { ok: false, error: "forbidden" };
@@ -39,8 +40,9 @@ export async function createMemberAction(input: {
       email: input.email?.trim() || null,
       source: input.source?.trim() || null,
       lead_status: input.lead_status?.trim() || "lead",
+      recommended_class: input.recommended_class?.trim() || null,
       role: "member",
-    })
+    } as never)
     .select("id")
     .single();
   if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
