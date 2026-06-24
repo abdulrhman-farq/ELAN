@@ -131,11 +131,11 @@ export function PromoManager({ ar, promos }: { ar: boolean; promos: Promo[] }) {
                 {promos.map((p) => (
                   <tr key={p.id} className="border-b border-outline last:border-0">
                     <td className="py-3 font-display text-primary-900">{p.code}</td>
-                    <td className="py-3 text-status-full">{describe(p, ar)}</td>
-                    <td className="py-3 text-caption text-status-full">
+                    <td className="py-3 font-number text-status-full">{describe(p, ar)}</td>
+                    <td className="py-3 font-number text-caption text-status-full">
                       {(p.starts_at?.slice(0, 10) ?? "—") + " → " + (p.expires_at?.slice(0, 10) ?? "∞")}
                     </td>
-                    <td className="py-3 text-status-full">
+                    <td className="py-3 font-number text-status-full">
                       {p.redemptions}
                       {p.max_redemptions != null ? ` / ${p.max_redemptions}` : ""}
                     </td>

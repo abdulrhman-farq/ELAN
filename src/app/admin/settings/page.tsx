@@ -54,7 +54,7 @@ export default async function AdminSettings() {
           </div>
           <div className="flex items-center justify-between py-3 text-[14px]">
             <span className="text-primary-900">{ar ? "لون العلامة" : "Brand colour"}</span>
-            <span className="h-6 w-6 rounded-full" style={{ background: "#D6B47A" }} />
+            <span className="h-6 w-6 rounded-full" style={{ background: "#B89B72" }} />
           </div>
         </Section>
       </div>

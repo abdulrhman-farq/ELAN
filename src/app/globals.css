@@ -6,7 +6,10 @@
   body { @apply bg-surface text-primary-900 antialiased leading-relaxed; margin: 0; }
   html, body { height: 100%; }
   [dir="rtl"] .chevron { transform: scaleX(-1); }
-  ::selection { background: #B89766; color: #F8F5F1; }
+  ::selection { background: #B89B72; color: #F8F5F1; }
+
+  /* Numbers (prices, dates, counters) — always Bodoni Moda with Latin digits, per handoff §01. */
+  .num { font-family: "Bodoni Moda", Georgia, serif; font-variant-numeric: tabular-nums lining-nums; direction: ltr; unicode-bidi: isolate; }
 
   .material-symbols-rounded {
     font-family: "Material Symbols Rounded";
@@ -31,9 +34,9 @@
   .card-ink {
     @apply rounded-card;
     color: #F8F5F1;
-    background: linear-gradient(150deg, #3B342E 0%, #241F1B 100%);
-    border: 1px solid rgba(184, 151, 102, 0.25);
-    box-shadow: 0 18px 48px rgba(46, 42, 38, 0.28);
+    background: linear-gradient(150deg, #3B2D27 0%, #2B2420 100%);
+    border: 1px solid rgba(184, 155, 114, 0.28);
+    box-shadow: 0 18px 48px rgba(43, 36, 32, 0.30);
   }
   /* One chip system. Sizes keep a ≥44px tap target via min-height where interactive. */
   .chip { @apply inline-flex items-center justify-center rounded-pill px-3 py-1 text-caption font-medium; }
@@ -55,7 +58,8 @@
      label (no uppercase/heavy tracking — weight+colour carry it instead). */
   .eyebrow { @apply font-label text-caption uppercase tracking-[0.18em] text-status-full; }
   .eyebrow-ar { @apply text-meta font-semibold tracking-normal text-status-full; }
-  .wordmark { @apply font-display tracking-[0.08em]; }
+  /* Wordmark + Latin lockup use Bodoni Moda (handoff §01). */
+  .wordmark { font-family: "Bodoni Moda", Georgia, serif; @apply tracking-[0.08em]; }
   /* Architectural arch motif for image tiles. */
   .arch { border-radius: 9999px 9999px 1rem 1rem; }
 
@@ -70,7 +74,7 @@
   /* Premium toast — calm cream/charcoal with a thin gold accent rule. */
   .toast {
     @apply pointer-events-auto flex items-start gap-3 rounded-lg border border-outline bg-surface-container px-4 py-3 text-meta text-primary-900 shadow-card;
-    border-inline-start: 3px solid #C89F5F;
+    border-inline-start: 3px solid #B89B72;
   }
-  .toast-error { border-inline-start-color: #BD493E; }
+  .toast-error { border-inline-start-color: #9A5B3E; }
 }

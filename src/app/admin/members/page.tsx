@@ -135,8 +135,8 @@ export default async function AdminMembers({
                       </div>
                     </div>
                     <span className="w-28 shrink-0 truncate text-status-full">{(ar ? m.plan_ar : m.plan_en) ?? "—"}</span>
-                    <span className="w-20 shrink-0 text-status-full">{m.credits}</span>
-                    <span className="w-20 shrink-0 text-status-full">{fmtDate(m.last_seen, ar)}</span>
+                    <span className="w-20 shrink-0 font-number text-status-full">{m.credits}</span>
+                    <span className="w-20 shrink-0 font-number text-status-full">{fmtDate(m.last_seen, ar)}</span>
                     <span className="flex w-28 shrink-0 items-center gap-1.5">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_TONE[st] }} />
                       <span className="truncate text-primary-900">{STATUS_LABEL[st]?.[ar ? 0 : 1]}</span>
@@ -158,7 +158,7 @@ export default async function AdminMembers({
 function Kpi({ label, value, tone }: { label: string; value: number; tone?: string }) {
   return (
     <div className="card p-5 text-center">
-      <div className="font-display text-3xl" style={tone ? { color: tone } : { color: "#3A332F" }}>{value}</div>
+      <div className="font-number text-3xl" style={tone ? { color: tone } : { color: "#3A332F" }}>{value}</div>
       <div className="text-caption text-status-full">{label}</div>
     </div>
   );

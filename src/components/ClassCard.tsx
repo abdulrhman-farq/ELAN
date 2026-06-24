@@ -36,7 +36,7 @@ export function ClassCard({
   return (
     <Link href={`/class/${card.id}`} className={`card flex items-center gap-3 p-3.5 ${dim ? "opacity-60" : ""}`}>
       <div className="min-w-[2.5rem] shrink-0 text-center">
-        <div className="font-display text-lead font-medium text-primary-900">{fmtTime(card.starts_at, locale)}</div>
+        <div className="font-number text-lead font-medium text-primary-900">{fmtTime(card.starts_at, locale)}</div>
       </div>
       <Image src={classImage(name)} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover ring-1 ring-outline" />
       <div className="min-w-0 flex-1">

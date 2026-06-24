@@ -18,7 +18,7 @@ export function DateStrip({ selected, locale, todayLabel }: { selected: string; 
             className={`flex min-h-[44px] min-w-[3.25rem] flex-col items-center justify-center rounded-md px-3 py-2 ${isSel ? "bg-primary text-ink" : "border border-outline bg-surface-variant text-primary-900"}`}
           >
             <span className="text-caption opacity-70">{d === today ? todayLabel : fmtWeekday(d, locale)}</span>
-            <span className="font-display text-lead font-medium leading-tight">{fmtDayNum(d)}</span>
+            <span className="font-number text-lead font-medium leading-tight">{fmtDayNum(d)}</span>
           </button>
         );
       })}

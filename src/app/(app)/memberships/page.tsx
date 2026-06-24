@@ -39,7 +39,7 @@ export default async function MembershipsPage() {
                 <div className="min-w-0">
                   <p className="font-display text-lead font-medium text-primary-900">{ar ? p.name_ar : p.name_en}</p>
                   <p className="truncate text-caption text-status-full">{ar ? p.description_ar : p.description_en}</p>
-                  <p className="mt-1 text-body font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
+                  <p className="mt-1 text-body font-number font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
                 </div>
                 <BuyButton type="membership" refId={p.id} label={t.common.buy} locale={locale} />
               </div>
@@ -59,7 +59,7 @@ export default async function MembershipsPage() {
                   <p className="truncate text-caption text-status-full">
                     {t.memberships.credits.replace("{n}", String(p.credits))} · {t.memberships.validDays.replace("{n}", String(p.valid_days))}
                   </p>
-                  <p className="mt-1 text-body font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
+                  <p className="mt-1 text-body font-number font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
                 </div>
                 <BuyButton type="credit_pack" refId={p.id} label={t.common.buy} locale={locale} />
               </div>
