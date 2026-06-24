@@ -550,3 +550,98 @@ export async function setPromoCodeActiveAction(id: string, active: boolean): Pro
   revalidatePath("/admin/promo");
   return { ok: true };
 }
+
+export interface ScheduleGenInput {
+  startDate: string; // YYYY-MM-DD (Riyadh)
+  days: number;
+  perDay: number;
+  firstTime: string; // HH:MM (24h)
+  durationMin: number;
+  bufferMin: number; // cleaning time between classes
+  capacity: number;
+  classTypeIds: string[]; // rotated across slots
+  instructorId?: string;
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+function addDaysStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Generate class instances (default: 8/day × 6 days, 09:00 start, 50min + cleaning). */
+export async function generateScheduleAction(
+  input: ScheduleGenInput,
+): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+
+  const days = Math.min(31, Math.max(1, Math.floor(input.days || 0)));
+  const perDay = Math.min(20, Math.max(1, Math.floor(input.perDay || 0)));
+  const durationMin = Math.max(10, Math.floor(input.durationMin || 50));
+  const bufferMin = Math.max(0, Math.floor(input.bufferMin || 0));
+  const capacity = Math.max(1, Math.floor(input.capacity || 6));
+  const typeIds = (input.classTypeIds || []).filter(Boolean);
+  if (!input.startDate) return { ok: false, error: "start_required" };
+  if (typeIds.length === 0) return { ok: false, error: "class_type_required" };
+  const [fh, fm] = (input.firstTime || "09:00").split(":").map((x) => parseInt(x, 10));
+  if (Number.isNaN(fh) || Number.isNaN(fm)) return { ok: false, error: "time_invalid" };
+
+  // default level per class type
+  const { data: cts } = await tbl(supabase, "class_types").select("id,default_level").in("id", typeIds);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const levelMap = new Map<string, string>((cts ?? []).map((c: any) => [c.id, c.default_level ?? "level_1"]));
+
+  // skip slots that already exist (idempotent re-runs)
+  const rangeStart = `${input.startDate}T00:00:00+03:00`;
+  const rangeEnd = `${addDaysStr(input.startDate, days - 1)}T23:59:59+03:00`;
+  const { data: existing } = await tbl(supabase, "class_instances").select("starts_at").gte("starts_at", rangeStart).lte("starts_at", rangeEnd);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingSet = new Set((existing ?? []).map((e: any) => new Date(e.starts_at).getTime()));
+
+  const nowIso = new Date().toISOString();
+  const rows: Record<string, unknown>[] = [];
+  let rot = 0;
+  for (let d = 0; d < days; d++) {
+    const dateStr = addDaysStr(input.startDate, d);
+    for (let s = 0; s < perDay; s++) {
+      const startTotal = fh * 60 + fm + s * (durationMin + bufferMin);
+      const startIso = `${dateStr}T${pad(Math.floor(startTotal / 60))}:${pad(startTotal % 60)}:00+03:00`;
+      if (existingSet.has(new Date(startIso).getTime())) continue;
+      const endTotal = startTotal + durationMin;
+      const endIso = `${dateStr}T${pad(Math.floor(endTotal / 60))}:${pad(endTotal % 60)}:00+03:00`;
+      const ctId = typeIds[rot % typeIds.length];
+      rot++;
+      rows.push({
+        class_type_id: ctId,
+        instructor_id: input.instructorId || null,
+        starts_at: startIso,
+        ends_at: endIso,
+        capacity,
+        level: levelMap.get(ctId) ?? "level_1",
+        status: "scheduled",
+        booking_opens_at: nowIso, // open for booking immediately
+        booking_closes_at: startIso, // closes when the class starts
+      });
+    }
+  }
+
+  if (rows.length === 0) return { ok: true, created: 0 };
+  const { error } = await tbl(supabase, "class_instances").insert(rows);
+  if (error) return { ok: false, error: error.message };
+
+  await writeAudit(supabase, userId, {
+    entity_type: "schedule",
+    action: "generate",
+    field: "class_instances",
+    old_value: "0",
+    new_value: String(rows.length),
+    reason: `${perDay}/day × ${days}d from ${input.startDate} ${input.firstTime}`,
+  });
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin");
+  revalidatePath("/schedule");
+  return { ok: true, created: rows.length };
+}

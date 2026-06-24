@@ -595,6 +595,20 @@ export async function getInstructors(): Promise<TrainerRow[]> {
   }));
 }
 
+export interface ScheduleFormOptions {
+  classTypes: { id: string; name_ar: string; name_en: string }[];
+  instructors: { id: string; name_ar: string; name_en: string }[];
+}
+
+export async function getScheduleFormOptions(): Promise<ScheduleFormOptions> {
+  const supabase = await getServerSupabase();
+  const [{ data: types }, { data: instructors }] = await Promise.all([
+    supabase.from("class_types").select("id,name_ar,name_en").order("name_en"),
+    supabase.from("instructors").select("id,name_ar,name_en").eq("active", true).order("name_en"),
+  ]);
+  return { classTypes: types ?? [], instructors: instructors ?? [] };
+}
+
 export interface MemberListRow {
   id: string;
   full_name: string;
