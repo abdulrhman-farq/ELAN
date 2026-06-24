@@ -1,69 +1,88 @@
 import { getLocale } from "@/lib/locale-server";
-import { adminMock as M } from "@/lib/adminMock";
+import { getReports } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
+const BSTATUS: Record<string, [string, string]> = {
+  confirmed: ["مؤكد", "Confirmed"],
+  waitlisted: ["قائمة الانتظار", "Waitlisted"],
+  attended: ["تم الحضور", "Attended"],
+  cancelled: ["ملغي", "Cancelled"],
+  late_cancelled: ["إلغاء متأخر", "Late cancelled"],
+  no_show: ["لم تحضر", "No-show"],
+};
+
 export default async function AdminReports() {
   const ar = (await getLocale()) === "ar";
-  const R = M.reports;
+  const r = await getReports();
+  const sar = (n: number) => n.toLocaleString(ar ? "ar-SA" : "en-US");
+
+  const byType = [
+    { key: "membership", ar: "العضويات", en: "Memberships", v: r.revenueByType.membership },
+    { key: "credit_pack", ar: "باقات الحصص", en: "Credit packs", v: r.revenueByType.credit_pack },
+    { key: "penalty", ar: "الغرامات", en: "Penalties", v: r.revenueByType.penalty },
+  ];
+  const maxType = Math.max(1, ...byType.map((t) => t.v));
+  const bookings = Object.entries(r.bookingsByStatus).sort((a, b) => b[1] - a[1]);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-medium text-primary-900">{ar ? "التقارير المالية" : "Financial reports"}</h1>
-          <p className="text-[13px] text-status-full">{ar ? "يونيو ٢٠٢٦" : "June 2026"}</p>
-        </div>
-        <div className="flex gap-2">
-          <span className="rounded-pill bg-primary px-4 py-2 text-[13px] text-ink">{ar ? "شهري" : "Monthly"}</span>
-          <span className="rounded-pill border border-outline px-4 py-2 text-[13px] text-status-full">{ar ? "ربع سنوي" : "Quarterly"}</span>
-          <button className="rounded-[10px] border border-outline px-4 py-2 text-[13px] text-primary">{ar ? "تصدير PDF" : "Export PDF"}</button>
-        </div>
+      <div>
+        <h1 className="font-display text-page-title font-medium text-primary-900">{ar ? "التقارير المالية" : "Financial reports"}</h1>
+        <p className="text-meta text-status-full">{ar ? "آخر ٣٠ يومًا" : "Last 30 days"}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label={ar ? "إيراد يونيو" : "June revenue"} value={R.revenueMonth} note={R.revNote} good />
-        <Kpi label={ar ? "اشتراكات جديدة" : "New subscriptions"} value={R.newSubs} note={R.newSubsNote} good />
-        <Kpi label={ar ? "متوسط قيمة العضوة" : "Avg member value"} value={R.avgValue} note={ar ? "ريال شهريًا" : "SAR / month"} />
-        <Kpi label={ar ? "نسبة الاحتفاظ" : "Retention"} value={R.retention} note={R.retentionNote} good />
+        <Kpi label={ar ? "الإيراد (٣٠ يوم)" : "Revenue (30d)"} value={`${sar(r.revenue30)} ${ar ? "ر.س" : "SAR"}`} />
+        <Kpi label={ar ? "عدد المدفوعات" : "Payments"} value={sar(r.paymentsCount)} />
+        <Kpi label={ar ? "إيراد العضويات" : "Membership rev."} value={sar(r.revenueByType.membership)} />
+        <Kpi label={ar ? "إيراد الباقات" : "Pack rev."} value={sar(r.revenueByType.credit_pack)} />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <section className="card p-6">
-          <h2 className="mb-5 font-display text-lg font-medium text-primary-900">{ar ? "الإيراد عبر الأشهر" : "Revenue by month"}</h2>
-          <div className="flex h-44 items-end justify-around gap-3">
-            {R.byMonth.map((b, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-2">
-                <div className="w-full rounded-t-[8px]" style={{ height: `${b.v}%`, background: "linear-gradient(180deg,#E4C58E,#D6B47A)" }} />
-                <span className="text-[11px] text-status-full">{b.m}</span>
-              </div>
-            ))}
-          </div>
+          <h2 className="mb-5 font-display text-lead font-medium text-primary-900">{ar ? "الإيراد حسب النوع" : "Revenue by type"}</h2>
+          {r.revenue30 === 0 ? (
+            <p className="py-6 text-center text-body text-status-full">{ar ? "لا توجد مدفوعات في آخر ٣٠ يومًا." : "No payments in the last 30 days."}</p>
+          ) : (
+            <div className="space-y-4">
+              {byType.map((t) => (
+                <div key={t.key}>
+                  <div className="mb-1.5 flex justify-between text-body"><span className="text-primary-900">{ar ? t.ar : t.en}</span><span className="text-primary-700">{sar(t.v)}</span></div>
+                  <div className="h-2 overflow-hidden rounded-pill bg-surface-variant">
+                    <div className="h-full rounded-pill" style={{ width: `${Math.round((t.v / maxType) * 100)}%`, background: "linear-gradient(90deg,#D6B47A,#E4C58E)" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="card p-6">
-          <h2 className="mb-5 font-display text-lg font-medium text-primary-900">{ar ? "الإيراد حسب الباقة" : "Revenue by plan"}</h2>
-          <div className="space-y-4">
-            {R.byPackage.map((p, i) => (
-              <div key={i}>
-                <div className="mb-1.5 flex justify-between text-[13px]"><span className="text-primary-900">{p.name}</span><span className="text-primary">{p.pct}٪</span></div>
-                <div className="h-2 overflow-hidden rounded-pill bg-surface-variant">
-                  <div className="h-full rounded-pill" style={{ width: `${p.pct}%`, background: "linear-gradient(90deg,#D6B47A,#E4C58E)" }} />
+          <h2 className="mb-5 font-display text-lead font-medium text-primary-900">{ar ? "الحجوزات حسب الحالة" : "Bookings by status"}</h2>
+          {bookings.length === 0 ? (
+            <p className="py-6 text-center text-body text-status-full">{ar ? "لا توجد حجوزات في آخر ٣٠ يومًا." : "No bookings in the last 30 days."}</p>
+          ) : (
+            <div className="space-y-3">
+              {bookings.map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between border-b border-outline pb-2 text-body last:border-0">
+                  <span className="text-primary-900">{BSTATUS[status]?.[ar ? 0 : 1] ?? status}</span>
+                  <span className="font-display text-primary-700">{count}</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
   );
 }
 
-function Kpi({ label, value, note, good }: { label: string; value: string; note: string; good?: boolean }) {
+function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-5">
-      <div className="text-[12px] text-status-full">{label}</div>
-      <div className="mt-2 font-display text-3xl text-primary-900">{value}</div>
-      <div className={`text-[11px] ${good ? "text-sage" : "text-status-full"}`}>{note}</div>
+      <div className="text-caption text-status-full">{label}</div>
+      <div className="mt-2 font-display text-2xl text-primary-900">{value}</div>
     </div>
   );
 }

@@ -1,11 +1,20 @@
 import { getLocale } from "@/lib/locale-server";
-import { adminMock as M } from "@/lib/adminMock";
 
 export const dynamic = "force-dynamic";
 
+// Studio configuration. Static for now — wire to a settings table when needed.
+const S = {
+  name: "ÉLAN — استوديو بيلاتس للسيدات",
+  city: "الرياض",
+  phone: "+966 11 234 5678",
+  bookingWindow: "٧ أيام",
+  cancellation: "قبل ٤ ساعات",
+  maxBookings: "٣ حصص",
+  notifications: ["تذكير قبل الحصة بساعة", "إشعار قائمة الانتظار", "تنبيه انتهاء الباقة"],
+};
+
 export default async function AdminSettings() {
   const ar = (await getLocale()) === "ar";
-  const S = M.settings;
   return (
     <div className="space-y-6">
       <div>
