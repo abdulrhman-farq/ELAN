@@ -10,8 +10,8 @@ export default function LoginPage() {
   const t = dict.ar.login;
   const router = useRouter();
   const supabase = getBrowserSupabase();
-  const [email, setEmail] = useState("noor@elan.demo");
-  const [password, setPassword] = useState("elan1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,7 +26,7 @@ export default function LoginPage() {
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setBusy(false);
-    if (error) { setErr(t.error); return; }
+    if (error) { setErr(error.message || t.error); return; }
     setSent(true);
   }
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
       <div className="space-y-5">
         <label className="block">
           <span className={label}>{t.email}</span>
-          <input dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+          <input dir="ltr" inputMode="email" autoComplete="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
         </label>
         <label className="block">
           <span className={label}>{t.password}</span>
