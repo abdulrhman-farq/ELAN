@@ -551,6 +551,39 @@ export async function setPromoCodeActiveAction(id: string, active: boolean): Pro
   return { ok: true };
 }
 
+/** Cancel a class instance (soft — keeps it visible as "cancelled", unbookable). */
+export async function cancelClassAction(classInstanceId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await tbl(supabase, "class_instances").update({ status: "cancelled" }).eq("id", classInstanceId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "class_instance", entity_id: classInstanceId, action: "cancel_class" });
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin");
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
+/** Hard-delete a class instance — only when it has no bookings. */
+export async function deleteClassAction(classInstanceId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { count } = await tbl(supabase, "bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("class_instance_id", classInstanceId)
+    .in("status", ["confirmed", "waitlisted", "attended"]);
+  if ((count ?? 0) > 0) return { ok: false, error: "has_bookings" };
+  const { error } = await tbl(supabase, "class_instances").delete().eq("id", classInstanceId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "class_instance", entity_id: classInstanceId, action: "delete_class" });
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin");
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
 export interface ScheduleGenInput {
   startDate: string; // YYYY-MM-DD (Riyadh)
   days: number;
@@ -561,6 +594,7 @@ export interface ScheduleGenInput {
   capacity: number;
   classTypeIds: string[]; // rotated across slots
   instructorId?: string;
+  skipWeekdays?: number[]; // 0=Sun … 6=Sat — these weekdays are skipped
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -596,16 +630,22 @@ export async function generateScheduleAction(
 
   // skip slots that already exist (idempotent re-runs)
   const rangeStart = `${input.startDate}T00:00:00+03:00`;
-  const rangeEnd = `${addDaysStr(input.startDate, days - 1)}T23:59:59+03:00`;
+  const rangeEnd = `${addDaysStr(input.startDate, days * 3 + 14)}T23:59:59+03:00`;
   const { data: existing } = await tbl(supabase, "class_instances").select("starts_at").gte("starts_at", rangeStart).lte("starts_at", rangeEnd);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const existingSet = new Set((existing ?? []).map((e: any) => new Date(e.starts_at).getTime()));
 
   const nowIso = new Date().toISOString();
+  const skip = new Set(input.skipWeekdays ?? []);
   const rows: Record<string, unknown>[] = [];
   let rot = 0;
-  for (let d = 0; d < days; d++) {
-    const dateStr = addDaysStr(input.startDate, d);
+  // Produce `days` ACTIVE days, skipping excluded weekdays (e.g. Friday).
+  let active = 0;
+  for (let i = 0; active < days && i < days * 3 + 14; i++) {
+    const dateStr = addDaysStr(input.startDate, i);
+    const weekday = new Date(dateStr + "T12:00:00Z").getUTCDay();
+    if (skip.has(weekday)) continue;
+    active++;
     for (let s = 0; s < perDay; s++) {
       const startTotal = fh * 60 + fm + s * (durationMin + bufferMin);
       const startIso = `${dateStr}T${pad(Math.floor(startTotal / 60))}:${pad(startTotal % 60)}:00+03:00`;

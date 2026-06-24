@@ -24,8 +24,13 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
     instructorId: "",
   });
   const [types, setTypes] = useState<string[]>(classTypes.map((c) => c.id));
+  const [skip, setSkip] = useState<number[]>([]);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const toggleType = (id: string) => setTypes((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
+  const toggleSkip = (d: number) => setSkip((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
+  const WEEKDAYS = ar
+    ? ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const field = "w-full rounded-md border border-outline bg-surface-container px-3 py-2.5 text-body text-primary-900 outline-none focus:border-accent";
   const lab = "mb-1 block text-meta text-status-full";
@@ -47,6 +52,7 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
         capacity: Number(f.capacity),
         classTypeIds: types,
         instructorId: f.instructorId || undefined,
+        skipWeekdays: skip,
       });
       if (!res.ok) {
         setMsg(ar ? `تعذّر التوليد: ${res.error}` : `Failed: ${res.error}`);
@@ -126,6 +132,21 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
                   );
                 })}
               </div>
+            </div>
+
+            <div>
+              <label className={lab}>{ar ? "أيام الإجازة (تُستثنى)" : "Days off (skipped)"}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((d, i) => {
+                  const on = skip.includes(i);
+                  return (
+                    <button key={i} type="button" onClick={() => toggleSkip(i)} className={`rounded-pill px-2.5 py-1.5 text-caption ${on ? "bg-danger/15 text-danger" : "border border-outline text-primary-700"}`}>
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-caption text-status-full">{ar ? "«عدد الأيام» = أيام عمل فعلية بعد استثناء الإجازات." : "“Days” counts active days after skipping days off."}</p>
             </div>
 
             <p className="text-caption text-status-full">
