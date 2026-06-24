@@ -1,14 +1,15 @@
 import { getLocale } from "@/lib/locale-server";
-import { getAdminSchedule, type ScheduleRow } from "@/lib/admin";
+import { getAdminSchedule, getScheduleFormOptions, type ScheduleRow } from "@/lib/admin";
 import { fmtTime, fmtDayHeading } from "@/lib/format";
 import { classImage } from "@/lib/classColor";
+import { ScheduleGenerator } from "@/components/admin/ScheduleGenerator";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchedule() {
   const locale = await getLocale();
   const ar = locale === "ar";
-  const rows = await getAdminSchedule(14);
+  const [rows, opts] = await Promise.all([getAdminSchedule(14), getScheduleFormOptions()]);
 
   // Group by calendar day.
   const groups = new Map<string, ScheduleRow[]>();
@@ -20,9 +21,12 @@ export default async function AdminSchedule() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-page-title font-medium text-primary-900">{ar ? "الجدول والحصص" : "Schedule"}</h1>
-        <p className="text-meta text-status-full">{ar ? "حصص الأسبوعين القادمين" : "Classes for the next two weeks"}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-page-title font-medium text-primary-900">{ar ? "الجدول والحصص" : "Schedule"}</h1>
+          <p className="text-meta text-status-full">{ar ? "حصص الأسبوعين القادمين" : "Classes for the next two weeks"}</p>
+        </div>
+        <ScheduleGenerator ar={ar} classTypes={opts.classTypes} instructors={opts.instructors} />
       </div>
 
       {rows.length === 0 ? (
