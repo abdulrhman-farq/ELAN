@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
-import { getDashboard } from "@/lib/admin";
+import { getDashboard, getOverdueTasks } from "@/lib/admin";
 import { fmtTime } from "@/lib/format";
 import { classImage } from "@/lib/classColor";
 
@@ -10,7 +10,8 @@ export default async function AdminDashboard() {
   const locale = await getLocale();
   const ar = locale === "ar";
   const date = new Intl.DateTimeFormat(ar ? "ar-SA" : "en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
-  const d = await getDashboard();
+  const [d, overdue] = await Promise.all([getDashboard(), getOverdueTasks()]);
+  const dueFmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short" }).format(new Date(iso)) : "");
 
   return (
     <div className="space-y-6">
@@ -32,6 +33,26 @@ export default async function AdminDashboard() {
           <div className="text-caption text-ink/70">{ar ? "ريال سعودي" : "SAR"}</div>
         </div>
       </div>
+
+      {overdue.length > 0 ? (
+        <section className="card border-s-4 border-s-danger p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lead font-medium text-primary-900">{ar ? "مهام متابعة مستحقة" : "Due follow-up tasks"}</h2>
+            <span className="rounded-pill bg-danger/10 px-2.5 py-0.5 text-caption text-danger">{overdue.length}</span>
+          </div>
+          <ul className="divide-y divide-outline">
+            {overdue.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-body text-primary-900">{t.title}</p>
+                  <Link href={`/admin/members/${t.member_id}`} className="text-caption text-primary-700">{t.member_name}</Link>
+                </div>
+                <span className="shrink-0 text-caption text-danger">{dueFmt(t.due_date)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
         <section className="card p-6">
