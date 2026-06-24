@@ -19,12 +19,12 @@ export function classGradient(name: string): string {
 /** Optional Supabase Storage public base (e.g.
  *  https://<ref>.supabase.co/storage/v1/object/public/media). When set,
  *  images resolve to real photos there (<name>.jpg); otherwise they fall
- *  back to the local SVG art in /public/assets — so photos can be
- *  uploaded/swapped from the Supabase dashboard with no redeploy. */
+ *  back to the bundled photos in /public/assets (<name>.jpg) — so photos
+ *  can be uploaded/swapped from the Supabase dashboard with no redeploy. */
 const MEDIA_BASE = process.env.NEXT_PUBLIC_ELAN_MEDIA_BASE?.replace(/\/$/, "");
 
 function asset(name: string): string {
-  return MEDIA_BASE ? `${MEDIA_BASE}/${name}.jpg` : `/assets/${name}.svg`;
+  return MEDIA_BASE ? `${MEDIA_BASE}/${name}.jpg` : `/assets/${name}.jpg`;
 }
 
 /** Photographic image per class type. */
