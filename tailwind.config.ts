@@ -21,9 +21,28 @@ const config: Config = {
         ink: "#F8F5F1", // creamy text on charcoal / gold fills
         brand: "#211C18", // dark espresso for hero + admin sidebar
         danger: "#BD493E",
-        status: { available: "#8A9272", waitlist: "#C89F5F", full: "#8B8177" },
+        // status.full darkened from #8B8177 → #6B625A for WCAG AA (≥4.5:1) on cream.
+        status: { available: "#8A9272", waitlist: "#C89F5F", full: "#6B625A" },
       },
-      borderRadius: { card: "1.75rem", pill: "9999px" },
+      borderRadius: {
+        // Unified radius scale: sm 12 / md 16 / lg 20 / xl 28. `card` aliases xl.
+        sm: "0.75rem", // 12px
+        md: "1rem", // 16px
+        lg: "1.25rem", // 20px
+        xl: "1.75rem", // 28px
+        card: "1.75rem", // alias of xl — heroes + major cards share this
+        pill: "9999px",
+      },
+      fontSize: {
+        // Role-based type scale.
+        caption: ["0.75rem", { lineHeight: "1rem" }], // 12
+        meta: ["0.8125rem", { lineHeight: "1.125rem" }], // 13
+        body: ["0.9375rem", { lineHeight: "1.5rem" }], // 15
+        lead: ["1.0625rem", { lineHeight: "1.6rem" }], // 17
+        title: ["1.25rem", { lineHeight: "1.6rem" }], // 20
+        "page-title": ["1.75rem", { lineHeight: "2.1rem" }], // 28
+        hero: ["2.25rem", { lineHeight: "2.4rem" }], // 36
+      },
       boxShadow: {
         card: "0 14px 44px rgba(58,51,47,0.10), 0 4px 12px rgba(58,51,47,0.05)",
         sticky: "0 8px 30px rgba(58,51,47,0.12)",

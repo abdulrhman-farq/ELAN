@@ -35,16 +35,42 @@
     border: 1px solid rgba(184, 151, 102, 0.25);
     box-shadow: 0 18px 48px rgba(46, 42, 38, 0.28);
   }
-  .chip { @apply inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium; }
-  /* Sculpted pill buttons. */
-  .btn { @apply rounded-pill px-6 py-3.5 text-center text-sm font-medium; }
-  .btn-primary { @apply btn bg-primary text-ink; }
-  .btn-outline { @apply btn border border-outline bg-surface-elevated text-primary-900; }
+  /* One chip system. Sizes keep a ≥44px tap target via min-height where interactive. */
+  .chip { @apply inline-flex items-center justify-center rounded-pill px-3 py-1 text-caption font-medium; }
+  .chip-md { @apply min-h-[44px] px-4 text-meta; }
+  .chip-selected { @apply bg-primary text-ink; }
+  .chip-outline { @apply border border-outline text-primary-700; }
+
+  /* Sculpted pill buttons. One system, three sizes; consistent disabled state. */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-pill text-center font-medium transition-opacity disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-sm { @apply min-h-[44px] px-5 py-2.5 text-meta; }
+  .button-md { @apply min-h-[48px] px-6 py-3.5 text-body; }
+  .button-lg { @apply min-h-[52px] px-6 py-4 text-body; }
+  .btn-primary { @apply btn button-md bg-primary text-ink; }
+  .btn-outline { @apply btn button-md border border-outline bg-surface-elevated text-primary-900; }
+  .btn-danger { @apply btn button-md text-danger; }
   .sticky-cta { @apply fixed inset-x-0 bottom-[4.75rem] z-40 px-4 md:bottom-0 md:start-[240px] md:border-t md:border-outline md:bg-surface-elevated md:pb-[max(1rem,env(safe-area-inset-bottom))] md:pt-3 md:shadow-sticky; }
 
-  /* Brand helpers. */
-  .eyebrow { @apply font-label text-[11px] uppercase tracking-[0.18em] text-status-full; }
+  /* Brand helpers. eyebrow = Latin label (uppercase/tracking). eyebrow-ar = Arabic
+     label (no uppercase/heavy tracking — weight+colour carry it instead). */
+  .eyebrow { @apply font-label text-caption uppercase tracking-[0.18em] text-status-full; }
+  .eyebrow-ar { @apply text-meta font-semibold tracking-normal text-status-full; }
   .wordmark { @apply font-display tracking-[0.08em]; }
   /* Architectural arch motif for image tiles. */
   .arch { border-radius: 9999px 9999px 1rem 1rem; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Subtle loading spinner — no layout shift, inherits currentColor. */
+  .spinner { @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-70; }
+
+  /* Premium toast — calm cream/charcoal with a thin gold accent rule. */
+  .toast {
+    @apply pointer-events-auto flex items-start gap-3 rounded-lg border border-outline bg-surface-container px-4 py-3 text-meta text-primary-900 shadow-card;
+    border-inline-start: 3px solid #C89F5F;
+  }
+  .toast-error { border-inline-start-color: #BD493E; }
 }

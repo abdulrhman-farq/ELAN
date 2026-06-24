@@ -24,7 +24,7 @@ export function MemberSidebar({ labels }: { labels: Record<string, string> }) {
             <Link
               key={t.href}
               href={t.href}
-              className={`flex items-center gap-3 rounded-[12px] px-4 py-3 text-sm ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
+              className={`flex items-center gap-3 rounded-sm px-4 py-3 text-body ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
             >
               <Icon name={t.icon} filled={active} className="text-[20px]" />
               <span>{labels[t.key]}</span>

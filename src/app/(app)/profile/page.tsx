@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getMemberContext, getMyBookings } from "@/lib/queries";
@@ -22,28 +23,27 @@ export default async function ProfilePage() {
 
   return (
     <section className="pb-6">
-      <div className="relative h-36 overflow-hidden rounded-b-[30px] md:mt-4 md:rounded-[30px]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="relative h-36 overflow-hidden rounded-b-xl md:mt-4 md:rounded-xl">
+        <Image src={HERO_IMAGE} alt="" fill sizes="(min-width:768px) 768px, 100vw" className="object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.1),rgba(33,28,24,.45))" }} />
       </div>
-      <div className="space-y-5 px-6">
+      <div className="space-y-6 px-6">
         <header className="text-center">
           <div className="mx-auto -mt-12 mb-3 flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-surface bg-surface-variant font-display text-3xl text-accent">{initial}</div>
-          <h1 className="font-display text-2xl font-medium text-primary-900">{fullName}</h1>
-          <p className="text-[13px] text-status-full">{ctx.member?.email ?? t.appName}</p>
+          <h1 className="font-display text-page-title font-medium text-primary-900">{fullName}</h1>
+          <p className="text-meta text-status-full">{ctx.member?.email ?? t.appName}</p>
         </header>
 
       <div className="card-ink space-y-3 p-5">
         <div className="flex items-center justify-between">
-          <p className="font-display text-lg">{planName ?? t.memberships.noMembership}</p>
-          {planName ? <span className="rounded-pill border border-white/25 px-3 py-1 text-[11px] text-primary-200">{t.profile.active}</span> : null}
+          <p className="font-display text-lead">{planName ?? t.memberships.noMembership}</p>
+          {planName ? <span className="rounded-pill border border-white/25 px-3 py-1 text-caption text-primary-200">{t.profile.active}</span> : null}
         </div>
-        <p className="text-[13px] text-ink/70">
+        <p className="text-meta text-ink/70">
           {ctx.balance > 0 ? t.memberships.credits.replace("{n}", String(ctx.balance)) : t.memberships.noCredits}
           {` · ${t.profile.attended.replace("{n}", String(attended))}`}
         </p>
-        {renews ? <p className="text-[11px] text-ink/50">{t.profile.renews.replace("{d}", renews)}</p> : null}
+        {renews ? <p className="text-caption text-ink/50">{t.profile.renews.replace("{d}", renews)}</p> : null}
       </div>
 
       <div className="card overflow-hidden">
@@ -51,7 +51,7 @@ export default async function ProfilePage() {
         <Row label={t.profile.payment} />
         <Row label={t.profile.notifications} />
         <div className="flex items-center justify-between px-5 py-4">
-          <span className="text-[15px]">{t.profile.language}</span>
+          <span className="text-body">{t.profile.language}</span>
           <LangToggle current={locale} />
         </div>
       </div>
@@ -71,7 +71,7 @@ export default async function ProfilePage() {
 
 function Row({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-outline px-5 py-4 text-[15px]">
+    <div className="flex items-center justify-between border-b border-outline px-5 py-4 text-body">
       <span>{label}</span><span className="chevron text-status-full">›</span>
     </div>
   );

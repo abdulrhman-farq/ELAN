@@ -18,13 +18,22 @@ export function BottomTabs({ labels }: { labels: Record<string, string> }) {
       <ul className="mx-auto flex max-w-md items-stretch justify-around">
         {TABS.map((t) => {
           const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
+          const anchor = t.key === "timetable"; // Schedule = most-used action, visual anchor
           return (
             <li key={t.href} className="flex-1">
               <Link
                 href={t.href}
-                className={`flex flex-col items-center gap-0.5 py-1 text-[11px] ${active ? "text-accent" : "text-status-full"}`}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 py-1.5 text-caption ${
+                  active ? "font-medium text-primary-900" : anchor ? "text-primary-900/80" : "text-status-full"
+                }`}
               >
-                <Icon name={t.icon} filled={active} className="text-[20px]" />
+                {/* gold indicator dot — active state does not rely on low-contrast gold text */}
+                <span
+                  aria-hidden
+                  className={`absolute top-0 h-1 w-1 rounded-full bg-accent transition-opacity ${active ? "opacity-100" : "opacity-0"}`}
+                />
+                <Icon name={t.icon} filled={active || anchor} className={anchor ? "text-[24px]" : "text-[20px]"} />
                 <span>{labels[t.key]}</span>
               </Link>
             </li>

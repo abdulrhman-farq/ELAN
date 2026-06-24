@@ -15,10 +15,10 @@ export function DateStrip({ selected, locale, todayLabel }: { selected: string; 
           <button
             key={d}
             onClick={() => router.push(d === today ? "/schedule" : `/schedule?date=${d}`)}
-            className={`flex min-w-[3.25rem] flex-col items-center rounded-[16px] px-3 py-2 ${isSel ? "bg-primary text-ink" : "border border-outline bg-surface-variant text-primary-900"}`}
+            className={`flex min-h-[44px] min-w-[3.25rem] flex-col items-center justify-center rounded-md px-3 py-2 ${isSel ? "bg-primary text-ink" : "border border-outline bg-surface-variant text-primary-900"}`}
           >
-            <span className="text-[11px] opacity-70">{d === today ? todayLabel : fmtWeekday(d, locale)}</span>
-            <span className="font-display text-lg font-medium leading-tight">{fmtDayNum(d)}</span>
+            <span className="text-caption opacity-70">{d === today ? todayLabel : fmtWeekday(d, locale)}</span>
+            <span className="font-display text-lead font-medium leading-tight">{fmtDayNum(d)}</span>
           </button>
         );
       })}

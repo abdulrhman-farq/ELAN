@@ -20,12 +20,12 @@ export default function LoginPage() {
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: e ?? email, password: p ?? password });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) { setErr(t.error); return; }
     router.push("/"); router.refresh();
   }
 
-  const field = "w-full rounded-[14px] border border-outline bg-surface-elevated px-4 py-3.5 text-[15px] outline-none focus:border-accent";
-  const label = "mb-1.5 block text-[11px] uppercase tracking-[0.1em] text-status-full";
+  const field = "w-full rounded-sm border border-outline bg-surface-elevated px-4 py-3.5 text-body outline-none focus:border-accent";
+  const label = "eyebrow-ar mb-1.5 block";
 
   return (
     <div dir="rtl" className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 p-9">
@@ -44,14 +44,14 @@ export default function LoginPage() {
           <span className={label}>{t.password}</span>
           <input dir="ltr" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
         </label>
-        {err ? <p className="text-sm text-accent">{err}</p> : null}
+        {err ? <p className="text-meta text-danger" role="alert">{err}</p> : null}
 
-        <button disabled={busy} onClick={() => signIn()} className="w-full rounded-pill bg-primary py-4 text-base font-medium text-ink disabled:opacity-50">{t.submit}</button>
+        <button type="button" disabled={busy} onClick={() => signIn()} className="btn button-lg w-full bg-primary text-ink">{busy ? <span className="spinner" aria-hidden /> : t.submit}</button>
         <div className="flex gap-2.5">
-          <button disabled={busy} onClick={() => signIn("noor@elan.demo", "elan1234")} className="flex-1 rounded-pill border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demo}</button>
-          <button disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="flex-1 rounded-pill border border-outline py-3 text-[13px] text-primary-700 disabled:opacity-50">{t.demoAdmin}</button>
+          <button type="button" disabled={busy} onClick={() => signIn("noor@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
+          <button type="button" disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demoAdmin}</button>
         </div>
-        <p className="text-center text-[13px] text-status-full">{t.hint}</p>
+        <p className="text-center text-meta text-status-full">{t.hint}</p>
       </div>
     </div>
   );
