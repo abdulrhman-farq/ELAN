@@ -1,8 +1,16 @@
 import "server-only";
 import { getServerSupabase, rpc } from "./supabase/server";
 import { dayBoundsUtc, todayInRiyadh } from "./format";
+import { grossFromNet, DEFAULT_CLASS_NET_HALALAS } from "./pricing";
 
 type ServerSupabase = Awaited<ReturnType<typeof getServerSupabase>>;
+
+/** Untyped table accessor for tables/columns outside the generated Database types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function anyFrom(supabase: ServerSupabase, name: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as unknown as { from: (t: string) => any }).from(name);
+}
 
 /** Returns ISO bounds for "now minus N days" up to now. */
 function lastDaysIso(days: number) {
@@ -301,9 +309,19 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
 }
 
 export interface AdminReports {
-  revenue30: number;
-  revenueByType: { membership: number; credit_pack: number; penalty: number };
+  // Cash sales (from payments, last 30 days) — halalas
+  grossHalalas: number;
+  netHalalas: number;
+  vatHalalas: number;
+  discountsHalalas: number;
   paymentsCount: number;
+  revenueByType: Record<string, number>; // gross halalas per payment type
+  // Booking-derived value (last 30 days, by list value) — halalas
+  compValueHalalas: number;
+  packageUtilHalalas: number;
+  unlimitedUtilHalalas: number;
+  noShowLostHalalas: number;
+  cancellationValueHalalas: number;
   bookingsByStatus: Record<string, number>;
 }
 
@@ -312,22 +330,141 @@ export async function getReports(): Promise<AdminReports> {
   const { start } = lastDaysIso(30);
 
   const [{ data: pays }, { data: books }] = await Promise.all([
-    supabase.from("payments").select("amount_sar,type").eq("status", "paid").gte("created_at", start),
-    supabase.from("bookings").select("status").gte("created_at", start),
+    anyFrom(supabase, "payments")
+      .select("type,amount_sar,gross_halalas,net_halalas,vat_amount_halalas,discount_amount_halalas")
+      .eq("status", "paid")
+      .gte("created_at", start),
+    anyFrom(supabase, "bookings").select("status,pricing_source,list_value_halalas").gte("created_at", start),
   ]);
 
-  const revenueByType = { membership: 0, credit_pack: 0, penalty: 0 };
-  let revenue30 = 0;
-  for (const p of pays ?? []) {
-    const amt = Number(p.amount_sar);
-    revenue30 += amt;
-    if (p.type in revenueByType) revenueByType[p.type as keyof typeof revenueByType] += amt;
+  let grossHalalas = 0,
+    netHalalas = 0,
+    vatHalalas = 0,
+    discountsHalalas = 0;
+  const revenueByType: Record<string, number> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const p of (pays ?? []) as any[]) {
+    const g = p.gross_halalas ?? Math.round(Number(p.amount_sar || 0) * 100);
+    grossHalalas += g;
+    netHalalas += p.net_halalas ?? 0;
+    vatHalalas += p.vat_amount_halalas ?? 0;
+    discountsHalalas += p.discount_amount_halalas ?? 0;
+    revenueByType[p.type] = (revenueByType[p.type] ?? 0) + g;
   }
 
+  let compValueHalalas = 0,
+    packageUtilHalalas = 0,
+    unlimitedUtilHalalas = 0,
+    noShowLostHalalas = 0,
+    cancellationValueHalalas = 0;
   const bookingsByStatus: Record<string, number> = {};
-  for (const b of books ?? []) bookingsByStatus[b.status] = (bookingsByStatus[b.status] ?? 0) + 1;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const b of (books ?? []) as any[]) {
+    const lv = b.list_value_halalas ?? 0;
+    bookingsByStatus[b.status] = (bookingsByStatus[b.status] ?? 0) + 1;
+    if (b.pricing_source === "complimentary") compValueHalalas += lv;
+    if (b.pricing_source === "package_credit") packageUtilHalalas += lv;
+    if (b.pricing_source === "unlimited_membership") unlimitedUtilHalalas += lv;
+    if (b.status === "no_show") noShowLostHalalas += lv;
+    if (b.status === "cancelled" || b.status === "late_cancelled") cancellationValueHalalas += lv;
+  }
 
-  return { revenue30, revenueByType, paymentsCount: (pays ?? []).length, bookingsByStatus };
+  return {
+    grossHalalas,
+    netHalalas,
+    vatHalalas,
+    discountsHalalas,
+    paymentsCount: (pays ?? []).length,
+    revenueByType,
+    compValueHalalas,
+    packageUtilHalalas,
+    unlimitedUtilHalalas,
+    noShowLostHalalas,
+    cancellationValueHalalas,
+    bookingsByStatus,
+  };
+}
+
+export interface MemberFinancials {
+  totalPaidHalalas: number;
+  totalDiscountHalalas: number;
+  attendedValueHalalas: number;
+  remainingPackageHalalas: number;
+  noShowValueHalalas: number;
+  compValueHalalas: number;
+}
+
+export async function getMemberFinancials(memberId: string): Promise<MemberFinancials> {
+  const supabase = await getServerSupabase();
+  const [{ data: pays }, { data: books }, { data: bal }] = await Promise.all([
+    anyFrom(supabase, "payments").select("gross_halalas,amount_sar,discount_amount_halalas").eq("member_id", memberId).eq("status", "paid"),
+    anyFrom(supabase, "bookings").select("status,pricing_source,list_value_halalas").eq("member_id", memberId),
+    rpc<number>(supabase, "elan_credit_balance", { p_member: memberId }),
+  ]);
+  let totalPaidHalalas = 0,
+    totalDiscountHalalas = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const p of (pays ?? []) as any[]) {
+    totalPaidHalalas += p.gross_halalas ?? Math.round(Number(p.amount_sar || 0) * 100);
+    totalDiscountHalalas += p.discount_amount_halalas ?? 0;
+  }
+  let attendedValueHalalas = 0,
+    noShowValueHalalas = 0,
+    compValueHalalas = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const b of (books ?? []) as any[]) {
+    const lv = b.list_value_halalas ?? 0;
+    if (b.status === "attended") attendedValueHalalas += lv;
+    if (b.status === "no_show") noShowValueHalalas += lv;
+    if (b.pricing_source === "complimentary") compValueHalalas += lv;
+  }
+  return {
+    totalPaidHalalas,
+    totalDiscountHalalas,
+    attendedValueHalalas,
+    remainingPackageHalalas: (bal ?? 0) * grossFromNet(DEFAULT_CLASS_NET_HALALAS),
+    noShowValueHalalas,
+    compValueHalalas,
+  };
+}
+
+export interface PromoCodeRow {
+  id: string;
+  code: string;
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  starts_at: string | null;
+  expires_at: string | null;
+  max_redemptions: number | null;
+  per_member_limit: number | null;
+  active: boolean;
+  redemptions: number;
+}
+
+export async function getPromoCodes(): Promise<PromoCodeRow[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await anyFrom(supabase, "promo_codes").select("*").order("created_at", { ascending: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list = (data ?? []) as any[];
+  const ids = list.map((p) => p.id);
+  const counts = new Map<string, number>();
+  if (ids.length) {
+    const { data: reds } = await anyFrom(supabase, "promo_redemptions").select("promo_code_id").in("promo_code_id", ids);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (reds ?? []) as any[]) counts.set(r.promo_code_id, (counts.get(r.promo_code_id) ?? 0) + 1);
+  }
+  return list.map((p) => ({
+    id: p.id,
+    code: p.code,
+    discount_type: p.discount_type,
+    discount_value: p.discount_value,
+    starts_at: p.starts_at,
+    expires_at: p.expires_at,
+    max_redemptions: p.max_redemptions,
+    per_member_limit: p.per_member_limit,
+    active: p.active,
+    redemptions: counts.get(p.id) ?? 0,
+  }));
 }
 
 export interface DashboardData {

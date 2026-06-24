@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/members", label: ar ? "الأعضاء" : "Members" },
     { href: "/admin/trainers", label: ar ? "المدرّبات" : "Trainers" },
     { href: "/admin/reports", label: ar ? "التقارير المالية" : "Reports" },
+    { href: "/admin/promo", label: ar ? "أكواد الخصم" : "Promo codes" },
     { href: "/admin/settings", label: ar ? "الإعدادات" : "Settings" },
   ];
 
