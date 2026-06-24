@@ -17,11 +17,12 @@ export async function rpc<T = unknown>(
   fn: string,
   args?: Record<string, unknown>,
 ): Promise<RpcResult<T>> {
-  const call = supabase.rpc as unknown as (
-    f: string,
-    a?: Record<string, unknown>,
-  ) => PromiseLike<unknown>;
-  return (await call(fn, args)) as RpcResult<T>;
+  // Call .rpc as a method ON the client so `this` stays bound — detaching it
+  // (const call = supabase.rpc) makes supabase-js read `this.rest` off undefined.
+  const client = supabase as unknown as {
+    rpc: (f: string, a?: Record<string, unknown>) => PromiseLike<unknown>;
+  };
+  return (await client.rpc(fn, args)) as RpcResult<T>;
 }
 
 /** Cookie-bound Supabase client for Server Components and Server Actions. */
