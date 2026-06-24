@@ -445,6 +445,9 @@ export interface PackageSaleInput {
   discountValue?: number;
   promoCode?: string;
   reason?: string;
+  startsAt?: string; // bundle start date (may be in the future); defaults to now
+  paymentStatus?: "paid" | "pending"; // pending -> not counted as revenue until paid
+  method?: string; // cash | mada | transfer | online | other
 }
 
 /** Sell a credit package with optional discount/promo; adds credits + records payment accounting. */
@@ -457,6 +460,7 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
   const d = await resolveDiscount(supabase, memberId, input.discountType, input.discountValue, input.promoCode);
   if (!d.ok) return d;
   const p = computePrice({ baseNetHalalas: input.baseNetHalalas, discountKind: d.kind, discountValue: d.value });
+  const status = input.paymentStatus === "pending" ? "initiated" : "paid";
 
   const { data: pay, error: pErr } = await tbl(supabase, "payments")
     .insert({
@@ -464,7 +468,9 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
       amount_sar: p.finalGrossHalalas / 100,
       sales_tax_sar: p.vatAmountHalalas / 100,
       currency: "SAR",
-      status: "paid",
+      status,
+      method: input.method ?? null,
+      starts_at: input.startsAt || new Date().toISOString(),
       type: "credit_pack",
       base_net_halalas: p.baseNetHalalas,
       discount_type: input.discountType,
@@ -491,7 +497,7 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
     field: "gross_halalas",
     old_value: "0",
     new_value: String(p.finalGrossHalalas),
-    reason: input.reason ?? `${credits} credits`,
+    reason: input.reason ?? `${credits} credits · ${status}${input.method ? " · " + input.method : ""}`,
   });
   revalidatePath(`/admin/members/${memberId}`);
   revalidatePath("/admin/reports");

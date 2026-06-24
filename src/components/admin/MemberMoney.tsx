@@ -23,6 +23,9 @@ export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boole
   const [discountType, setDiscountType] = useState("none");
   const [discountVal, setDiscountVal] = useState("");
   const [promo, setPromo] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [payStatus, setPayStatus] = useState("paid");
+  const [method, setMethod] = useState("cash");
 
   const pick = (key: string) => {
     const b = BUNDLES.find((x) => x.key === key) ?? BUNDLES[0];
@@ -44,6 +47,9 @@ export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boole
         discountType: discountType as "none" | "percentage" | "fixed" | "promo_code",
         discountValue: discountType === "none" || discountType === "promo_code" ? undefined : value,
         promoCode: discountType === "promo_code" ? promo : undefined,
+        startsAt: startsAt || undefined,
+        paymentStatus: payStatus as "paid" | "pending",
+        method,
       });
       if (!res.ok) {
         setErr(ar ? `تعذّر البيع: ${res.error}` : `Sale failed: ${res.error}`);
@@ -102,7 +108,33 @@ export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boole
                 ) : null}
               </div>
             </div>
-            <p className="text-caption text-status-full">{ar ? "تُضاف الضريبة 15% فوق الصافي بعد الخصم." : "VAT 15% is added on net after discount."}</p>
+            <div>
+              <label className={lab}>{ar ? "تاريخ بداية الباقة" : "Bundle start date"}</label>
+              <input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={field} />
+              <p className="mt-1 text-caption text-status-full">{ar ? "اتركيه فارغاً = يبدأ اليوم. يمكن اختيار تاريخ مستقبلي." : "Empty = starts today. A future date is allowed."}</p>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className={lab}>{ar ? "حالة الدفع" : "Payment status"}</label>
+                <select value={payStatus} onChange={(e) => setPayStatus(e.target.value)} className={field}>
+                  <option value="paid">{ar ? "مدفوع" : "Paid"}</option>
+                  <option value="pending">{ar ? "معلّق (غير مدفوع)" : "Pending"}</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className={lab}>{ar ? "طريقة الدفع" : "Payment method"}</label>
+                <select value={method} onChange={(e) => setMethod(e.target.value)} className={field}>
+                  <option value="cash">{ar ? "نقد" : "Cash"}</option>
+                  <option value="mada">{ar ? "مدى" : "Mada"}</option>
+                  <option value="transfer">{ar ? "تحويل" : "Transfer"}</option>
+                  <option value="online">{ar ? "أونلاين" : "Online"}</option>
+                  <option value="other">{ar ? "أخرى" : "Other"}</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-caption text-status-full">
+              {ar ? "تُضاف الضريبة 15% فوق الصافي بعد الخصم. «معلّق» لا يُحتسب في الإيراد حتى يُدفع." : "VAT 15% on net after discount. Pending sales aren't counted in revenue until paid."}
+            </p>
             {err ? <p className="text-meta text-danger" role="alert">{err}</p> : null}
             <div className="flex gap-2 pt-1">
               <button disabled={pending} onClick={submit} className="btn-primary flex-1 disabled:opacity-50">{pending ? "…" : ar ? "تأكيد البيع" : "Confirm sale"}</button>
