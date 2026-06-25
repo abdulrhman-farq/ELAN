@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markPaymentPaidAction } from "@/admin-actions";
 import { fmtHalalas } from "@/lib/pricing";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 
 type Payment = {
   id: string;
@@ -32,16 +34,31 @@ const STATUS: Record<string, [string, string]> = {
 
 export function MemberPayments({ ar, payments }: { ar: boolean; payments: Payment[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  // Track which row is being mutated so only that button shows loading.
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const markPaid = (id: string) =>
     start(async () => {
       setErr(null);
+      setBusyId(id);
       const res = await markPaymentPaidAction(id);
-      if (!res.ok) setErr(ar ? "تعذّر التحديث" : "Failed");
-      else router.refresh();
+      if (!res.ok) {
+        const msg = ar ? "تعذّر التحديث" : "Failed to mark paid";
+        setErr(msg);
+        toast.error(msg);
+      } else {
+        setConfirmId(null);
+        toast.success(ar ? "تم تعليمه كمدفوع" : "Marked as paid");
+        router.refresh();
+      }
+      setBusyId(null);
     });
+
+  const confirmTarget = payments.find((p) => p.id === confirmId) ?? null;
 
   const sar = (h: number) => `${fmtHalalas(h, ar ? "ar" : "en")} ${ar ? "ر.س" : "SAR"}`;
   const date = (iso: string) => new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short" }).format(new Date(iso));
@@ -71,8 +88,13 @@ export function MemberPayments({ ar, payments }: { ar: boolean; payments: Paymen
               <div className="flex shrink-0 items-center gap-2">
                 <span className="font-number text-body text-primary-900">{sar(p.gross_halalas)}</span>
                 {isPending ? (
-                  <button disabled={pending} onClick={() => markPaid(p.id)} className="rounded-pill bg-primary px-2.5 py-1 text-caption text-ink disabled:opacity-50">
-                    {ar ? "تعليم كمدفوع" : "Mark paid"}
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => { setErr(null); setConfirmId(p.id); }}
+                    className="rounded-pill bg-primary px-2.5 py-1 text-caption text-ink disabled:opacity-50"
+                  >
+                    {busyId === p.id ? <span className="spinner" aria-hidden /> : ar ? "تعليم كمدفوع" : "Mark paid"}
                   </button>
                 ) : (
                   <span className={`rounded-pill px-2.5 py-1 text-caption ${p.status === "paid" ? "bg-sage/15 text-sage" : "bg-surface-variant text-status-full"}`}>
@@ -84,6 +106,18 @@ export function MemberPayments({ ar, payments }: { ar: boolean; payments: Paymen
           );
         })}
       </ul>
+
+      <ConfirmDialog
+        open={confirmTarget != null}
+        pending={pending}
+        title={ar ? "تعليم الدفعة كمدفوعة؟" : "Mark payment as paid?"}
+        body={ar ? "سيتم احتساب هذه الدفعة ضمن الإيراد وقد تُضاف رصيد/حصص للعميلة." : "This counts toward revenue and may credit the member."}
+        meta={confirmTarget ? sar(confirmTarget.gross_halalas) : undefined}
+        confirmLabel={ar ? "تأكيد الدفع" : "Mark paid"}
+        cancelLabel={ar ? "رجوع" : "Cancel"}
+        onConfirm={() => confirmTarget && markPaid(confirmTarget.id)}
+        onClose={() => !pending && setConfirmId(null)}
+      />
     </div>
   );
 }

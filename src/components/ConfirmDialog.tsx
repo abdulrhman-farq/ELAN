@@ -27,15 +27,51 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Remember what was focused so we can restore it on close.
+    restoreRef.current = (document.activeElement as HTMLElement) ?? null;
     confirmRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !pending) onClose();
+      if (e.key === "Escape" && !pending) {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      // Real focus trap: cycle Tab/Shift+Tab within the dialog.
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (activeEl === first || !root.contains(activeEl)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (activeEl === last || !root.contains(activeEl)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Restore focus to the element that opened the dialog.
+      restoreRef.current?.focus?.();
+    };
   }, [open, pending, onClose]);
 
   if (!open) return null;
@@ -48,6 +84,7 @@ export function ConfirmDialog({
         aria-hidden
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"

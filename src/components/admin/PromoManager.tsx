@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPromoCodeAction, setPromoCodeActiveAction } from "@/admin-actions";
 import { fmtHalalas } from "@/lib/pricing";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 
 type Promo = {
   id: string;
@@ -26,8 +28,10 @@ function describe(p: Promo, ar: boolean): string {
 
 export function PromoManager({ ar, promos }: { ar: boolean; promos: Promo[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [confirmDisable, setConfirmDisable] = useState<Promo | null>(null);
   const [f, setF] = useState({ code: "", discountType: "percentage", value: "", startsAt: "", expiresAt: "", maxRedemptions: "", perMemberLimit: "" });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const field = "w-full rounded-md border border-outline bg-surface-container px-3 py-2.5 text-body text-primary-900 outline-none focus:border-accent";
@@ -57,14 +61,30 @@ export function PromoManager({ ar, promos }: { ar: boolean; promos: Promo[] }) {
         return;
       }
       setF({ code: "", discountType: "percentage", value: "", startsAt: "", expiresAt: "", maxRedemptions: "", perMemberLimit: "" });
+      toast.success(ar ? "تم إنشاء الكود" : "Promo code created");
       router.refresh();
     });
 
-  const toggle = (p: Promo) =>
+  const applyToggle = (p: Promo) =>
     start(async () => {
-      await setPromoCodeActiveAction(p.id, !p.active);
+      setErr(null);
+      const res = await setPromoCodeActiveAction(p.id, !p.active);
+      if (!res.ok) {
+        const msg = ar ? "تعذّر تحديث الحالة" : "Failed to update status";
+        setErr(msg);
+        toast.error(msg);
+        return;
+      }
+      setConfirmDisable(null);
+      toast.success(p.active ? (ar ? "تم إيقاف الكود" : "Promo disabled") : ar ? "تم تفعيل الكود" : "Promo enabled");
       router.refresh();
     });
+
+  const toggle = (p: Promo) => {
+    // Disabling an active promo is gated by a confirmation; enabling is immediate.
+    if (p.active) setConfirmDisable(p);
+    else applyToggle(p);
+  };
 
   return (
     <div className="space-y-6">
@@ -141,9 +161,11 @@ export function PromoManager({ ar, promos }: { ar: boolean; promos: Promo[] }) {
                     </td>
                     <td className="py-3">
                       <button
+                        type="button"
                         onClick={() => toggle(p)}
                         disabled={pending}
-                        className={`rounded-pill px-3 py-1 text-caption ${p.active ? "bg-sage/15 text-sage" : "bg-surface-variant text-status-full"}`}
+                        aria-pressed={p.active}
+                        className={`rounded-pill px-3 py-1 text-caption disabled:opacity-50 ${p.active ? "bg-sage/15 text-sage" : "bg-surface-variant text-status-full"}`}
                       >
                         {p.active ? (ar ? "فعّال — إيقاف" : "Active — disable") : ar ? "موقوف — تفعيل" : "Off — enable"}
                       </button>
@@ -155,6 +177,19 @@ export function PromoManager({ ar, promos }: { ar: boolean; promos: Promo[] }) {
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmDisable != null}
+        danger
+        pending={pending}
+        title={ar ? "إيقاف الكود؟" : "Disable promo code?"}
+        body={ar ? "لن يتمكّن الأعضاء من استخدام هذا الكود حتى إعادة تفعيله." : "Members won't be able to use this code until it's re-enabled."}
+        meta={confirmDisable?.code}
+        confirmLabel={ar ? "إيقاف" : "Disable"}
+        cancelLabel={ar ? "رجوع" : "Cancel"}
+        onConfirm={() => confirmDisable && applyToggle(confirmDisable)}
+        onClose={() => !pending && setConfirmDisable(null)}
+      />
     </div>
   );
 }

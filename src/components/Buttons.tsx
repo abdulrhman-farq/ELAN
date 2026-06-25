@@ -5,6 +5,7 @@ import { bookAction, cancelAction, purchaseAction, setLocaleAction, signOutActio
 import { dict, type Locale } from "@/lib/i18n";
 import { useToast } from "./Toast";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { Button } from "./ui/Button";
 
 /** Booking CTA on class detail. Handles book + (confirmed) cancel.
  *  Cancel is gated behind a confirm dialog. Errors use the danger token. */
@@ -59,22 +60,21 @@ export function CtaButton({
     else doBook();
   };
 
-  const cls =
-    variant === "primary" ? "bg-primary text-ink"
-    : variant === "muted" ? "bg-status-full text-primary-900"
-    : "bg-status-full/40 text-primary-900";
+  const uiVariant = variant === "primary" ? "primary" : variant === "muted" ? "muted" : "ghost";
 
   return (
     <div>
       {err ? <p className="mb-2 text-center text-meta text-danger" role="alert">{err}</p> : null}
-      <button
-        type="button"
-        disabled={disabled || pending}
+      <Button
+        variant={uiVariant}
+        size="lg"
+        className="w-full"
+        disabled={disabled}
+        isLoading={pending && !bookingId}
         onClick={onClick}
-        className={`btn button-lg w-full ${cls}`}
       >
-        {pending && !bookingId ? <span className="spinner" aria-hidden /> : label}
-      </button>
+        {label}
+      </Button>
       <ConfirmDialog
         open={confirmOpen}
         title={t.cancelDialog.title}
@@ -124,7 +124,7 @@ export function CancelLink({
         type="button"
         disabled={pending}
         onClick={() => setOpen(true)}
-        className="-mx-2 inline-flex min-h-[44px] items-center px-2 text-meta text-danger disabled:opacity-50"
+        className="-mx-2 inline-flex min-h-[44px] items-center rounded-pill px-2 text-meta text-danger outline-none transition-opacity active:opacity-70 focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
       >
         {label}
       </button>
@@ -157,9 +157,10 @@ export function BuyButton({
   const t = dict[locale];
   const [pending, start] = useTransition();
   return (
-    <button
-      type="button"
-      disabled={pending}
+    <Button
+      size="sm"
+      className="shrink-0"
+      isLoading={pending}
       onClick={() =>
         start(async () => {
           const res = await purchaseAction(type, refId);
@@ -171,10 +172,9 @@ export function BuyButton({
           }
         })
       }
-      className="btn button-sm shrink-0 bg-primary text-ink"
     >
-      {pending ? <span className="spinner" aria-hidden /> : label}
-    </button>
+      {label}
+    </Button>
   );
 }
 
@@ -189,8 +189,9 @@ export function LangToggle({ current }: { current: Locale }) {
           key={loc}
           type="button"
           disabled={pending}
+          aria-pressed={current === loc}
           onClick={() => set(loc)}
-          className={`flex min-h-[44px] items-center rounded-pill px-4 ${current === loc ? "bg-primary text-ink" : "text-status-full"}`}
+          className={`flex min-h-[44px] items-center rounded-pill px-4 outline-none transition-[transform,opacity] active:scale-[.98] focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 ${current === loc ? "bg-primary text-ink" : "text-status-full"}`}
         >
           {loc === "ar" ? "عربي" : "EN"}
         </button>
@@ -202,13 +203,14 @@ export function LangToggle({ current }: { current: Locale }) {
 export function LogoutButton({ label }: { label: string }) {
   const [pending, start] = useTransition();
   return (
-    <button
-      type="button"
-      disabled={pending}
+    <Button
+      variant="danger"
+      size="md"
+      className="w-full"
+      isLoading={pending}
       onClick={() => start(() => signOutAction())}
-      className="btn button-md w-full text-danger"
     >
-      {pending ? <span className="spinner" aria-hidden /> : label}
-    </button>
+      {label}
+    </Button>
   );
 }

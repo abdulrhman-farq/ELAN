@@ -17,7 +17,8 @@ export function AdminNav({ items }: { items: AdminNavItem[] }) {
           <Link
             key={it.href}
             href={it.href}
-            className={`whitespace-nowrap rounded-[10px] px-3.5 py-3 ${active ? "bg-white/10 text-accent" : "text-ink/60 hover:text-ink"}`}
+            aria-current={active ? "page" : undefined}
+            className={`whitespace-nowrap rounded-[10px] px-3.5 py-3 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${active ? "bg-white/10 text-accent" : "text-ink/60 hover:text-ink"}`}
           >
             {it.label}
           </Link>

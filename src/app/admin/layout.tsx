@@ -5,6 +5,7 @@ import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale-server";
 import { dirFor } from "@/lib/i18n";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { ToastProvider } from "@/components/Toast";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   ];
 
   return (
+    <ToastProvider dismissLabel={ar ? "إغلاق" : "Dismiss"}>
     <div dir={dirFor(locale)} className="mx-auto flex min-h-screen max-w-[1200px] flex-col md:flex-row">
       <aside className="flex flex-col gap-8 border-b border-white/10 bg-brand p-7 text-ink md:w-[230px] md:shrink-0 md:border-b-0 md:border-e">
         <div className="wordmark text-3xl text-accent">ÉLAN</div>
@@ -45,5 +47,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </aside>
       <main className="flex-1 space-y-6 p-6 md:p-8">{children}</main>
     </div>
+    </ToastProvider>
   );
 }

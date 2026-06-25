@@ -23,18 +23,23 @@ export function ClassCard({
   const waitlisted = card.my_status === "waitlisted";
   const dim = (card.display_status === "fully_booked" || card.display_status === "booking_closed") && !card.my_status;
 
+  // These are STATUS chips, not buttons — the whole card is the interactive Link.
+  // Keep them visually distinct from CTAs (no solid primary "Book" pill).
   let right: ReactNode;
   if (booked) right = <span className="chip shrink-0 self-center whitespace-nowrap bg-sage text-ink">{statusLabels.booked} ✓</span>;
   else if (waitlisted) right = <span className="chip chip-outline shrink-0 self-center whitespace-nowrap text-status-full">{statusLabels.waitlisted}</span>;
-  else if (card.display_status === "available") right = <span className="chip shrink-0 self-center whitespace-nowrap bg-primary px-4 text-ink">{ctaLabels.book}</span>;
-  else if (card.display_status === "waitlist_open") right = <span className="chip shrink-0 self-center whitespace-nowrap border border-accent bg-accent/10 px-4 text-primary-900">{ctaLabels.joinWaitlist}</span>;
+  else if (card.display_status === "available") right = <span className="chip chip-outline shrink-0 self-center whitespace-nowrap border-accent px-4 text-primary-700">{ctaLabels.book}</span>;
+  else if (card.display_status === "waitlist_open") right = <span className="chip chip-outline shrink-0 self-center whitespace-nowrap border-accent bg-accent/10 px-4 text-primary-900">{ctaLabels.joinWaitlist}</span>;
   else right = <span className="shrink-0 self-center whitespace-nowrap text-caption text-status-full">{statusLabels.fully_booked}</span>;
 
   const seats = card.display_status === "available" ? `${card.spots_left} ${statusLabels.available}` : null;
   const meta = [instructor, seats].filter(Boolean).join(" · ");
 
   return (
-    <Link href={`/class/${card.id}`} className={`card flex items-center gap-3 p-3.5 ${dim ? "opacity-60" : ""}`}>
+    <Link
+      href={`/class/${card.id}`}
+      className={`card flex items-center gap-3 p-3.5 outline-none transition-[transform,box-shadow,opacity] hover:shadow-sticky active:scale-[.99] active:opacity-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${dim ? "opacity-60" : ""}`}
+    >
       <div className="min-w-[2.5rem] shrink-0 text-center">
         <div className="font-number text-lead font-medium text-primary-900">{fmtTime(card.starts_at, locale)}</div>
       </div>

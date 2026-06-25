@@ -552,6 +552,44 @@ export async function markPaymentPaidAction(paymentId: string): Promise<ActionRe
   return { ok: true };
 }
 
+/**
+ * Refund a PAID payment and reverse any UNUSED credits exactly once.
+ * - admin only
+ * - delegates to refund_payment (SECURITY DEFINER, is_admin guarded): flips
+ *   paid->refunded under a row lock and reverses only the still-available
+ *   credits (credit_ledger_refund_once is a second guard against double
+ *   reversal). A second call on an already-refunded payment is a safe no-op.
+ */
+export async function refundPaymentAction(
+  paymentId: string,
+  opts?: { amountSar?: number; reason?: string },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+
+  const { data: refunded, error } = await rpc<{ id: string; member_id: string; status: string }>(
+    supabase,
+    "refund_payment",
+    { p_payment_id: paymentId, p_amount_sar: opts?.amountSar ?? null, p_reason: opts?.reason ?? null },
+  );
+  if (error) return { ok: false, error: error.message };
+  if (!refunded) return { ok: false, error: "not_found" };
+
+  await writeAudit(supabase, userId, {
+    entity_type: "payment",
+    entity_id: refunded.id,
+    action: "refund",
+    field: "status",
+    old_value: "paid",
+    new_value: "refunded",
+    reason: opts?.reason ?? "manual refund",
+  });
+  revalidatePath(`/admin/members/${refunded.member_id}`);
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
 export interface PromoInput {
   code: string;
   discountType: "percentage" | "fixed";
