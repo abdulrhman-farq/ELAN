@@ -526,28 +526,17 @@ export async function markPaymentPaidAction(paymentId: string): Promise<ActionRe
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
 
-  // Atomic guard: only an 'initiated' row flips to 'paid'; a second call sees none.
-  const { data: paid } = await tbl(supabase, "payments")
-    .update({ status: "paid" })
-    .eq("id", paymentId)
-    .eq("status", "initiated")
-    .select("id,member_id,credits,gross_halalas")
-    .maybeSingle();
-  if (!paid) return { ok: false, error: "not_pending" };
-
-  const grant = creditsGrantedFor("paid", paid.credits);
-  if (grant > 0) {
-    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: paid.member_id });
-    const { error: lErr } = await tbl(supabase, "credit_ledger").insert({
-      member_id: paid.member_id,
-      change: grant,
-      reason: "purchase",
-      balance_after: (bal ?? 0) + grant,
-      ref_id: paid.id,
-    });
-    // Duplicate => credits already granted for this payment; safe to ignore.
-    if (lErr && !/duplicate|unique/i.test(lErr.message)) return { ok: false, error: lErr.message };
-  }
+  // Fulfillment is centralised in confirm_payment (SECURITY DEFINER, is_admin
+  // guarded): it flips initiated->paid under a row lock and grants credits /
+  // activates membership EXACTLY ONCE (status guard + credit_ledger_purchase_once).
+  // A second call on an already-paid payment is a safe no-op.
+  const { data: paid, error } = await rpc<{ id: string; member_id: string; status: string }>(
+    supabase,
+    "confirm_payment",
+    { p_payment_id: paymentId },
+  );
+  if (error) return { ok: false, error: error.message };
+  if (!paid) return { ok: false, error: "not_found" };
 
   await writeAudit(supabase, userId, {
     entity_type: "payment",

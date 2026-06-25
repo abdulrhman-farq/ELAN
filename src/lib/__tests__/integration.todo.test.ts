@@ -11,13 +11,18 @@ import { describe, it } from "vitest";
  * Many of these invariants are already enforced and verified at the DB level:
  *   • double-booking      -> unique index uniq_active_booking
  *   • capacity overflow   -> book_class locks the class row FOR UPDATE then counts
- *   • credit on paid only -> creditsGrantedFor (unit-tested) + status guard
- *   • double fulfillment  -> atomic status flip + credit_ledger_purchase_once
+ *   • credit on paid only -> create_pending_purchase grants nothing; confirm_payment
+ *                            only fulfills on the initiated->paid transition
+ *   • no free fulfillment -> simulate_purchase EXECUTE revoked from anon/authenticated;
+ *                            confirm_payment is is_admin() guarded
+ *   • double fulfillment  -> confirm_payment row lock + status guard + credit_ledger_purchase_once
  *   • member isolation    -> RLS using current_member_id()/auth.uid()
  */
 describe.skip("integration: authorization", () => {
   it("non-admin cannot sell a package (sellPackageAction -> forbidden)");
   it("non-admin cannot mark a payment paid (markPaymentPaidAction -> forbidden)");
+  it("a member cannot call simulate_purchase (EXECUTE revoked)");
+  it("a member cannot call confirm_payment on their own pending payment (is_admin guard -> FORBIDDEN)");
   it("a member cannot read another member's row / bookings / payments (RLS)");
   it("an admin can perform admin operations");
 });
@@ -30,7 +35,8 @@ describe.skip("integration: booking", () => {
 });
 
 describe.skip("integration: credits & payments", () => {
-  it("a pending sale adds no credits; the balance is unchanged");
-  it("a paid sale adds exactly its credits");
-  it("marking the same payment paid twice grants credits only once");
+  it("create_pending_purchase records an initiated payment and adds NO credits");
+  it("confirm_payment on a credit_pack grants exactly its credits");
+  it("confirm_payment on a membership activates member_memberships once");
+  it("confirm_payment twice on the same payment fulfills only once (idempotent)");
 });

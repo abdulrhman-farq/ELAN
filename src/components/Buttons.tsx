@@ -165,7 +165,8 @@ export function BuyButton({
           const res = await purchaseAction(type, refId);
           if (res && "error" in res && res.error) toast.error(t.toast.purchaseFailed);
           else {
-            toast.success(t.toast.purchased);
+            // Purchase creates a pending payment; credits arrive once it is confirmed.
+            toast.success("pending" in res && res.pending ? t.toast.purchasePending : t.toast.purchased);
             router.refresh();
           }
         })
