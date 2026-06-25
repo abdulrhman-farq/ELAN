@@ -429,6 +429,37 @@ export async function getMemberFinancials(memberId: string): Promise<MemberFinan
   };
 }
 
+export interface MemberPaymentRow {
+  id: string;
+  type: string;
+  status: string;
+  gross_halalas: number;
+  credits: number;
+  method: string | null;
+  created_at: string;
+  starts_at: string | null;
+}
+
+export async function getMemberPayments(memberId: string): Promise<MemberPaymentRow[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await anyFrom(supabase, "payments")
+    .select("id,type,status,gross_halalas,amount_sar,credits,method,created_at,starts_at")
+    .eq("member_id", memberId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((p) => ({
+    id: p.id,
+    type: p.type,
+    status: p.status,
+    gross_halalas: p.gross_halalas ?? Math.round(Number(p.amount_sar || 0) * 100),
+    credits: p.credits ?? 0,
+    method: p.method ?? null,
+    created_at: p.created_at,
+    starts_at: p.starts_at ?? null,
+  }));
+}
+
 export interface PromoCodeRow {
   id: string;
   code: string;

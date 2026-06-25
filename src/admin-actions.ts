@@ -471,6 +471,7 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
       sales_tax_sar: p.vatAmountHalalas / 100,
       currency: "SAR",
       status,
+      credits, // credits this purchase grants — applied to the ledger only once paid
       method: input.method ?? null,
       starts_at: input.startsAt || new Date().toISOString(),
       type: "credit_pack",
@@ -487,8 +488,12 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
     .single();
   if (pErr || !pay) return { ok: false, error: pErr?.message ?? "payment_failed" };
 
-  const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
-  await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: credits, reason: "purchase", balance_after: (bal ?? 0) + credits, ref_id: pay.id });
+  // Credits are granted ONLY for a paid sale. A pending sale records the payment
+  // only; credits are applied later via markPaymentPaidAction (idempotent).
+  if (status === "paid" && credits > 0) {
+    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
+    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: credits, reason: "purchase", balance_after: (bal ?? 0) + credits, ref_id: pay.id });
+  }
   if (d.promoId)
     await tbl(supabase, "promo_redemptions").insert({ promo_code_id: d.promoId, member_id: memberId, payment_id: pay.id, discount_amount_halalas: p.discountAmountHalalas });
 
@@ -502,6 +507,55 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
     reason: input.reason ?? `${credits} credits · ${status}${input.method ? " · " + input.method : ""}`,
   });
   revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
+/**
+ * Mark a pending (initiated) payment as paid and apply its credits exactly once.
+ * - admin only
+ * - atomically flips status only if it is currently 'initiated' (prevents double
+ *   fulfillment under retries/double-clicks)
+ * - the credit_ledger_purchase_once unique index is a second guard against
+ *   granting credits twice for the same payment
+ */
+export async function markPaymentPaidAction(paymentId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+
+  // Atomic guard: only an 'initiated' row flips to 'paid'; a second call sees none.
+  const { data: paid } = await tbl(supabase, "payments")
+    .update({ status: "paid" })
+    .eq("id", paymentId)
+    .eq("status", "initiated")
+    .select("id,member_id,credits,gross_halalas")
+    .maybeSingle();
+  if (!paid) return { ok: false, error: "not_pending" };
+
+  if (paid.credits && paid.credits > 0) {
+    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: paid.member_id });
+    const { error: lErr } = await tbl(supabase, "credit_ledger").insert({
+      member_id: paid.member_id,
+      change: paid.credits,
+      reason: "purchase",
+      balance_after: (bal ?? 0) + paid.credits,
+      ref_id: paid.id,
+    });
+    // Duplicate => credits already granted for this payment; safe to ignore.
+    if (lErr && !/duplicate|unique/i.test(lErr.message)) return { ok: false, error: lErr.message };
+  }
+
+  await writeAudit(supabase, userId, {
+    entity_type: "payment",
+    entity_id: paid.id,
+    action: "mark_paid",
+    field: "status",
+    old_value: "initiated",
+    new_value: "paid",
+    reason: "manual fulfillment",
+  });
+  revalidatePath(`/admin/members/${paid.member_id}`);
   revalidatePath("/admin/reports");
   return { ok: true };
 }
