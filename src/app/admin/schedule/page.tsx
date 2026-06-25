@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getLocale } from "@/lib/locale-server";
 import { getAdminSchedule, getScheduleFormOptions, type ScheduleRow } from "@/lib/admin";
 import { fmtTime, fmtDayHeading } from "@/lib/format";
@@ -44,8 +45,7 @@ export default async function AdminSchedule() {
                 return (
                   <div key={c.id} className="card overflow-hidden p-0">
                     <div className="relative h-24">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={classImage(c.name_en)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      <Image src={classImage(c.name_en)} alt="" fill sizes="(max-width:640px) 100vw, 320px" className="object-cover" />
                       <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 30%,rgba(17,13,10,.85))" }} />
                       <span className={`absolute end-3 top-3 rounded-pill px-2.5 py-1 text-caption font-medium ${c.status === "cancelled" ? "bg-danger text-ink" : full ? "bg-surface-elevated/90 text-primary-700" : "bg-sage text-ink"}`}>
                         {c.status === "cancelled" ? (ar ? "ملغاة" : "Cancelled") : full ? (ar ? "مكتملة" : "Full") : ar ? "مفتوحة" : "Open"}
