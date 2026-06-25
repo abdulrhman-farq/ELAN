@@ -1,4 +1,5 @@
 import "server-only";
+import { notFound, redirect } from "next/navigation";
 import { getServerSupabase, rpc } from "./supabase/server";
 import { dayBoundsUtc } from "./format";
 import { DEMO } from "./demo";
@@ -79,25 +80,36 @@ export async function getTimetable(date: string) {
   if (!realId && DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
-  if (realId) return rows; // real subscriber: show real timetable (even if empty)
+  // Real subscribers and production always see real data (even if empty). The
+  // demo showcase only fills in mock classes when there is no real schedule.
+  if (realId || !DEMO) return rows;
   return rows.length ? rows : mockClasses(date);
 }
 
 export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string }> {
   const realId = await currentRealMemberId();
   if (!realId && DEMO) return mockClassById(id);
+  let card: ClassCardData | undefined;
+  let eligibility = "NO_CREDITS";
   try {
     const now = Date.now();
     const all = await fetchBetween(new Date(now - 30 * 86400000).toISOString(), new Date(now + 90 * 86400000).toISOString());
-    const card = all.find((c) => c.id === id);
-    if (!card) return mockClassById(id);
-    const supabase = await getServerSupabase();
-    const { data: elig } = await rpc<string>(supabase, "booking_eligibility_self", { p_class_instance_id: id });
-    return { card, eligibility: elig ?? "NO_CREDITS" };
+    card = all.find((c) => c.id === id);
+    if (card) {
+      const supabase = await getServerSupabase();
+      const { data: elig } = await rpc<string>(supabase, "booking_eligibility_self", { p_class_instance_id: id });
+      eligibility = elig ?? "NO_CREDITS";
+    }
   } catch (e) {
     console.error("getClass failed", e);
-    return mockClassById(id);
+    if (DEMO) return mockClassById(id);
+    throw e; // surfaces via error.tsx instead of fabricating data
   }
+  if (!card) {
+    if (DEMO) return mockClassById(id);
+    notFound(); // localized 404 instead of mock
+  }
+  return { card, eligibility };
 }
 
 export async function getMyBookings() {
@@ -115,40 +127,25 @@ export async function getMyBookings() {
       name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
       instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
     }));
-    if (realId) return rows; // real subscriber: show real bookings (even if empty)
+    if (realId || !DEMO) return rows; // real / production: real bookings (even if empty)
     return rows.length ? rows : mockBookings();
   } catch (e) {
     console.error("getMyBookings failed", e);
-    return mockBookings();
+    if (DEMO) return mockBookings();
+    throw e;
   }
 }
 
 export async function getMemberContext() {
-  // Resolve a real authenticated subscriber first — by email — so the app shows
-  // her real name/credits even while the timetable showcase stays in demo mode.
+  // Resolve the real authenticated subscriber strictly via auth_user_id
+  // (current_member_id), never by email. Linking happens in the signup trigger.
   try {
     const supabase = await getServerSupabase();
     const { data: auth } = await supabase.auth.getUser();
-    const email = auth.user?.email;
-    if (email) {
-      const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
-      if (!isAdmin) {
-        // Prefer the linked member (unique via auth_user_id); fall back to email.
-        const { data: mid } = await rpc<string>(supabase, "current_member_id");
-        let real: { id: string; full_name: string; phone: string | null; email: string | null } | null = null;
-        if (mid) {
-          const { data } = await supabase.from("members").select("id,full_name,phone,email").eq("id", mid).maybeSingle();
-          real = data ?? null;
-        }
-        if (!real) {
-          const { data } = await supabase
-            .from("members")
-            .select("id,full_name,phone,email")
-            .ilike("email", email)
-            .order("created_at", { ascending: true })
-            .limit(1);
-          real = data?.[0] ?? null;
-        }
+    if (auth.user) {
+      const { data: mid } = await rpc<string>(supabase, "current_member_id");
+      if (mid) {
+        const { data: real } = await supabase.from("members").select("id,full_name,phone,email,role").eq("id", mid).maybeSingle();
         if (real) {
           const [{ data: bal }, { data: mem }] = await Promise.all([
             rpc<number>(supabase, "elan_credit_balance", { p_member: real.id }),
@@ -166,35 +163,24 @@ export async function getMemberContext() {
           const membership = mem
             ? { current_period_end: (mem as { current_period_end: string }).current_period_end, membership_plans: (plan as { name_ar: string; name_en: string } | null) ?? null }
             : null;
-          return { member: real, balance: bal ?? 0, membership, isAdmin: false };
+          // isAdmin from the member's own role so an admin browsing the member
+          // app (for testing) still sees the admin-panel link.
+          const isAdmin = (real as { role?: string }).role === "admin";
+          const { role: _role, ...member } = real as typeof real & { role?: string };
+          void _role;
+          return { member, balance: bal ?? 0, membership, isAdmin };
         }
       }
     }
   } catch (e) {
     console.error("getMemberContext (real) failed", e);
+    if (!DEMO) throw e;
   }
 
   if (DEMO) return mockMemberContext();
-  try {
-    const supabase = await getServerSupabase();
-    const { data: member } = await supabase.from("members").select("id,full_name,phone,email").maybeSingle();
-    if (!member) return mockMemberContext();
-    const [{ data: balance }, { data: membership }, { data: isAdmin }] = await Promise.all([
-      rpc<number>(supabase, "elan_credit_balance", { p_member: member.id }),
-      supabase.from("member_memberships").select("status,current_period_end,membership_plans(name_ar,name_en)").eq("status", "active").order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
-      rpc<boolean>(supabase, "is_admin"),
-    ]);
-    // Supabase may type the embed as an array; normalise to a single object.
-    const planRaw = (membership as { membership_plans?: unknown } | null)?.membership_plans;
-    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-    const normalized = membership
-      ? { current_period_end: (membership as { current_period_end: string }).current_period_end, membership_plans: (plan as { name_ar: string; name_en: string } | null) ?? null }
-      : null;
-    return { member, balance: balance ?? 0, membership: normalized, isAdmin: Boolean(isAdmin) };
-  } catch (e) {
-    console.error("getMemberContext failed", e);
-    return mockMemberContext();
-  }
+  // Signed-in session with no linked member profile cannot use the member app.
+  // Never fall back to an arbitrary member row (data leak) or mock data in prod.
+  redirect("/login");
 }
 
 export async function getCatalogue() {
@@ -205,11 +191,12 @@ export async function getCatalogue() {
       supabase.from("membership_plans").select("*").eq("active", true).order("price_sar"),
       supabase.from("credit_packs").select("*").eq("active", true).order("price_sar"),
     ]);
-    if ((plans?.length ?? 0) === 0 && (packs?.length ?? 0) === 0) return mockCatalogue();
+    if (DEMO && (plans?.length ?? 0) === 0 && (packs?.length ?? 0) === 0) return mockCatalogue();
     return { plans: plans ?? [], packs: packs ?? [] };
   } catch (e) {
     console.error("getCatalogue failed", e);
-    return mockCatalogue();
+    if (DEMO) return mockCatalogue();
+    throw e;
   }
 }
 
@@ -222,7 +209,10 @@ export async function getBooking(id: string) {
     .select("id,status,class_instances(starts_at,ends_at,class_types(name_ar,name_en,duration_minutes),instructors(name_ar,name_en))")
     .eq("id", id)
     .maybeSingle();
-  if (!data) return mockBooking(id);
+  if (!data) {
+    if (DEMO) return mockBooking(id);
+    notFound();
+  }
   return {
     id: data.id,
     status: data.status,
@@ -236,6 +226,7 @@ export async function getBooking(id: string) {
   };
  } catch (e) {
   console.error("getBooking failed", e);
-  return mockBooking(id);
+  if (DEMO) return mockBooking(id);
+  throw e; // notFound()/real errors propagate to the 404 / error boundary
  }
 }

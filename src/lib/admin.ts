@@ -210,13 +210,17 @@ export interface MemberRow {
   created_at: string;
 }
 
-export async function getMembersDirectory(search?: string): Promise<MemberRow[]> {
+export async function getMembersDirectory(search?: string, page = 1, pageSize = 200): Promise<MemberRow[]> {
   const supabase = await getServerSupabase();
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const safeSize = Math.max(1, Math.floor(pageSize) || 200);
+  const from = (safePage - 1) * safeSize;
+  const to = from + safeSize - 1;
   let q = supabase
     .from("members")
     .select("id,full_name,phone,email,level,created_at")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .range(from, to);
   if (search && search.trim()) {
     const s = search.trim().replace(/[%,()]/g, " ");
     q = q.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
@@ -326,11 +330,13 @@ export interface AdminReports {
   bookingsByStatus: Record<string, number>;
 }
 
-export async function getReports(): Promise<AdminReports> {
+export async function getReports(days = 30): Promise<AdminReports> {
   const supabase = await getServerSupabase();
-  const { start } = lastDaysIso(30);
+  const windowDays = Math.min(365, Math.max(1, Math.floor(days) || 30));
+  const { start } = lastDaysIso(windowDays);
 
   const [{ data: pays }, { data: books }] = await Promise.all([
+    // Revenue: only paid payments are aggregated (status filter in the query).
     anyFrom(supabase, "payments")
       .select("type,amount_sar,gross_halalas,net_halalas,vat_amount_halalas,discount_amount_halalas")
       .eq("status", "paid")
@@ -427,6 +433,37 @@ export async function getMemberFinancials(memberId: string): Promise<MemberFinan
     noShowValueHalalas,
     compValueHalalas,
   };
+}
+
+export interface MemberPaymentRow {
+  id: string;
+  type: string;
+  status: string;
+  gross_halalas: number;
+  credits: number;
+  method: string | null;
+  created_at: string;
+  starts_at: string | null;
+}
+
+export async function getMemberPayments(memberId: string): Promise<MemberPaymentRow[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await anyFrom(supabase, "payments")
+    .select("id,type,status,gross_halalas,amount_sar,credits,method,created_at,starts_at")
+    .eq("member_id", memberId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((p) => ({
+    id: p.id,
+    type: p.type,
+    status: p.status,
+    gross_halalas: p.gross_halalas ?? Math.round(Number(p.amount_sar || 0) * 100),
+    credits: p.credits ?? 0,
+    method: p.method ?? null,
+    created_at: p.created_at,
+    starts_at: p.starts_at ?? null,
+  }));
 }
 
 export interface PromoCodeRow {
@@ -635,15 +672,42 @@ export interface MembersKpis {
 export interface MembersOverview {
   kpis: MembersKpis;
   rows: MemberListRow[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+/** Default number of member rows per page in the admin directory. */
+export const MEMBERS_PAGE_SIZE = 25;
+
+/**
+ * Sums the credit_ledger.change column per member for the given member ids and
+ * returns a Map<member_id, balance>. Replaces the per-member elan_credit_balance
+ * RPC (one query instead of N).
+ */
+async function creditBalancesByMember(supabase: ServerSupabase, ids: string[]): Promise<Map<string, number>> {
+  const balances = new Map<string, number>();
+  if (ids.length === 0) return balances;
+  const { data } = await anyFrom(supabase, "credit_ledger").select("member_id,change").in("member_id", ids);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (data ?? []) as any[]) {
+    balances.set(r.member_id, (balances.get(r.member_id) ?? 0) + Number(r.change ?? 0));
+  }
+  return balances;
 }
 
 /** Real members directory + KPIs for the admin console (gated by RLS is_admin). */
-export async function getMembersOverview(search?: string, status?: string): Promise<MembersOverview> {
+export async function getMembersOverview(search?: string, status?: string, page = 1, pageSize = MEMBERS_PAGE_SIZE): Promise<MembersOverview> {
   const supabase = await getServerSupabase();
   const now = Date.now();
   const weekAgoIso = new Date(now - 7 * 86400000).toISOString();
   const nowIso = new Date(now).toISOString();
   const soonIso = new Date(now + 7 * 86400000).toISOString();
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const safeSize = Math.max(1, Math.floor(pageSize) || MEMBERS_PAGE_SIZE);
+  const from = (safePage - 1) * safeSize;
+  // Fetch one extra row to detect whether a next page exists.
+  const to = from + safeSize;
 
   // KPIs across ALL members (independent of the filtered list).
   const [{ count: total }, { count: newWeek }, { count: trials }, { count: active }, { count: expiring }] =
@@ -660,22 +724,24 @@ export async function getMembersOverview(search?: string, status?: string): Prom
         .lte("current_period_end", soonIso),
     ]);
 
-  // Filtered list.
+  // Filtered list (server-side filters + range pagination).
   let q = supabase
     .from("members")
     .select("id,full_name,email,phone,lead_status,source,created_at")
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .order("created_at", { ascending: false });
   if (status && status.trim()) q = q.eq("lead_status", status.trim());
   if (search && search.trim()) {
     const s = search.trim().replace(/[%,()]/g, " ");
     q = q.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
   }
+  q = q.range(from, to); // fetch safeSize + 1 to detect a next page
   const { data: members } = await q;
-  const list = members ?? [];
+  const fetched = members ?? [];
+  const hasMore = fetched.length > safeSize;
+  const list = hasMore ? fetched.slice(0, safeSize) : fetched;
   const ids = list.map((m) => m.id);
 
-  const [memberships, lastSeenRows, balances] = await Promise.all([
+  const [memberships, lastSeenRows, balanceMap] = await Promise.all([
     ids.length
       ? supabase
           .from("member_memberships")
@@ -686,7 +752,7 @@ export async function getMembersOverview(search?: string, status?: string): Prom
     ids.length
       ? supabase.from("bookings").select("member_id,created_at").in("member_id", ids)
       : Promise.resolve({ data: [] as { member_id: string; created_at: string }[] }),
-    Promise.all(list.map((m) => rpc<number>(supabase, "elan_credit_balance", { p_member: m.id }).then((r) => r.data ?? 0))),
+    creditBalancesByMember(supabase, ids),
   ]);
 
   const mmById = new Map<string, { current_period_end: string | null; plan_ar: string | null; plan_en: string | null }>();
@@ -702,7 +768,7 @@ export async function getMembersOverview(search?: string, status?: string): Prom
     if (!prev || new Date(b.created_at) > new Date(prev)) lastById.set(b.member_id, b.created_at);
   }
 
-  const rows: MemberListRow[] = list.map((m, i) => {
+  const rows: MemberListRow[] = list.map((m) => {
     const mm = mmById.get(m.id);
     return {
       id: m.id,
@@ -711,7 +777,7 @@ export async function getMembersOverview(search?: string, status?: string): Prom
       phone: m.phone,
       lead_status: m.lead_status,
       source: m.source,
-      credits: balances[i] ?? 0,
+      credits: balanceMap.get(m.id) ?? 0,
       plan_ar: mm?.plan_ar ?? null,
       plan_en: mm?.plan_en ?? null,
       period_end: mm?.current_period_end ?? null,
@@ -729,6 +795,9 @@ export async function getMembersOverview(search?: string, status?: string): Prom
       newWeek: newWeek ?? 0,
     },
     rows,
+    page: safePage,
+    pageSize: safeSize,
+    hasMore,
   };
 }
 
@@ -751,11 +820,11 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
     .order("created_at", { ascending: false });
   const list = members ?? [];
   const ids = list.map((m) => m.id);
-  const [memberships, balances] = await Promise.all([
+  const [memberships, balanceMap] = await Promise.all([
     ids.length
       ? supabase.from("member_memberships").select("member_id,status,current_period_end").in("member_id", ids)
       : Promise.resolve({ data: [] as { member_id: string; status: string; current_period_end: string | null }[] }),
-    Promise.all(list.map((m) => rpc<number>(supabase, "elan_credit_balance", { p_member: m.id }).then((r) => r.data ?? 0))),
+    creditBalancesByMember(supabase, ids),
   ]);
   const now = Date.now();
   const byMember = new Map<string, { active: boolean; any: boolean }>();
@@ -765,7 +834,7 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
     if (mm.status === "active" && mm.current_period_end && new Date(mm.current_period_end).getTime() > now) cur.active = true;
     byMember.set(mm.member_id, cur);
   }
-  return list.map((m, i) => {
+  return list.map((m) => {
     const ms = byMember.get(m.id);
     return {
       full_name: m.full_name,
@@ -774,7 +843,7 @@ export async function getMembersForExport(): Promise<MemberExportRow[]> {
       lead_status: m.lead_status,
       source: m.source,
       membership_status: ms?.active ? "active" : ms?.any ? "expired" : "none",
-      credits: balances[i] ?? 0,
+      credits: balanceMap.get(m.id) ?? 0,
       created_at: m.created_at,
     };
   });

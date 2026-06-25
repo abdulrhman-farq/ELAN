@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dict } from "@/lib/i18n";
@@ -44,8 +45,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   return (
     <section className="pb-44 md:pb-28">
       <div className="relative h-56 overflow-hidden rounded-b-xl md:mt-4 md:rounded-xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={classImage(c.name_en)} alt={name} className="absolute inset-0 h-full w-full object-cover" />
+        <Image src={classImage(c.name_en)} alt={name} fill sizes="(max-width:768px) 100vw, 768px" className="object-cover" priority />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.15),rgba(33,28,24,.55))" }} />
         <Link href="/schedule" className="absolute start-3 top-3 inline-flex min-h-[44px] items-center rounded-pill bg-surface-elevated/85 px-3 text-body text-primary-900">‹ {t.common.back}</Link>
       </div>

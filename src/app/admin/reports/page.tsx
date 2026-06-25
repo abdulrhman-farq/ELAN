@@ -21,10 +21,16 @@ const PTYPE: Record<string, [string, string]> = {
   penalty: ["الغرامات", "Penalties"],
 };
 
-export default async function AdminReports() {
+export default async function AdminReports({
+  searchParams,
+}: {
+  searchParams: Promise<{ days?: string }>;
+}) {
+  const sp = await searchParams;
   const locale = await getLocale();
   const ar = locale === "ar";
-  const r = await getReports();
+  const days = Math.min(365, Math.max(1, Number.parseInt(sp.days ?? "30", 10) || 30));
+  const r = await getReports(days);
   const sar = (h: number) => `${fmtHalalas(h, ar ? "ar" : "en")} ${ar ? "ر.س" : "SAR"}`;
   const bookings = Object.entries(r.bookingsByStatus).sort((a, b) => b[1] - a[1]);
   const types = Object.entries(r.revenueByType).sort((a, b) => b[1] - a[1]);
@@ -34,7 +40,7 @@ export default async function AdminReports() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-page-title font-medium text-primary-900">{ar ? "التقارير المالية" : "Financial reports"}</h1>
-        <p className="text-meta text-status-full">{ar ? "آخر ٣٠ يومًا · الأرقام بالريال شاملة منطق ضريبة القيمة المضافة" : "Last 30 days · VAT-aware"}</p>
+        <p className="text-meta text-status-full">{ar ? `آخر ${days} يومًا · الأرقام بالريال شاملة منطق ضريبة القيمة المضافة` : `Last ${days} days · VAT-aware`}</p>
       </div>
 
       {/* Cash sales breakdown */}
@@ -57,7 +63,7 @@ export default async function AdminReports() {
         <section className="card p-6">
           <h2 className="mb-5 font-display text-lead font-medium text-primary-900">{ar ? "الإيراد حسب النوع" : "Revenue by type"}</h2>
           {types.length === 0 ? (
-            <p className="py-6 text-center text-body text-status-full">{ar ? "لا توجد مدفوعات في آخر ٣٠ يومًا." : "No payments in the last 30 days."}</p>
+            <p className="py-6 text-center text-body text-status-full">{ar ? `لا توجد مدفوعات في آخر ${days} يومًا.` : `No payments in the last ${days} days.`}</p>
           ) : (
             <div className="space-y-4">
               {types.map(([type, v]) => (
@@ -78,7 +84,7 @@ export default async function AdminReports() {
         <section className="card p-6">
           <h2 className="mb-5 font-display text-lead font-medium text-primary-900">{ar ? "الحجوزات حسب الحالة" : "Bookings by status"}</h2>
           {bookings.length === 0 ? (
-            <p className="py-6 text-center text-body text-status-full">{ar ? "لا توجد حجوزات في آخر ٣٠ يومًا." : "No bookings in the last 30 days."}</p>
+            <p className="py-6 text-center text-body text-status-full">{ar ? `لا توجد حجوزات في آخر ${days} يومًا.` : `No bookings in the last ${days} days.`}</p>
           ) : (
             <div className="space-y-3">
               {bookings.map(([status, count]) => (

@@ -49,13 +49,20 @@ function expiryLabel(iso: string | null, ar: boolean): string {
 export default async function AdminMembers({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const ar = (await getLocale()) === "ar";
-  const { kpis, rows } = await getMembersOverview(sp.q, sp.status);
+  const requestedPage = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
+  const { kpis, rows, page, hasMore } = await getMembersOverview(sp.q, sp.status, requestedPage);
   const q = sp.q ?? "";
   const active = sp.status ?? "";
+  const pageHref = (p: number) =>
+    `/admin/members?${new URLSearchParams({
+      ...(active ? { status: active } : {}),
+      ...(q ? { q } : {}),
+      ...(p > 1 ? { page: String(p) } : {}),
+    }).toString()}`;
 
   return (
     <div className="space-y-6">
@@ -78,6 +85,9 @@ export default async function AdminMembers({
               className="min-h-[44px] w-44 rounded-lg border border-outline bg-surface-container px-4 text-sm text-primary-900 outline-none focus:border-accent md:w-56"
             />
           </form>
+          {/* Download endpoint (route handler returns a CSV file) — a native
+              anchor is correct here; next/link would do client navigation. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/admin/members/export"
             className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-primary-700"
@@ -159,6 +169,36 @@ export default async function AdminMembers({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        {page > 1 ? (
+          <Link
+            href={pageHref(page - 1)}
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-primary-700"
+          >
+            {ar ? "السابق" : "Previous"}
+          </Link>
+        ) : (
+          <span className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-status-full opacity-40">
+            {ar ? "السابق" : "Previous"}
+          </span>
+        )}
+        <span className="text-meta text-status-full">
+          {ar ? `صفحة ${page}` : `Page ${page}`}
+        </span>
+        {hasMore ? (
+          <Link
+            href={pageHref(page + 1)}
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-primary-700"
+          >
+            {ar ? "التالي" : "Next"}
+          </Link>
+        ) : (
+          <span className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-status-full opacity-40">
+            {ar ? "التالي" : "Next"}
+          </span>
+        )}
       </div>
     </div>
   );

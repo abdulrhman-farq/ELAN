@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { sellPackageAction, compBookingAction, applyBookingDiscountAction } from "@/admin-actions";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 
 /** Bundle presets — canonical ÉLAN model (net halalas, 150 SAR/class list). Prices editable by admin. */
 const BUNDLES: { key: string; ar: string; en: string; credits: number; netHalalas: number }[] = [
@@ -13,6 +15,7 @@ const BUNDLES: { key: string; ar: string; en: string; credits: number; netHalala
 
 export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boolean }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -52,10 +55,13 @@ export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boole
         method,
       });
       if (!res.ok) {
-        setErr(ar ? `تعذّر البيع: ${res.error}` : `Sale failed: ${res.error}`);
+        const msg = ar ? `تعذّر البيع: ${res.error}` : `Sale failed: ${res.error}`;
+        setErr(msg);
+        toast.error(msg);
         return;
       }
       setOpen(false);
+      toast.success(ar ? "تم تسجيل البيع" : "Sale recorded");
       router.refresh();
     });
 
@@ -150,19 +156,39 @@ export function SellBundleDialog({ memberId, ar }: { memberId: string; ar: boole
 /** Compact comp / percentage-discount controls on a single booking row. */
 export function BookingMoneyControls({ bookingId, ar }: { bookingId: string; ar: boolean }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [showDisc, setShowDisc] = useState(false);
   const [pct, setPct] = useState("10");
+  const [confirmComp, setConfirmComp] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   const comp = () =>
     start(async () => {
-      await compBookingAction(bookingId, "comp");
+      setErr(null);
+      const res = await compBookingAction(bookingId, "comp");
+      if (!res.ok) {
+        const msg = ar ? `تعذّر: ${res.error}` : `Failed: ${res.error}`;
+        setErr(msg);
+        toast.error(msg);
+        return;
+      }
+      setConfirmComp(false);
+      toast.success(ar ? "تم جعل الحجز مجانيًا" : "Booking comped");
       router.refresh();
     });
   const discount = () =>
     start(async () => {
-      await applyBookingDiscountAction(bookingId, { discountType: "percentage", discountValue: Math.round(Number(pct || 0) * 100) });
+      setErr(null);
+      const res = await applyBookingDiscountAction(bookingId, { discountType: "percentage", discountValue: Math.round(Number(pct || 0) * 100) });
+      if (!res.ok) {
+        const msg = ar ? `تعذّر الخصم: ${res.error}` : `Discount failed: ${res.error}`;
+        setErr(msg);
+        toast.error(msg);
+        return;
+      }
       setShowDisc(false);
+      toast.success(ar ? "تم تطبيق الخصم" : "Discount applied");
       router.refresh();
     });
 
@@ -170,16 +196,52 @@ export function BookingMoneyControls({ bookingId, ar }: { bookingId: string; ar:
     <div className="flex items-center gap-1.5">
       {showDisc ? (
         <>
-          <input dir="ltr" value={pct} onChange={(e) => setPct(e.target.value)} className="w-12 rounded-md border border-outline bg-surface-container px-2 py-1 text-caption" inputMode="decimal" />
-          <button disabled={pending} onClick={discount} className="rounded-pill bg-primary px-2.5 py-1 text-caption text-ink">%</button>
-          <button onClick={() => setShowDisc(false)} className="text-caption text-status-full">×</button>
+          <input
+            dir="ltr"
+            value={pct}
+            onChange={(e) => setPct(e.target.value)}
+            aria-label={ar ? "نسبة الخصم %" : "Discount percent"}
+            className="w-12 rounded-md border border-outline bg-surface-container px-2 py-1 text-caption"
+            inputMode="decimal"
+          />
+          <button
+            type="button"
+            disabled={pending}
+            onClick={discount}
+            aria-label={ar ? "تطبيق الخصم" : "Apply discount"}
+            className="rounded-pill bg-primary px-2.5 py-1 text-caption text-ink disabled:opacity-50"
+          >
+            {pending ? <span className="spinner" aria-hidden /> : "%"}
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setShowDisc(false)}
+            aria-label={ar ? "إلغاء" : "Cancel"}
+            className="text-caption text-status-full disabled:opacity-50"
+          >
+            ×
+          </button>
         </>
       ) : (
         <>
-          <button disabled={pending} onClick={() => setShowDisc(true)} className="rounded-pill border border-outline px-2.5 py-1 text-caption text-primary-700">{ar ? "خصم" : "Disc."}</button>
-          <button disabled={pending} onClick={comp} className="rounded-pill border border-outline px-2.5 py-1 text-caption text-primary-700">{ar ? "مجانية" : "Comp"}</button>
+          <button type="button" disabled={pending} onClick={() => { setErr(null); setShowDisc(true); }} className="rounded-pill border border-outline px-2.5 py-1 text-caption text-primary-700 disabled:opacity-50">{ar ? "خصم" : "Disc."}</button>
+          <button type="button" disabled={pending} onClick={() => { setErr(null); setConfirmComp(true); }} className="rounded-pill border border-outline px-2.5 py-1 text-caption text-primary-700 disabled:opacity-50">{ar ? "مجانية" : "Comp"}</button>
         </>
       )}
+      {err ? <span className="text-caption text-danger" role="alert">{err}</span> : null}
+
+      <ConfirmDialog
+        open={confirmComp}
+        danger
+        pending={pending}
+        title={ar ? "جعل الحجز مجانيًا؟" : "Comp this booking?"}
+        body={ar ? "سيُعفى هذا الحجز من الرسوم بالكامل." : "This booking will be made free of charge."}
+        confirmLabel={ar ? "تأكيد" : "Comp"}
+        cancelLabel={ar ? "رجوع" : "Cancel"}
+        onConfirm={comp}
+        onClose={() => !pending && setConfirmComp(false)}
+      />
     </div>
   );
 }

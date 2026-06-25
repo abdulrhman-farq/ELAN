@@ -69,10 +69,12 @@ export default function LoginPage() {
         {err ? <p className="text-meta text-danger" role="alert">{err}</p> : null}
 
         <button type="button" disabled={busy} onClick={() => signIn()} className="btn button-lg w-full bg-primary text-ink">{busy ? <span className="spinner" aria-hidden /> : t.submit}</button>
-        <div className="flex gap-2.5">
-          <button type="button" disabled={busy} onClick={demoMember} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
-          <button type="button" disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demoAdmin}</button>
-        </div>
+        {DEMO ? (
+          <div className="flex gap-2.5">
+            <button type="button" disabled={busy} onClick={demoMember} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demo}</button>
+            <button type="button" disabled={busy} onClick={() => signIn("owner@elan.demo", "elan1234")} className="btn button-sm flex-1 border border-outline text-primary-700">{t.demoAdmin}</button>
+          </div>
+        ) : null}
 
         <div className="border-t border-outline pt-4">
           {sent ? (
@@ -84,7 +86,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-meta text-status-full">{t.hint}</p>
+        {DEMO ? <p className="text-center text-meta text-status-full">{t.hint}</p> : null}
       </div>
     </div>
   );

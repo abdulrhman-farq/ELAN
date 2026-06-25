@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberDetail, getMemberTasks, getMemberFinancials } from "@/lib/admin";
+import { getMemberDetail, getMemberTasks, getMemberFinancials, getMemberPayments } from "@/lib/admin";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { fmtHalalas } from "@/lib/pricing";
 import { CLASS_INFO, type ClassRec } from "@/lib/quiz";
@@ -11,6 +11,7 @@ import { EditMemberDialog } from "@/components/admin/EditMemberDialog";
 import { WhatsAppActions } from "@/components/admin/WhatsAppActions";
 import { MemberTasks } from "@/components/admin/MemberTasks";
 import { SellBundleDialog, BookingMoneyControls } from "@/components/admin/MemberMoney";
+import { MemberPayments } from "@/components/admin/MemberPayments";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,12 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
   const { id } = await params;
   const locale = await getLocale();
   const ar = locale === "ar";
-  const [detail, tasks, fin] = await Promise.all([getMemberDetail(id), getMemberTasks(id), getMemberFinancials(id)]);
+  const [detail, tasks, fin, payments] = await Promise.all([
+    getMemberDetail(id),
+    getMemberTasks(id),
+    getMemberFinancials(id),
+    getMemberPayments(id),
+  ]);
   if (!detail) notFound();
   const { member, balance, notes } = detail;
   const plan = ar ? detail.membershipPlanAr : detail.membershipPlanEn;
@@ -123,6 +129,13 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
           <MoneyStat label={ar ? "قيمة الرصيد المتبقي" : "Remaining package value"} value={sar(fin.remainingPackageHalalas)} />
           <MoneyStat label={ar ? "قيمة عدم الحضور" : "No-show value"} value={sar(fin.noShowValueHalalas)} />
           <MoneyStat label={ar ? "قيمة الحصص المجانية" : "Complimentary value"} value={sar(fin.compValueHalalas)} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "المدفوعات" : "Payments"}</h3>
+        <div className="card p-5">
+          <MemberPayments ar={ar} payments={payments} />
         </div>
       </section>
 

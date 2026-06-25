@@ -1,7 +1,7 @@
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getCatalogue, getMemberContext } from "@/lib/queries";
-import { BuyButton } from "@/components/Buttons";
+import { MembershipCards } from "@/components/MembershipCards";
 import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +14,19 @@ export default async function MembershipsPage() {
   const planName = ctx.membership?.membership_plans
     ? ar ? ctx.membership.membership_plans.name_ar : ctx.membership.membership_plans.name_en
     : null;
+
+  const planItems = plans.map((p) => ({
+    id: p.id,
+    name: ar ? p.name_ar : p.name_en,
+    meta: (ar ? p.description_ar : p.description_en) ?? "",
+    price: p.price_sar,
+  }));
+  const packItems = packs.map((p) => ({
+    id: p.id,
+    name: ar ? p.name_ar : p.name_en,
+    meta: `${t.memberships.credits.replace("{n}", String(p.credits))} · ${t.memberships.validDays.replace("{n}", String(p.valid_days))}`,
+    price: p.price_sar,
+  }));
 
   return (
     <section className="space-y-6 p-6">
@@ -33,38 +46,14 @@ export default async function MembershipsPage() {
       {plans.length > 0 ? (
         <div>
           <h2 className="mb-3 font-display text-lead font-medium text-primary-900">{t.memberships.plans}</h2>
-          <div className="space-y-3">
-            {plans.map((p) => (
-              <div key={p.id} className="card flex items-center justify-between gap-3 p-5">
-                <div className="min-w-0">
-                  <p className="font-display text-lead font-medium text-primary-900">{ar ? p.name_ar : p.name_en}</p>
-                  <p className="truncate text-caption text-status-full">{ar ? p.description_ar : p.description_en}</p>
-                  <p className="mt-1 text-body font-number font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
-                </div>
-                <BuyButton type="membership" refId={p.id} label={t.common.buy} locale={locale} />
-              </div>
-            ))}
-          </div>
+          <MembershipCards kind="membership" items={planItems} locale={locale} />
         </div>
       ) : null}
 
       {packs.length > 0 ? (
         <div>
           <h2 className="mb-3 font-display text-lead font-medium text-primary-900">{t.memberships.packs}</h2>
-          <div className="space-y-3">
-            {packs.map((p) => (
-              <div key={p.id} className="card flex items-center justify-between gap-3 p-5">
-                <div className="min-w-0">
-                  <p className="font-display text-lead font-medium text-primary-900">{ar ? p.name_ar : p.name_en}</p>
-                  <p className="truncate text-caption text-status-full">
-                    {t.memberships.credits.replace("{n}", String(p.credits))} · {t.memberships.validDays.replace("{n}", String(p.valid_days))}
-                  </p>
-                  <p className="mt-1 text-body font-number font-semibold text-primary-700">{p.price_sar} {t.common.sar}</p>
-                </div>
-                <BuyButton type="credit_pack" refId={p.id} label={t.common.buy} locale={locale} />
-              </div>
-            ))}
-          </div>
+          <MembershipCards kind="credit_pack" items={packItems} locale={locale} />
         </div>
       ) : null}
     </section>

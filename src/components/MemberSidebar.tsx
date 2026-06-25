@@ -24,7 +24,8 @@ export function MemberSidebar({ labels }: { labels: Record<string, string> }) {
             <Link
               key={t.href}
               href={t.href}
-              className={`flex items-center gap-3 rounded-sm px-4 py-3 text-body ${active ? "bg-primary text-ink" : "text-primary-900/70 hover:text-primary-900"}`}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-[44px] items-center gap-3 rounded-sm px-4 py-3 text-body outline-none transition-[transform,background-color] active:scale-[.98] focus-visible:ring-2 focus-visible:ring-accent ${active ? "bg-primary font-medium text-ink ring-1 ring-accent" : "text-primary-900/70 hover:bg-surface-variant hover:text-primary-900"}`}
             >
               <Icon name={t.icon} filled={active} className="text-[20px]" />
               <span>{labels[t.key]}</span>

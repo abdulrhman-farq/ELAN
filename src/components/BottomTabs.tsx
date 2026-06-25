@@ -24,7 +24,7 @@ export function BottomTabs({ labels }: { labels: Record<string, string> }) {
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 py-1.5 text-caption ${
+                className={`relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-caption outline-none transition-transform active:scale-[.92] focus-visible:ring-2 focus-visible:ring-accent ${
                   active ? "font-medium text-primary-900" : anchor ? "text-primary-900/80" : "text-status-full"
                 }`}
               >

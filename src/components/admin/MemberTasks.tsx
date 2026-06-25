@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createTaskAction, setTaskStatusAction } from "@/admin-actions";
+import { useToast } from "@/components/Toast";
 
 type Task = { id: string; title: string; due_date: string | null; status: string };
 
@@ -13,27 +14,42 @@ function fmtDue(iso: string | null, ar: boolean): string {
 
 export function MemberTasks({ memberId, ar, tasks }: { memberId: string; ar: boolean; tasks: Task[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const add = () => {
     if (!title.trim()) return;
     start(async () => {
+      setErr(null);
       const res = await createTaskAction(memberId, title, due);
       if (res.ok) {
         setTitle("");
         setDue("");
+        toast.success(ar ? "تمت إضافة المهمة" : "Task added");
         router.refresh();
+      } else {
+        const msg = ar ? "تعذّر إضافة المهمة" : "Failed to add task";
+        setErr(msg);
+        toast.error(msg);
       }
     });
   };
 
   const toggle = (t: Task) =>
     start(async () => {
-      await setTaskStatusAction(t.id, t.status === "done" ? "open" : "done", memberId);
-      router.refresh();
+      setErr(null);
+      const res = await setTaskStatusAction(t.id, t.status === "done" ? "open" : "done", memberId);
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const msg = ar ? "تعذّر تحديث المهمة" : "Failed to update task";
+        setErr(msg);
+        toast.error(msg);
+      }
     });
 
   const field = "rounded-md border border-outline bg-surface-container px-3 py-2.5 text-body text-primary-900 outline-none focus:border-accent";
@@ -52,6 +68,8 @@ export function MemberTasks({ memberId, ar, tasks }: { memberId: string; ar: boo
           {ar ? "إضافة" : "Add"}
         </button>
       </div>
+
+      {err ? <p className="text-caption text-danger" role="alert">{err}</p> : null}
 
       {tasks.length === 0 ? (
         <p className="py-1 text-meta text-status-full">{ar ? "لا توجد مهام متابعة." : "No follow-up tasks."}</p>

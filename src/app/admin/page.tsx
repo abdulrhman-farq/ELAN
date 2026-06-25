@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
 import { getDashboard, getOverdueTasks } from "@/lib/admin";
@@ -106,8 +107,7 @@ export default async function AdminDashboard() {
                   <div key={c.id} className="flex items-center gap-2 border-b border-outline py-3 last:border-0">
                     <span className="w-16 shrink-0 font-number text-primary-900">{fmtTime(c.starts_at, locale)}</span>
                     <span className="flex flex-1 items-center gap-2 text-primary-900">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={classImage(c.name_en)} alt="" className="h-8 w-8 rounded-md object-cover" />
+                      <Image src={classImage(c.name_en)} alt="" width={32} height={32} className="h-8 w-8 rounded-md object-cover" />
                       {c.name_en}
                     </span>
                     <span className="w-16 shrink-0 text-status-full">{(ar ? c.instructor_ar : c.instructor_en) ?? "—"}</span>

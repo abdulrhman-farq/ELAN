@@ -5,6 +5,7 @@ import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import {
   computePrice,
   grossFromNet,
+  creditsGrantedFor,
   DEFAULT_CLASS_NET_HALALAS,
   type DiscountType,
   type DiscountKind,
@@ -471,6 +472,7 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
       sales_tax_sar: p.vatAmountHalalas / 100,
       currency: "SAR",
       status,
+      credits, // credits this purchase grants — applied to the ledger only once paid
       method: input.method ?? null,
       starts_at: input.startsAt || new Date().toISOString(),
       type: "credit_pack",
@@ -487,8 +489,13 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
     .single();
   if (pErr || !pay) return { ok: false, error: pErr?.message ?? "payment_failed" };
 
-  const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
-  await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: credits, reason: "purchase", balance_after: (bal ?? 0) + credits, ref_id: pay.id });
+  // Credits are granted ONLY for a paid sale. A pending sale records the payment
+  // only; credits are applied later via markPaymentPaidAction (idempotent).
+  const grant = creditsGrantedFor(status, credits);
+  if (grant > 0) {
+    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
+    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: grant, reason: "purchase", balance_after: (bal ?? 0) + grant, ref_id: pay.id });
+  }
   if (d.promoId)
     await tbl(supabase, "promo_redemptions").insert({ promo_code_id: d.promoId, member_id: memberId, payment_id: pay.id, discount_amount_halalas: p.discountAmountHalalas });
 
@@ -502,6 +509,83 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
     reason: input.reason ?? `${credits} credits · ${status}${input.method ? " · " + input.method : ""}`,
   });
   revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
+/**
+ * Mark a pending (initiated) payment as paid and apply its credits exactly once.
+ * - admin only
+ * - atomically flips status only if it is currently 'initiated' (prevents double
+ *   fulfillment under retries/double-clicks)
+ * - the credit_ledger_purchase_once unique index is a second guard against
+ *   granting credits twice for the same payment
+ */
+export async function markPaymentPaidAction(paymentId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+
+  // Fulfillment is centralised in confirm_payment (SECURITY DEFINER, is_admin
+  // guarded): it flips initiated->paid under a row lock and grants credits /
+  // activates membership EXACTLY ONCE (status guard + credit_ledger_purchase_once).
+  // A second call on an already-paid payment is a safe no-op.
+  const { data: paid, error } = await rpc<{ id: string; member_id: string; status: string }>(
+    supabase,
+    "confirm_payment",
+    { p_payment_id: paymentId },
+  );
+  if (error) return { ok: false, error: error.message };
+  if (!paid) return { ok: false, error: "not_found" };
+
+  await writeAudit(supabase, userId, {
+    entity_type: "payment",
+    entity_id: paid.id,
+    action: "mark_paid",
+    field: "status",
+    old_value: "initiated",
+    new_value: "paid",
+    reason: "manual fulfillment",
+  });
+  revalidatePath(`/admin/members/${paid.member_id}`);
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
+/**
+ * Refund a PAID payment and reverse any UNUSED credits exactly once.
+ * - admin only
+ * - delegates to refund_payment (SECURITY DEFINER, is_admin guarded): flips
+ *   paid->refunded under a row lock and reverses only the still-available
+ *   credits (credit_ledger_refund_once is a second guard against double
+ *   reversal). A second call on an already-refunded payment is a safe no-op.
+ */
+export async function refundPaymentAction(
+  paymentId: string,
+  opts?: { amountSar?: number; reason?: string },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+
+  const { data: refunded, error } = await rpc<{ id: string; member_id: string; status: string }>(
+    supabase,
+    "refund_payment",
+    { p_payment_id: paymentId, p_amount_sar: opts?.amountSar ?? null, p_reason: opts?.reason ?? null },
+  );
+  if (error) return { ok: false, error: error.message };
+  if (!refunded) return { ok: false, error: "not_found" };
+
+  await writeAudit(supabase, userId, {
+    entity_type: "payment",
+    entity_id: refunded.id,
+    action: "refund",
+    field: "status",
+    old_value: "paid",
+    new_value: "refunded",
+    reason: opts?.reason ?? "manual refund",
+  });
+  revalidatePath(`/admin/members/${refunded.member_id}`);
   revalidatePath("/admin/reports");
   return { ok: true };
 }

@@ -45,15 +45,16 @@ export async function cancelAction(bookingId: string, classInstanceId?: string) 
 export async function purchaseAction(type: "membership" | "credit_pack", refId: string) {
   if (DEMO) {
     revalidatePath("/memberships"); revalidatePath("/profile");
-    return { ok: true };
+    return { ok: true as const, pending: true as const };
   }
   const supabase = await getServerSupabase();
-  // Mock checkout: the PaymentProvider would redirect to Moyasar in production;
-  // here we fulfill instantly via the sandbox RPC.
-  const { error } = await rpc(supabase, "simulate_purchase", { p_type: type, p_ref_id: refId });
+  // Create a PENDING payment only. Credits / membership are NEVER granted at
+  // purchase time — they are applied exclusively after the payment is confirmed
+  // (by an admin, or a signed payment-gateway webhook) via confirm_payment.
+  const { error } = await rpc(supabase, "create_pending_purchase", { p_type: type, p_ref_id: refId });
   revalidatePath("/memberships");
   revalidatePath("/profile");
-  return error ? { error: error.message } : { ok: true };
+  return error ? { error: error.message } : { ok: true as const, pending: true as const };
 }
 
 export async function setLocaleAction(locale: Locale) {

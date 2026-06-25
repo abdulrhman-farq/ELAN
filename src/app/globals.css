@@ -8,8 +8,20 @@
   [dir="rtl"] .chevron { transform: scaleX(-1); }
   ::selection { background: #B89B72; color: #F8F5F1; }
 
+  /* next/font wiring (handoff §01): the configured next/font instances expose
+     CSS variables on <html>. These app-stacks resolve the next/font families
+     first, then the literal names as fallbacks, so the migration is visually
+     transparent. The font utilities are mapped to these vars below (unlayered,
+     so they win over Tailwind's generated font-* utilities). */
+  :root {
+    --font-sans: var(--font-tajawal), "Tajawal", "IBM Plex Sans Arabic", system-ui, sans-serif;
+    --font-display: var(--font-amiri), "Amiri", var(--font-bodoni), "Bodoni Moda", Georgia, serif;
+    --font-label: var(--font-bodoni), "Bodoni Moda", Georgia, serif;
+    --font-number: var(--font-bodoni), "Bodoni Moda", Georgia, serif;
+  }
+
   /* Numbers (prices, dates, counters) — always Bodoni Moda with Latin digits, per handoff §01. */
-  .num { font-family: "Bodoni Moda", Georgia, serif; font-variant-numeric: tabular-nums lining-nums; direction: ltr; unicode-bidi: isolate; }
+  .num { font-family: var(--font-number); font-variant-numeric: tabular-nums lining-nums; direction: ltr; unicode-bidi: isolate; }
 
   .material-symbols-rounded {
     font-family: "Material Symbols Rounded";
@@ -59,7 +71,7 @@
   .eyebrow { @apply font-label text-caption uppercase tracking-[0.18em] text-status-full; }
   .eyebrow-ar { @apply text-meta font-semibold tracking-normal text-status-full; }
   /* Wordmark + Latin lockup use Bodoni Moda (handoff §01). */
-  .wordmark { font-family: "Bodoni Moda", Georgia, serif; @apply tracking-[0.08em]; }
+  .wordmark { font-family: var(--font-label); @apply tracking-[0.08em]; }
   /* Architectural arch motif for image tiles. */
   .arch { border-radius: 9999px 9999px 1rem 1rem; }
 
@@ -77,4 +89,28 @@
     border-inline-start: 3px solid #B89B72;
   }
   .toast-error { border-inline-start-color: #9A5B3E; }
+}
+
+/* Map the Tailwind font utilities to the next/font app-stacks. Unlayered so
+   these override Tailwind's generated font-* utilities (which hardcode the
+   literal family names) without touching tailwind.config.ts. */
+.font-sans { font-family: var(--font-sans); }
+.font-display { font-family: var(--font-display); }
+.font-label { font-family: var(--font-label); }
+.font-number { font-family: var(--font-number); }
+.font-arabic { font-family: var(--font-sans); }
+
+/* Keyboard-accessibility focus ring — uses the brass accent (#B89B72). */
+*:focus-visible {
+  outline: 2px solid #B89B72;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Honour the user's motion preference — neutralise pulses/transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
