@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { getServerSupabase, rpc } from "@/lib/supabase/server";
+import { getServerSupabase } from "@/lib/supabase/server";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { DEMO } from "@/lib/demo";
@@ -11,14 +11,10 @@ import { ToastProvider } from "@/components/Toast";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await getServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
-  // Staff belong in the admin console — never show them the member app (which
-  // would otherwise fall back to the demo member "نور العتيبي").
-  if (auth.user) {
-    const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
-    if (isAdmin) redirect("/admin");
-  } else if (!DEMO) {
-    redirect("/login");
-  }
+  // Both members and admins may use the member app — admins land on /admin after
+  // login but can open the app (via the "App ›" link) to test as their own
+  // member profile. Production requires a real session; demo allows local browsing.
+  if (!auth.user && !DEMO) redirect("/login");
 
   const locale = await getLocale();
   return (
