@@ -37,6 +37,15 @@ function isExpiringSoon(iso: string | null): boolean {
   return t >= Date.now() && t <= Date.now() + 7 * 86400000;
 }
 
+function expiryLabel(iso: string | null, ar: boolean): string {
+  if (!iso) return ar ? "بلا اشتراك" : "No plan";
+  const t = new Date(iso).getTime();
+  const days = Math.ceil((t - Date.now()) / 86400000);
+  if (days < 0) return ar ? "منتهٍ" : "Expired";
+  const d = fmtDate(iso, ar);
+  return ar ? `${d} · باقي ${days} يوم` : `${d} · ${days}d left`;
+}
+
 export default async function AdminMembers({
   searchParams,
 }: {
@@ -108,8 +117,8 @@ export default async function AdminMembers({
             <div className="flex items-center gap-3 border-b border-outline pb-3 text-meta text-status-full">
               <span className="flex-1">{ar ? "العميلة" : "Client"}</span>
               <span className="w-28 shrink-0">{ar ? "العضوية" : "Plan"}</span>
-              <span className="w-20 shrink-0">{ar ? "الرصيد" : "Credits"}</span>
-              <span className="w-20 shrink-0">{ar ? "آخر حضور" : "Last seen"}</span>
+              <span className="w-24 shrink-0">{ar ? "الحصص المتبقية" : "Remaining"}</span>
+              <span className="w-36 shrink-0">{ar ? "ينتهي الاشتراك" : "Expires"}</span>
               <span className="w-28 shrink-0">{ar ? "الحالة" : "Status"}</span>
             </div>
 
@@ -135,8 +144,8 @@ export default async function AdminMembers({
                       </div>
                     </div>
                     <span className="w-28 shrink-0 truncate text-status-full">{(ar ? m.plan_ar : m.plan_en) ?? "—"}</span>
-                    <span className="w-20 shrink-0 font-number text-status-full">{m.credits}</span>
-                    <span className="w-20 shrink-0 font-number text-status-full">{fmtDate(m.last_seen, ar)}</span>
+                    <span className="w-24 shrink-0 text-primary-900"><span className="font-number">{m.credits}</span>{ar ? " حصة" : ""}</span>
+                    <span className={`w-36 shrink-0 font-number ${isExpiringSoon(m.period_end) ? "text-danger" : "text-status-full"}`}>{expiryLabel(m.period_end, ar)}</span>
                     <span className="flex w-28 shrink-0 items-center gap-1.5">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_TONE[st] }} />
                       <span className="truncate text-primary-900">{STATUS_LABEL[st]?.[ar ? 0 : 1]}</span>

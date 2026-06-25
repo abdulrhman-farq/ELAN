@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { DEMO } from "@/lib/demo";
@@ -9,10 +9,15 @@ import { MemberSidebar } from "@/components/MemberSidebar";
 import { ToastProvider } from "@/components/Toast";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  if (!DEMO) {
-    const supabase = await getServerSupabase();
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) redirect("/login");
+  const supabase = await getServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  // Staff belong in the admin console — never show them the member app (which
+  // would otherwise fall back to the demo member "نور العتيبي").
+  if (auth.user) {
+    const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
+    if (isAdmin) redirect("/admin");
+  } else if (!DEMO) {
+    redirect("/login");
   }
 
   const locale = await getLocale();
