@@ -35,11 +35,31 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
   const field = "w-full rounded-md border border-outline bg-surface-container px-3 py-2.5 text-body text-primary-900 outline-none focus:border-accent";
   const lab = "mb-1 block text-meta text-status-full";
 
+  // Validation — generation is blocked until every condition is met.
+  const nDays = Number(f.days);
+  const nPer = Number(f.perDay);
+  const nDur = Number(f.durationMin);
+  const nBuf = Number(f.bufferMin);
+  const nCap = Number(f.capacity);
+  const timeOk = /^([01]\d|2[0-3]):[0-5]\d$/.test(f.firstTime);
+  const allSkipped = skip.length >= 7;
+  const problems: string[] = [];
+  if (!f.startDate) problems.push(ar ? "تاريخ البداية" : "start date");
+  if (!Number.isFinite(nDays) || nDays < 1) problems.push(ar ? "عدد الأيام (١ فأكثر)" : "days ≥ 1");
+  if (!Number.isFinite(nPer) || nPer < 1) problems.push(ar ? "حصص/يوم (١ فأكثر)" : "per day ≥ 1");
+  if (!timeOk) problems.push(ar ? "وقت أول حصة (HH:MM)" : "first time");
+  if (!Number.isFinite(nDur) || nDur < 10) problems.push(ar ? "المدة (١٠ دقائق فأكثر)" : "duration ≥ 10");
+  if (!Number.isFinite(nBuf) || nBuf < 0) problems.push(ar ? "وقت التنظيف (٠ فأكثر)" : "cleaning ≥ 0");
+  if (!Number.isFinite(nCap) || nCap < 1) problems.push(ar ? "السعة (١ فأكثر)" : "capacity ≥ 1");
+  if (types.length === 0) problems.push(ar ? "نوع حصة واحد على الأقل" : "≥ 1 class type");
+  if (allSkipped) problems.push(ar ? "يوم عمل واحد على الأقل" : "≥ 1 working day");
+  const valid = problems.length === 0;
+
   const submit = () =>
     start(async () => {
       setMsg(null);
-      if (types.length === 0) {
-        setMsg(ar ? "اختاري نوع حصة واحداً على الأقل." : "Pick at least one class type.");
+      if (!valid) {
+        setMsg((ar ? "أكملي: " : "Complete: ") + problems.join("، "));
         return;
       }
       const res = await generateScheduleAction({
@@ -154,10 +174,13 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
                 ? "الفاصل بين الحصص = المدة + وقت التنظيف. تُفتح كل الحصص للحجز فوراً وتُغلق عند بدايتها. التكرارات تُتجاهل."
                 : "Slot interval = duration + cleaning. Classes open for booking now and close at start; duplicates are skipped."}
             </p>
+            {!valid ? (
+              <p className="text-caption text-danger">{(ar ? "مطلوب لإتمام التوليد: " : "Required: ") + problems.join("، ")}</p>
+            ) : null}
             {msg ? <p className="text-meta text-primary-700" role="status">{msg}</p> : null}
 
             <div className="flex gap-2 pt-1">
-              <button disabled={pending} onClick={submit} className="btn-primary flex-1 disabled:opacity-50">{pending ? (ar ? "جارٍ…" : "…") : ar ? "توليد" : "Generate"}</button>
+              <button disabled={pending || !valid} onClick={submit} className="btn-primary flex-1 disabled:opacity-50">{pending ? (ar ? "جارٍ…" : "…") : ar ? "توليد" : "Generate"}</button>
               <button disabled={pending} onClick={() => setOpen(false)} className="btn-outline flex-1">{ar ? "إغلاق" : "Close"}</button>
             </div>
           </div>
