@@ -6,7 +6,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 export const dynamic = "force-dynamic";
 
 /** Magic-link / OTP callback: exchange the code for a session and persist the
- *  session cookies ON the redirect response, then link the member by email. */
+ *  session cookies ON the redirect response. The member row is linked to the
+ *  auth user by the SECURITY DEFINER handle_new_user trigger (by verified email)
+ *  at signup — no email-based linking happens here. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
@@ -25,19 +27,5 @@ export async function GET(req: Request) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(new URL(`/login?error=link`, url.origin));
-
-  // Link this auth user to the admin-created member row (matched by email) so the
-  // self booking RPCs (auth_user_id = auth.uid()) resolve her member.
-  const { data: auth } = await supabase.auth.getUser();
-  if (auth.user?.email) {
-    await (supabase.from("members") as unknown as {
-      update: (v: Record<string, unknown>) => {
-        ilike: (c: string, p: string) => { is: (c: string, v: null) => Promise<unknown> };
-      };
-    })
-      .update({ auth_user_id: auth.user.id })
-      .ilike("email", auth.user.email)
-      .is("auth_user_id", null);
-  }
   return res;
 }
