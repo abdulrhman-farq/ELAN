@@ -78,6 +78,9 @@ export default async function AdminMembers({
               className="min-h-[44px] w-44 rounded-lg border border-outline bg-surface-container px-4 text-sm text-primary-900 outline-none focus:border-accent md:w-56"
             />
           </form>
+          {/* Download endpoint (route handler returns a CSV file) — a native
+              anchor is correct here; next/link would do client navigation. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/admin/members/export"
             className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm text-primary-700"
