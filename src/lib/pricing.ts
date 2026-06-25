@@ -79,6 +79,15 @@ export function computePrice(args: PriceArgs): PriceBreakdown {
   };
 }
 
+/**
+ * Credits a payment may apply to the ledger. Single source of truth for the
+ * rule "credits are granted ONLY for a paid payment" — a pending/initiated,
+ * failed, or refunded payment grants nothing.
+ */
+export function creditsGrantedFor(status: string, credits: number): number {
+  return status === "paid" ? Math.max(0, Math.floor(credits || 0)) : 0;
+}
+
 /** Gross (incl. VAT) from a net amount, in halalas. */
 export function grossFromNet(netHalalas: number, vatBps: number = VAT_BPS): number {
   const net = Math.max(0, Math.round(netHalalas));

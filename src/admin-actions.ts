@@ -5,6 +5,7 @@ import { getServerSupabase, rpc } from "@/lib/supabase/server";
 import {
   computePrice,
   grossFromNet,
+  creditsGrantedFor,
   DEFAULT_CLASS_NET_HALALAS,
   type DiscountType,
   type DiscountKind,
@@ -490,9 +491,10 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
 
   // Credits are granted ONLY for a paid sale. A pending sale records the payment
   // only; credits are applied later via markPaymentPaidAction (idempotent).
-  if (status === "paid" && credits > 0) {
+  const grant = creditsGrantedFor(status, credits);
+  if (grant > 0) {
     const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
-    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: credits, reason: "purchase", balance_after: (bal ?? 0) + credits, ref_id: pay.id });
+    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: grant, reason: "purchase", balance_after: (bal ?? 0) + grant, ref_id: pay.id });
   }
   if (d.promoId)
     await tbl(supabase, "promo_redemptions").insert({ promo_code_id: d.promoId, member_id: memberId, payment_id: pay.id, discount_amount_halalas: p.discountAmountHalalas });
@@ -533,13 +535,14 @@ export async function markPaymentPaidAction(paymentId: string): Promise<ActionRe
     .maybeSingle();
   if (!paid) return { ok: false, error: "not_pending" };
 
-  if (paid.credits && paid.credits > 0) {
+  const grant = creditsGrantedFor("paid", paid.credits);
+  if (grant > 0) {
     const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: paid.member_id });
     const { error: lErr } = await tbl(supabase, "credit_ledger").insert({
       member_id: paid.member_id,
-      change: paid.credits,
+      change: grant,
       reason: "purchase",
-      balance_after: (bal ?? 0) + paid.credits,
+      balance_after: (bal ?? 0) + grant,
       ref_id: paid.id,
     });
     // Duplicate => credits already granted for this payment; safe to ignore.
