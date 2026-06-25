@@ -102,6 +102,12 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
         <div className="card p-5 text-center">
           <p className="truncate font-display text-lead text-primary-700">{plan ?? (ar ? "لا توجد عضوية" : "No membership")}</p>
           <p className="text-caption text-status-full">{ar ? "العضوية" : "Membership"}</p>
+          {detail.membershipEnd ? (
+            <p className="mt-1 font-number text-caption text-status-full">
+              {ar ? "ينتهي: " : "Expires: "}
+              {new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(detail.membershipEnd))}
+            </p>
+          ) : null}
         </div>
       </div>
 
