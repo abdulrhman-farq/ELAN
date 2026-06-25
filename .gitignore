@@ -4,3 +4,7 @@ out/
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+
+# stray archives (avoid duplicate app trees)
+*.zip
+inner/
