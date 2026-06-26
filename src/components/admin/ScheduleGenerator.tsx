@@ -75,6 +75,12 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
         skipWeekdays: skip,
       });
       if (!res.ok) {
+        if (res.error === "instructor_overlap") {
+          setMsg(ar
+            ? "المدرّبة لديها حصة في نفس الوقت. اختاري مدرّبة أخرى أو وقتاً مختلفاً."
+            : "This instructor already has a class at that time. Pick another instructor or time.");
+          return;
+        }
         setMsg(ar ? `تعذّر التوليد: ${res.error}` : `Failed: ${res.error}`);
         return;
       }

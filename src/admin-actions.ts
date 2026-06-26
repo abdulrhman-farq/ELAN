@@ -754,7 +754,12 @@ export async function generateScheduleAction(
 
   if (rows.length === 0) return { ok: true, created: 0 };
   const { error } = await tbl(supabase, "class_instances").insert(rows);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // GiST exclusion constraint: the chosen instructor already has an overlapping class.
+    if (/no_instructor_time_overlap|exclusion|overlap|23P01/i.test(error.message))
+      return { ok: false, error: "instructor_overlap" };
+    return { ok: false, error: error.message };
+  }
 
   await writeAudit(supabase, userId, {
     entity_type: "schedule",

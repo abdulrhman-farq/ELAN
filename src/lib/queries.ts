@@ -113,9 +113,6 @@ export async function getTimetable(date: string) {
   if (!realId && DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
-  // Temporary diagnostic (no secrets): which project + how many rows for this day.
-  const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "default").replace(/^https?:\/\//, "").split(".")[0];
-  console.log(`[schedule] date=${date} window=${start}..${end} ref=${ref} rows=${rows.length}`);
   // Real subscribers and production always see real data (even if empty). The
   // demo showcase only fills in mock classes when there is no real schedule.
   if (realId || !DEMO) return rows;
@@ -153,18 +150,58 @@ export async function getMyBookings() {
   if (!realId && DEMO) return mockBookings();
   try {
     const supabase = await getServerSupabase();
-    const { data } = await supabase
-      .from("bookings")
-      .select("id,status,waitlist_position,created_at,class_instances(starts_at,ends_at,class_types(name_ar,name_en),instructors(name_ar,name_en))")
+    // No nested embeds (a failing embed used to return null = "no bookings" even
+    // when the booking existed). Fetch bookings, then resolve class/type/instructor
+    // by id and join in JS. RLS already scopes bookings to the current member.
+    const { data: bks, error } = await q(supabase, "bookings")
+      .select("id,status,waitlist_position,created_at,class_instance_id")
       .order("created_at", { ascending: false });
-    const rows = (data ?? []).map((b) => ({
-      id: b.id, status: b.status as string, waitlist_position: b.waitlist_position as number | null,
-      starts_at: b.class_instances?.starts_at ?? "", ends_at: b.class_instances?.ends_at ?? "",
-      name_ar: b.class_instances?.class_types?.name_ar ?? "", name_en: b.class_instances?.class_types?.name_en ?? "",
-      instructor_ar: b.class_instances?.instructors?.name_ar ?? null, instructor_en: b.class_instances?.instructors?.name_en ?? null,
-    }));
-    if (realId || !DEMO) return rows; // real / production: real bookings (even if empty)
-    return rows.length ? rows : mockBookings();
+    if (error) {
+      console.error("[bookings] query error", error.message ?? error);
+      if (DEMO) return mockBookings();
+      throw new Error(error.message ?? "bookings_failed");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const list: any[] = bks ?? [];
+    if (list.length === 0) return realId || !DEMO ? [] : mockBookings();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ciIds = [...new Set(list.map((b: any) => b.class_instance_id).filter(Boolean))];
+    const { data: cis } = ciIds.length
+      ? await q(supabase, "class_instances").select("id,starts_at,ends_at,class_type_id,instructor_id").in("id", ciIds)
+      : { data: [] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ciList: any[] = cis ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typeIds = [...new Set(ciList.map((c: any) => c.class_type_id).filter(Boolean))];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const instrIds = [...new Set(ciList.map((c: any) => c.instructor_id).filter(Boolean))];
+    const [types, instrs] = await Promise.all([
+      typeIds.length ? q(supabase, "class_types").select("id,name_ar,name_en").in("id", typeIds) : Promise.resolve({ data: [] }),
+      instrIds.length ? q(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cim = new Map(ciList.map((c: any) => [c.id, c]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tm = new Map((types.data ?? []).map((t: any) => [t.id, t]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const im = new Map((instrs.data ?? []).map((i: any) => [i.id, i]));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return list.map((b: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ci = cim.get(b.class_instance_id) as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ct = ci ? (tm.get(ci.class_type_id) as any) : null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ins = ci ? (im.get(ci.instructor_id) as any) : null;
+      return {
+        id: b.id, status: b.status as string, waitlist_position: b.waitlist_position as number | null,
+        starts_at: ci?.starts_at ?? "", ends_at: ci?.ends_at ?? "",
+        name_ar: ct?.name_ar ?? "", name_en: ct?.name_en ?? "",
+        instructor_ar: ins?.name_ar ?? null, instructor_en: ins?.name_en ?? null,
+      };
+    });
   } catch (e) {
     console.error("getMyBookings failed", e);
     if (DEMO) return mockBookings();
@@ -238,31 +275,34 @@ export async function getCatalogue() {
 
 export async function getBooking(id: string) {
  if (DEMO) return mockBooking(id);
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ let b: any;
  try {
   const supabase = await getServerSupabase();
-  const { data } = await supabase
-    .from("bookings")
-    .select("id,status,class_instances(starts_at,ends_at,class_types(name_ar,name_en,duration_minutes),instructors(name_ar,name_en))")
-    .eq("id", id)
-    .maybeSingle();
-  if (!data) {
-    if (DEMO) return mockBooking(id);
-    notFound();
+  // No nested embeds — fetch booking, then class/type/instructor by id.
+  const { data, error } = await q(supabase, "bookings").select("id,status,class_instance_id").eq("id", id).maybeSingle();
+  if (error) { console.error("[booking] query error", error.message ?? error); throw new Error(error.message ?? "booking_failed"); }
+  b = data;
+  if (b) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: ci } = await q(supabase, "class_instances").select("starts_at,ends_at,class_type_id,instructor_id").eq("id", b.class_instance_id).maybeSingle();
+    const [ct, ins] = await Promise.all([
+      ci?.class_type_id ? q(supabase, "class_types").select("name_ar,name_en,duration_minutes").eq("id", ci.class_type_id).maybeSingle() : Promise.resolve({ data: null }),
+      ci?.instructor_id ? q(supabase, "instructors").select("name_ar,name_en").eq("id", ci.instructor_id).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    return {
+      id: b.id, status: b.status,
+      starts_at: ci?.starts_at ?? "", ends_at: ci?.ends_at ?? "",
+      duration: ct.data?.duration_minutes ?? 0,
+      name_ar: ct.data?.name_ar ?? "", name_en: ct.data?.name_en ?? "",
+      instructor_ar: ins.data?.name_ar ?? null, instructor_en: ins.data?.name_en ?? null,
+    };
   }
-  return {
-    id: data.id,
-    status: data.status,
-    starts_at: data.class_instances?.starts_at ?? "",
-    ends_at: data.class_instances?.ends_at ?? "",
-    duration: data.class_instances?.class_types?.duration_minutes ?? 0,
-    name_ar: data.class_instances?.class_types?.name_ar ?? "",
-    name_en: data.class_instances?.class_types?.name_en ?? "",
-    instructor_ar: data.class_instances?.instructors?.name_ar ?? null,
-    instructor_en: data.class_instances?.instructors?.name_en ?? null,
-  };
  } catch (e) {
   console.error("getBooking failed", e);
   if (DEMO) return mockBooking(id);
-  throw e; // notFound()/real errors propagate to the 404 / error boundary
+  throw e;
  }
+ if (DEMO) return mockBooking(id);
+ notFound(); // booking not found -> localized 404
 }
