@@ -487,6 +487,110 @@ export async function getReports(params: ReportParams | number = {}): Promise<Ad
   };
 }
 
+// ---- Occupancy / peak-time analytics (#9) --------------------------------
+
+export interface OccupancyCell {
+  weekday: number; // 0=Sun … 6=Sat (JS getUTCDay convention, in Riyadh time)
+  hour: number; // 0-23 Riyadh
+  capacity: number;
+  booked: number;
+  classes: number;
+}
+
+export interface OccupancyReport {
+  rangeStart: string;
+  rangeEnd: string;
+  totalClasses: number;
+  totalCapacity: number;
+  totalBooked: number;
+  fillRate: number | null; // 0-100, booked/capacity
+  cells: OccupancyCell[]; // only non-empty (weekday,hour) buckets
+  hours: number[]; // distinct hours present, ascending
+  byWeekday: { weekday: number; capacity: number; booked: number; classes: number }[];
+}
+
+const RIYADH_TZ = "Asia/Riyadh";
+const WD_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const occHourFmt = new Intl.DateTimeFormat("en-GB", { timeZone: RIYADH_TZ, hour: "2-digit", hour12: false });
+const occWdFmt = new Intl.DateTimeFormat("en-US", { timeZone: RIYADH_TZ, weekday: "short" });
+
+/** Aggregate class occupancy by Riyadh weekday × hour for a peak-time heatmap. */
+export async function getOccupancy(params: ReportParams | number = {}): Promise<OccupancyReport> {
+  const p: ReportParams = typeof params === "number" ? { days: params } : params;
+  const supabase = await getServerSupabase();
+
+  let startIso: string, endIso: string;
+  if (p.from || p.to) {
+    const from = p.from || p.to!;
+    const to = p.to || p.from!;
+    startIso = new Date(`${from}T00:00:00+03:00`).toISOString();
+    endIso = new Date(`${to}T23:59:59+03:00`).toISOString();
+  } else {
+    const windowDays = Math.min(365, Math.max(1, Math.floor(p.days || 30) || 30));
+    const r = lastDaysIso(windowDays);
+    startIso = r.start;
+    endIso = r.end;
+  }
+
+  // Only real (non-cancelled) classes count toward occupancy.
+  const { data: classes } = await anyFrom(supabase, "class_instances")
+    .select("id,starts_at,capacity,status,instructor_id,class_type_id")
+    .gte("starts_at", startIso).lte("starts_at", endIso)
+    .neq("status", "cancelled");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let list = (classes ?? []) as any[];
+  if (p.instructorId) list = list.filter((c) => c.instructor_id === p.instructorId);
+  if (p.classTypeId) list = list.filter((c) => c.class_type_id === p.classTypeId);
+
+  const empty: OccupancyReport = {
+    rangeStart: startIso, rangeEnd: endIso, totalClasses: 0, totalCapacity: 0,
+    totalBooked: 0, fillRate: null, cells: [], hours: [], byWeekday: [],
+  };
+  if (list.length === 0) return empty;
+
+  const ids = list.map((c) => c.id);
+  const { data: avail } = await anyFrom(supabase, "class_instance_availability")
+    .select("class_instance_id,confirmed_count").in("class_instance_id", ids);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bookedMap = new Map((avail ?? []).map((a: any) => [a.class_instance_id, a.confirmed_count ?? 0]));
+
+  const cellMap = new Map<string, OccupancyCell>();
+  const hourSet = new Set<number>();
+  let totalCapacity = 0, totalBooked = 0;
+
+  for (const c of list) {
+    const d = new Date(c.starts_at);
+    const hour = Number.parseInt(occHourFmt.format(d), 10);
+    const weekday = WD_INDEX[occWdFmt.format(d)] ?? 0;
+    const cap = c.capacity ?? 0;
+    const booked = (bookedMap.get(c.id) as number) ?? 0;
+    totalCapacity += cap; totalBooked += booked; hourSet.add(hour);
+    const key = `${weekday}-${hour}`;
+    const cell = cellMap.get(key) ?? { weekday, hour, capacity: 0, booked: 0, classes: 0 };
+    cell.capacity += cap; cell.booked += booked; cell.classes += 1;
+    cellMap.set(key, cell);
+  }
+
+  const byWeekdayMap = new Map<number, { weekday: number; capacity: number; booked: number; classes: number }>();
+  for (const cell of cellMap.values()) {
+    const w = byWeekdayMap.get(cell.weekday) ?? { weekday: cell.weekday, capacity: 0, booked: 0, classes: 0 };
+    w.capacity += cell.capacity; w.booked += cell.booked; w.classes += cell.classes;
+    byWeekdayMap.set(cell.weekday, w);
+  }
+
+  return {
+    rangeStart: startIso,
+    rangeEnd: endIso,
+    totalClasses: list.length,
+    totalCapacity,
+    totalBooked,
+    fillRate: totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : null,
+    cells: [...cellMap.values()],
+    hours: [...hourSet].sort((a, b) => a - b),
+    byWeekday: [...byWeekdayMap.values()],
+  };
+}
+
 export interface MemberFinancials {
   totalPaidHalalas: number;
   totalDiscountHalalas: number;
