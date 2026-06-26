@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberContext, getMyBookings, getMyCreditHistory } from "@/lib/queries";
+import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
 import { HERO_IMAGE } from "@/lib/classColor";
 
@@ -12,7 +12,7 @@ export default async function ProfilePage() {
   const locale = await getLocale();
   const t = dict[locale];
   const ar = locale === "ar";
-  const [ctx, bookings, credits] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30)]);
+  const [ctx, bookings, credits, notifications] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30), getMyNotifications(30)]);
   const attended = bookings.filter((b) => b.status === "attended").length;
   const fullName = ctx.member?.full_name ?? t.profile.title;
   const initial = (fullName.trim()[0] ?? "·").toUpperCase();
@@ -73,6 +73,31 @@ export default async function ProfilePage() {
                   <span className={`font-number font-medium ${positive ? "text-sage-700" : "text-danger"}`}>{positive ? "+" : ""}{c.change}</span>
                   <span className="text-caption text-status-full">{when}</span>
                 </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* In-app notifications inbox (#17/#19) */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-outline px-5 py-3 text-meta font-medium text-status-full">{t.profile.inbox}</div>
+        {notifications.length === 0 ? (
+          <p className="px-5 py-5 text-center text-meta text-status-full">{t.profile.noNotifications}</p>
+        ) : (
+          notifications.map((n, i) => {
+            const when = new Intl.DateTimeFormat(ar ? "ar-SA" : "en-US", { day: "numeric", month: "short" }).format(new Date(n.created_at));
+            const title = n.template === "broadcast"
+              ? (n.payload?.title || (t.notif as Record<string, string>).broadcast)
+              : (t.notif as Record<string, string>)[n.template] ?? n.template;
+            const body = n.template === "broadcast" ? n.payload?.message ?? "" : "";
+            return (
+              <div key={i} className="border-b border-outline px-5 py-3 last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-body text-primary-900">{title}</span>
+                  <span className="text-caption text-status-full">{when}</span>
+                </div>
+                {body ? <p className="mt-1 text-meta text-status-full">{body}</p> : null}
               </div>
             );
           })

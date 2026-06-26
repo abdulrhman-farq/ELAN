@@ -24,7 +24,26 @@ export async function bookAction(classInstanceId: string) {
   revalidatePath("/schedule");
   revalidatePath(`/class/${classInstanceId}`);
   revalidatePath("/bookings");
-  return error ? { error: error.message } : { ok: true as const, bookingId: data?.id ?? null };
+  if (error) {
+    const code = /SUSPENDED/i.test(error.message) ? "suspended" : error.message;
+    return { error: code };
+  }
+  return { ok: true as const, bookingId: data?.id ?? null };
+}
+
+/** Watch a full class to be notified when a seat opens (#19). */
+export async function watchClassAction(classInstanceId: string) {
+  const supabase = await getServerSupabase();
+  const { error } = await rpc(supabase, "watch_class_self", { p_class_instance_id: classInstanceId });
+  revalidatePath(`/class/${classInstanceId}`);
+  return error ? { error: error.message } : { ok: true as const };
+}
+
+export async function unwatchClassAction(classInstanceId: string) {
+  const supabase = await getServerSupabase();
+  const { error } = await rpc(supabase, "unwatch_class_self", { p_class_instance_id: classInstanceId });
+  revalidatePath(`/class/${classInstanceId}`);
+  return error ? { error: error.message } : { ok: true as const };
 }
 
 export async function cancelAction(bookingId: string, classInstanceId?: string) {

@@ -30,8 +30,9 @@ export const dict = {
     bookings: { title: "حجوزاتي", upcoming: "القادمة", past: "السابقة", empty: "لا توجد حجوزات." },
     bstatus: { confirmed: "مؤكد", waitlisted: "قائمة الانتظار", attended: "تم الحضور", cancelled: "ملغي", late_cancelled: "إلغاء متأخر", no_show: "لم تحضر" },
     memberships: { title: "العضويات", noMembership: "لا توجد عضوية", noCredits: "لا يوجد رصيد حصص", plans: "باقات العضوية", packs: "باقات الحصص", credits: "{n} حصة", validDays: "صالحة {n} يوم", bought: "تم الشراء بنجاح" },
-    profile: { title: "حسابي", attended: "{n} حصة تم حضورها", language: "اللغة", logout: "تسجيل الخروج", admin: "لوحة الإدارة", version: "الإصدار", active: "فعّالة", renews: "تتجدد في {d}", personalData: "بياناتي الشخصية", payment: "طريقة الدفع", notifications: "الإشعارات", creditHistory: "سجل الرصيد", noCreditHistory: "لا توجد حركات بعد" },
+    profile: { title: "حسابي", attended: "{n} حصة تم حضورها", language: "اللغة", logout: "تسجيل الخروج", admin: "لوحة الإدارة", version: "الإصدار", active: "فعّالة", renews: "تتجدد في {d}", personalData: "بياناتي الشخصية", payment: "طريقة الدفع", notifications: "الإشعارات", creditHistory: "سجل الرصيد", noCreditHistory: "لا توجد حركات بعد", inbox: "الإشعارات", noNotifications: "لا توجد إشعارات" },
     ledger: { purchase: "شراء", booking: "حجز حصة", refund: "استرجاع", penalty: "غرامة", admin: "تعديل إداري" },
+    notif: { broadcast: "إعلان", spot_opened: "توفّر مقعد في حصة كنتِ تتابعينها", waitlist_promoted: "تم تأكيد حجزكِ من قائمة الانتظار", waitlist_promotion_failed: "تعذّر ترقيتكِ من قائمة الانتظار" },
     login: { title: "تسجيل الدخول", email: "البريد الإلكتروني", password: "كلمة المرور", submit: "دخول", demo: "دخول كعضوة تجريبية", demoAdmin: "دخول كمسؤولة", hint: "للتجربة: noor@elan.demo / elan1234", error: "تعذّر تسجيل الدخول، يرجى المحاولة مرة أخرى." },
     toast: {
       booked: "تم تأكيد حجزكِ",
@@ -41,6 +42,7 @@ export const dict = {
       purchased: "تم الشراء بنجاح",
       purchasePending: "تم إنشاء طلب الشراء، بانتظار تأكيد الدفع",
       purchaseFailed: "تعذّر إتمام الشراء، يرجى المحاولة مرة أخرى.",
+      suspended: "حسابكِ موقوف مؤقتًا عن الحجز بسبب تكرار عدم الحضور أو الإلغاء المتأخر. تواصلي مع الاستوديو.",
       dismiss: "إغلاق",
     },
     cancelDialog: {
@@ -83,8 +85,9 @@ export const dict = {
     bookings: { title: "Bookings", upcoming: "Upcoming", past: "Past", empty: "No bookings yet." },
     bstatus: { confirmed: "Confirmed", waitlisted: "Waitlisted", attended: "Attended", cancelled: "Cancelled", late_cancelled: "Late cancelled", no_show: "No-show" },
     memberships: { title: "Memberships", noMembership: "No membership", noCredits: "No credits remaining", plans: "Membership plans", packs: "Credit packs", credits: "{n} credits", validDays: "Valid {n} days", bought: "Purchase successful" },
-    profile: { title: "Profile", attended: "{n} classes attended", language: "Language", logout: "Log out", admin: "Admin panel", version: "Version", active: "Active", renews: "Renews {d}", personalData: "Personal details", payment: "Payment method", notifications: "Notifications", creditHistory: "Credits history", noCreditHistory: "No activity yet" },
+    profile: { title: "Profile", attended: "{n} classes attended", language: "Language", logout: "Log out", admin: "Admin panel", version: "Version", active: "Active", renews: "Renews {d}", personalData: "Personal details", payment: "Payment method", notifications: "Notifications", creditHistory: "Credits history", noCreditHistory: "No activity yet", inbox: "Notifications", noNotifications: "No notifications" },
     ledger: { purchase: "Purchase", booking: "Class booking", refund: "Refund", penalty: "Penalty", admin: "Admin adjustment" },
+    notif: { broadcast: "Announcement", spot_opened: "A seat opened in a class you're watching", waitlist_promoted: "You're confirmed from the waitlist", waitlist_promotion_failed: "We couldn't promote you from the waitlist" },
     login: { title: "Sign in", email: "Email", password: "Password", submit: "Sign in", demo: "Enter as demo member", demoAdmin: "Enter as admin", hint: "Demo: noor@elan.demo / elan1234", error: "Couldn't sign in. Please try again." },
     toast: {
       booked: "Your booking is confirmed",
@@ -94,6 +97,7 @@ export const dict = {
       purchased: "Purchase successful",
       purchasePending: "Purchase request created — awaiting payment confirmation",
       purchaseFailed: "We couldn't complete your purchase. Please try again.",
+      suspended: "Your account is temporarily suspended from booking due to repeated no-shows or late cancellations. Please contact the studio.",
       dismiss: "Dismiss",
     },
     cancelDialog: {

@@ -239,6 +239,52 @@ export async function getMyCreditHistory(limit = 50): Promise<CreditEntry[]> {
   }
 }
 
+export interface NotificationEntry {
+  template: string;
+  payload: { title?: string; message?: string; class_instance_id?: string } | null;
+  created_at: string;
+}
+
+/** Current member's in-app notifications (broadcasts, waitlist/spot alerts). */
+export async function getMyNotifications(limit = 30): Promise<NotificationEntry[]> {
+  const realId = await currentRealMemberId();
+  if (!realId) return [];
+  try {
+    const supabase = await getServerSupabase();
+    const { data, error } = await q(supabase, "notifications")
+      .select("template,payload,created_at")
+      .eq("channel", "in_app")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("[notifications] query error", error.message ?? error);
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data ?? []) as any[];
+  } catch (e) {
+    console.error("getMyNotifications failed", e);
+    return [];
+  }
+}
+
+/** Whether the current member is watching a (full) class for a free seat. */
+export async function isWatchingClass(classInstanceId: string): Promise<boolean> {
+  const realId = await currentRealMemberId();
+  if (!realId) return false;
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await q(supabase, "class_watches")
+      .select("id")
+      .eq("class_instance_id", classInstanceId)
+      .eq("member_id", realId)
+      .maybeSingle();
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
 export async function getMemberContext() {
   // Resolve the real authenticated subscriber strictly via auth_user_id
   // (current_member_id), never by email. Linking happens in the signup trigger.

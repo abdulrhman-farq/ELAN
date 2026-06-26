@@ -1,5 +1,5 @@
 import { getLocale } from "@/lib/locale-server";
-import { getReports } from "@/lib/admin";
+import { getReports, getOccupancy, type OccupancyCell } from "@/lib/admin";
 import { fmtHalalas } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,8 @@ export default async function AdminReports({
   const ar = locale === "ar";
   const days = Math.min(365, Math.max(1, Number.parseInt(sp.days ?? "30", 10) || 30));
   const hasRange = Boolean(sp.from || sp.to);
-  const r = await getReports(hasRange ? { from: sp.from, to: sp.to } : { days });
+  const rangeParams = hasRange ? { from: sp.from, to: sp.to } : { days };
+  const [r, occ] = await Promise.all([getReports(rangeParams), getOccupancy(rangeParams)]);
   const sar = (h: number) => `${fmtHalalas(h, ar ? "ar" : "en")} ${ar ? "ر.س" : "SAR"}`;
   const bookings = Object.entries(r.bookingsByStatus).sort((a, b) => b[1] - a[1]);
   const types = Object.entries(r.revenueByType).sort((a, b) => b[1] - a[1]);
@@ -150,6 +151,78 @@ export default async function AdminReports({
           sar={sar}
         />
       </div>
+
+      {/* Occupancy / peak-time heatmap */}
+      <section className="card p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lead font-medium text-primary-900">{ar ? "الإشغال وأوقات الذروة" : "Occupancy & peak times"}</h2>
+          <div className="flex items-center gap-4 text-meta text-status-full">
+            <span>{ar ? "عدد الحصص" : "Classes"}: <span className="font-number text-primary-700">{occ.totalClasses}</span></span>
+            <span>{ar ? "نسبة الإشغال" : "Fill rate"}: <span className="font-number text-primary-700">{occ.fillRate === null ? "—" : `${occ.fillRate}٪`}</span></span>
+          </div>
+        </div>
+        <Heatmap occ={occ} ar={ar} />
+      </section>
+    </div>
+  );
+}
+
+const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5]; // Riyadh week: Sat → Fri
+const WD_LABEL: Record<number, [string, string]> = {
+  0: ["الأحد", "Sun"], 1: ["الإثنين", "Mon"], 2: ["الثلاثاء", "Tue"], 3: ["الأربعاء", "Wed"],
+  4: ["الخميس", "Thu"], 5: ["الجمعة", "Fri"], 6: ["السبت", "Sat"],
+};
+
+function Heatmap({ occ, ar }: { occ: { cells: OccupancyCell[]; hours: number[] }; ar: boolean }) {
+  if (occ.hours.length === 0) {
+    return <p className="py-6 text-center text-body text-status-full">{ar ? "لا توجد حصص في هذه الفترة." : "No classes in this range."}</p>;
+  }
+  const map = new Map<string, OccupancyCell>();
+  for (const c of occ.cells) map.set(`${c.weekday}-${c.hour}`, c);
+  const fmtHour = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[520px] border-separate" style={{ borderSpacing: "3px" }}>
+        <thead>
+          <tr className="text-caption text-status-full">
+            <th className="text-start font-medium">{ar ? "الوقت" : "Time"}</th>
+            {WEEK_ORDER.map((w) => (
+              <th key={w} className="font-medium">{WD_LABEL[w][ar ? 0 : 1]}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {occ.hours.map((h) => (
+            <tr key={h}>
+              <td className="pe-2 text-end font-number text-caption text-status-full">{fmtHour(h)}</td>
+              {WEEK_ORDER.map((w) => {
+                const cell = map.get(`${w}-${h}`);
+                if (!cell || cell.capacity === 0) {
+                  return <td key={w} className="rounded-md bg-surface-variant/30" style={{ height: 34 }} aria-hidden />;
+                }
+                const pct = Math.round((cell.booked / cell.capacity) * 100);
+                // Gold tint scaled by fill; min 0.12 so any class is visible.
+                const alpha = 0.12 + (pct / 100) * 0.88;
+                const dark = pct >= 55;
+                return (
+                  <td
+                    key={w}
+                    className="rounded-md text-center font-number text-caption"
+                    style={{ background: `rgba(184,155,114,${alpha})`, color: dark ? "#fff" : "#5b513f", height: 34 }}
+                    title={`${WD_LABEL[w][ar ? 0 : 1]} ${fmtHour(h)} — ${cell.booked}/${cell.capacity} (${pct}٪)`}
+                  >
+                    {pct}٪
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 text-caption text-status-full">
+        {ar ? "كل خلية = نسبة إشغال الحصص في ذلك الوقت (محجوز ÷ السعة)." : "Each cell = fill rate at that time slot (booked ÷ capacity)."}
+      </p>
     </div>
   );
 }
