@@ -718,24 +718,28 @@ export interface TrainerRow {
   bio_ar: string | null;
   bio_en: string | null;
   classesThisWeek: number;
+  /** Whether this instructor has a linked login (trainer-portal access). */
+  linked: boolean;
 }
 
 export async function getInstructors(): Promise<TrainerRow[]> {
   const supabase = await getServerSupabase();
   const week = nextDaysIso(7);
   const [{ data: trainers }, { data: cls }] = await Promise.all([
-    supabase.from("instructors").select("id,name_ar,name_en,bio_ar,bio_en").eq("active", true).order("name_en"),
+    anyFrom(supabase, "instructors").select("id,name_ar,name_en,bio_ar,bio_en,auth_user_id").eq("active", true).order("name_en"),
     supabase.from("class_instances").select("instructor_id").gte("starts_at", week.start).lt("starts_at", week.end).eq("status", "scheduled"),
   ]);
   const counts = new Map<string, number>();
   for (const c of cls ?? []) if (c.instructor_id) counts.set(c.instructor_id, (counts.get(c.instructor_id) ?? 0) + 1);
-  return (trainers ?? []).map((t) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((trainers ?? []) as any[]).map((t) => ({
     id: t.id,
     name_ar: t.name_ar,
     name_en: t.name_en,
     bio_ar: t.bio_ar,
     bio_en: t.bio_en,
     classesThisWeek: counts.get(t.id) ?? 0,
+    linked: Boolean(t.auth_user_id),
   }));
 }
 

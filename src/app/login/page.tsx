@@ -35,9 +35,14 @@ export default function LoginPage() {
     setBusy(true); setErr(null);
     const { error } = await supabase.auth.signInWithPassword({ email: e ?? email, password: p ?? password });
     if (error) { setBusy(false); setErr(t.error); return; }
-    const { data: isAdmin } = await supabase.rpc("is_admin");
+    const [{ data: isAdmin }, { data: isInstructor }] = await Promise.all([
+      supabase.rpc("is_admin"),
+      // is_instructor is a newer RPC not in the generated Database types yet.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)("is_instructor"),
+    ]);
     setBusy(false);
-    router.push(isAdmin ? "/admin" : "/"); router.refresh();
+    router.push(isAdmin ? "/admin" : isInstructor ? "/trainer" : "/"); router.refresh();
   }
 
   // The member-facing app is a demo showcase — quick entry without real auth.

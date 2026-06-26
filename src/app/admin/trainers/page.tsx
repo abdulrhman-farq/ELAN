@@ -1,5 +1,6 @@
 import { getLocale } from "@/lib/locale-server";
 import { getInstructors } from "@/lib/admin";
+import { TrainerAccessControl } from "@/components/admin/TrainerAccessControl";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,9 @@ export default async function AdminTrainers() {
                   <p className="mt-2 text-meta text-primary-700">
                     {ar ? `${tr.classesThisWeek} حصة هذا الأسبوع` : `${tr.classesThisWeek} classes this week`}
                   </p>
+                  <div className="mt-3">
+                    <TrainerAccessControl instructorId={tr.id} linked={tr.linked} ar={ar} />
+                  </div>
                 </div>
               </div>
             );
