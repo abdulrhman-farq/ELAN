@@ -32,8 +32,20 @@ export function ClassCard({
   else if (card.display_status === "waitlist_open") right = <span className="chip chip-outline shrink-0 self-center whitespace-nowrap border-accent bg-accent/10 px-4 text-primary-900">{ctaLabels.joinWaitlist}</span>;
   else right = <span className="shrink-0 self-center whitespace-nowrap text-caption text-status-full">{statusLabels.fully_booked}</span>;
 
-  const seats = card.display_status === "available" ? `${card.spots_left} ${statusLabels.available}` : null;
-  const meta = [instructor, seats].filter(Boolean).join(" · ");
+  // Qualitative availability (no raw count): Available / Almost full (≤4 left) / Not available.
+  const ALMOST_THRESHOLD = 4;
+  let seats: string | null = null;
+  let seatsClass = "text-status-full";
+  if (!card.my_status) {
+    if (card.display_status === "available") {
+      const almost = card.spots_left <= ALMOST_THRESHOLD;
+      seats = almost ? statusLabels.almostFull : statusLabels.available;
+      seatsClass = almost ? "text-danger" : "text-sage-700";
+    } else if (card.display_status === "fully_booked") {
+      seats = statusLabels.fully_booked; // "Not available"
+    }
+  }
+  const meta = instructor ?? "";
 
   return (
     <Link
@@ -46,7 +58,11 @@ export function ClassCard({
       <Image src={classImage(name)} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover ring-1 ring-outline" />
       <div className="min-w-0 flex-1">
         <div className="font-display text-body font-medium leading-tight text-primary-900">{name}</div>
-        <div className="mt-0.5 truncate text-caption text-status-full">{meta}</div>
+        <div className="mt-0.5 flex items-center gap-1.5 truncate text-caption">
+          {meta ? <span className="truncate text-status-full">{meta}</span> : null}
+          {meta && seats ? <span className="text-status-full">·</span> : null}
+          {seats ? <span className={`shrink-0 font-medium ${seatsClass}`}>{seats}</span> : null}
+        </div>
       </div>
       {right}
     </Link>
