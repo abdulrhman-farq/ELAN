@@ -113,6 +113,9 @@ export async function getTimetable(date: string) {
   if (!realId && DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
+  // Temporary diagnostic (no secrets): which project + how many rows for this day.
+  const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "default").replace(/^https?:\/\//, "").split(".")[0];
+  console.log(`[schedule] date=${date} window=${start}..${end} ref=${ref} rows=${rows.length}`);
   // Real subscribers and production always see real data (even if empty). The
   // demo showcase only fills in mock classes when there is no real schedule.
   if (realId || !DEMO) return rows;
