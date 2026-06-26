@@ -29,6 +29,22 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
   const [types, setTypes] = useState<string[]>(classTypes.map((c) => c.id));
   const [skip, setSkip] = useState<number[]>([]);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
+  // Next Saturday (start of the upcoming working week; Friday is the day off).
+  const nextSaturday = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  };
+  // One-click weekly preset: next week, 8/day × 6 days, Friday off, auto-distributed.
+  const prefillNextWeek = () => {
+    setF((p) => ({ ...p, startDate: nextSaturday(), days: "6", perDay: "8" }));
+    setDistribute(true);
+    setSkip([5]); // Friday off
+    setTypes(classTypes.map((c) => c.id));
+    setMsg(null);
+    setOpen(true);
+  };
   const toggleType = (id: string) => setTypes((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
   const toggleSkip = (d: number) => setSkip((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
   const WEEKDAYS = ar
@@ -104,9 +120,14 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="inline-flex min-h-[44px] items-center rounded-lg bg-primary px-4 text-sm font-semibold text-ink">
-        {ar ? "توليد جدول" : "Generate schedule"}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={prefillNextWeek} className="inline-flex min-h-[44px] items-center rounded-lg bg-primary px-4 text-sm font-semibold text-ink">
+          {ar ? "توليد الأسبوع القادم" : "Generate next week"}
+        </button>
+        <button onClick={() => setOpen(true)} className="inline-flex min-h-[44px] items-center rounded-lg border border-outline px-4 text-sm font-medium text-primary-700">
+          {ar ? "توليد مخصّص" : "Custom"}
+        </button>
+      </div>
 
       {open ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center md:p-4" role="dialog" aria-modal="true" onClick={() => !pending && setOpen(false)}>
