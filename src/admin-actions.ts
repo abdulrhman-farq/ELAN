@@ -695,6 +695,38 @@ export async function editClassAction(
   return { ok: true };
 }
 
+/** Link an instructor to an existing auth account (by email) so she can use the
+ *  trainer portal. The trainer must have signed in once (email magic link) so her
+ *  auth user exists; this connects it. Authorization enforced in the RPC too. */
+export async function linkInstructorAuthAction(instructorId: string, email: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const clean = email?.trim();
+  if (!clean) return { ok: false, error: "email_required" };
+  const { error } = await rpc(supabase, "link_instructor_auth", { p_instructor_id: instructorId, p_email: clean });
+  if (error) {
+    if (/NO_AUTH_USER/i.test(error.message)) return { ok: false, error: "no_auth_user" };
+    if (/duplicate|unique/i.test(error.message)) return { ok: false, error: "already_linked" };
+    return { ok: false, error: error.message };
+  }
+  await writeAudit(supabase, userId, { entity_type: "instructor", entity_id: instructorId, action: "link_auth", new_value: clean });
+  revalidatePath("/admin/trainers");
+  return { ok: true };
+}
+
+/** Revoke a trainer's portal access by clearing her auth link. */
+export async function unlinkInstructorAuthAction(instructorId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await rpc(supabase, "unlink_instructor_auth", { p_instructor_id: instructorId });
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "instructor", entity_id: instructorId, action: "unlink_auth" });
+  revalidatePath("/admin/trainers");
+  return { ok: true };
+}
+
 export interface ScheduleGenInput {
   startDate: string; // YYYY-MM-DD (Riyadh)
   days: number;

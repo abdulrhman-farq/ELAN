@@ -282,6 +282,19 @@ export async function getMemberContext() {
 
   if (DEMO) return mockMemberContext();
   // Signed-in session with no linked member profile cannot use the member app.
+  // A linked trainer belongs in the trainer portal, not the member app.
+  let trainer = false;
+  try {
+    const supabase = await getServerSupabase();
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      const { data: isInstructor } = await rpc<boolean>(supabase, "is_instructor");
+      trainer = Boolean(isInstructor);
+    }
+  } catch (e) {
+    console.error("getMemberContext (instructor check) failed", e);
+  }
+  if (trainer) redirect("/trainer");
   // Never fall back to an arbitrary member row (data leak) or mock data in prod.
   redirect("/login");
 }
