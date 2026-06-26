@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getClass } from "@/lib/queries";
+import { getClass, isWatchingClass } from "@/lib/queries";
 import { fmtLongDateTime, levelLabel, fmtTime, fmtDayHeading } from "@/lib/format";
 import { ctaState, type Eligibility } from "@/lib/cta";
 import { CtaButton } from "@/components/Buttons";
+import { WatchButton } from "@/components/WatchButton";
 import { Icon } from "@/components/Icon";
 import { classImage } from "@/lib/classColor";
 
@@ -19,6 +20,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   const result = await getClass(id);
   if (!result) notFound();
   const { card: c, eligibility } = result;
+
+  // For full classes, offer a seat-open alert (complements the waitlist) when
+  // the member isn't already booked/waitlisted.
+  const isFull = c.display_status === "fully_booked" || c.display_status === "waitlist_open";
+  const canWatch = isFull && !c.my_status;
+  const watching = canWatch ? await isWatchingClass(id) : false;
 
   const name = c.name_en; // class names always shown in English
   const instructor = locale === "ar" ? c.instructor_ar : c.instructor_en;
@@ -67,6 +74,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
 
       <div className="sticky-cta mx-auto max-w-md">
         <CtaButton classInstanceId={c.id} bookingId={bookingId} label={label} variant={variant} disabled={disabled} locale={locale} cancelMeta={cancelMeta} />
+        {canWatch ? <WatchButton classInstanceId={c.id} watching={watching} ar={locale === "ar"} /> : null}
       </div>
     </section>
   );

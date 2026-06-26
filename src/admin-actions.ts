@@ -715,6 +715,28 @@ export async function linkInstructorAuthAction(instructorId: string, email: stri
   return { ok: true };
 }
 
+/** Broadcast a message to members (queues notifications). Returns how many queued. */
+export async function broadcastAction(input: {
+  title: string;
+  message: string;
+  channel: "in_app" | "whatsapp";
+  segment: "all" | "active";
+}): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  if (!input.message?.trim()) return { ok: false, error: "empty_message" };
+  const { data, error } = await rpc<number>(supabase, "broadcast_notification", {
+    p_title: input.title?.trim() || "",
+    p_message: input.message.trim(),
+    p_channel: input.channel,
+    p_segment: input.segment,
+  });
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "broadcast", action: "broadcast", new_value: `${input.channel}/${input.segment}`, reason: input.title || null });
+  return { ok: true, queued: data ?? 0 };
+}
+
 /** Manually suspend a member from self-booking for `days` days. */
 export async function suspendMemberAction(memberId: string, days: number): Promise<ActionResult> {
   const ctx = await adminCtx();

@@ -31,6 +31,21 @@ export async function bookAction(classInstanceId: string) {
   return { ok: true as const, bookingId: data?.id ?? null };
 }
 
+/** Watch a full class to be notified when a seat opens (#19). */
+export async function watchClassAction(classInstanceId: string) {
+  const supabase = await getServerSupabase();
+  const { error } = await rpc(supabase, "watch_class_self", { p_class_instance_id: classInstanceId });
+  revalidatePath(`/class/${classInstanceId}`);
+  return error ? { error: error.message } : { ok: true as const };
+}
+
+export async function unwatchClassAction(classInstanceId: string) {
+  const supabase = await getServerSupabase();
+  const { error } = await rpc(supabase, "unwatch_class_self", { p_class_instance_id: classInstanceId });
+  revalidatePath(`/class/${classInstanceId}`);
+  return error ? { error: error.message } : { ok: true as const };
+}
+
 export async function cancelAction(bookingId: string, classInstanceId?: string) {
   const supabase = await getServerSupabase();
   if (DEMO && !(await isRealMember(supabase))) {
