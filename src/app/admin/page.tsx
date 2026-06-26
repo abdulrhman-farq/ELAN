@@ -104,7 +104,7 @@ export default async function AdminDashboard() {
                   <span className="w-16 shrink-0">{ar ? "الحالة" : "Status"}</span>
                 </div>
                 {d.today.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2 border-b border-outline py-3 last:border-0">
+                  <Link key={c.id} href={`/admin/class/${c.id}`} className="flex items-center gap-2 border-b border-outline py-3 last:border-0 hover:bg-surface-variant/40">
                     <span className="w-16 shrink-0 font-number text-primary-900">{fmtTime(c.starts_at, locale)}</span>
                     <span className="flex flex-1 items-center gap-2 text-primary-900">
                       <Image src={classImage(c.name_en)} alt="" width={32} height={32} className="h-8 w-8 rounded-md object-cover" />
@@ -115,7 +115,7 @@ export default async function AdminDashboard() {
                     <span className={`w-16 shrink-0 ${!c.open ? "text-danger" : c.capacity - c.booked === 1 ? "text-primary-700" : "text-sage"}`}>
                       {!c.open ? (ar ? "مكتملة" : "Full") : c.capacity - c.booked === 1 ? (ar ? "باقي مقعد" : "1 left") : ar ? "مفتوحة" : "Open"}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
