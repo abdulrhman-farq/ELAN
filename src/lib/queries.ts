@@ -209,6 +209,36 @@ export async function getMyBookings() {
   }
 }
 
+export interface CreditEntry {
+  change: number;
+  reason: string;
+  balance_after: number | null;
+  created_at: string;
+}
+
+/** Current member's credit-ledger history (purchase / booking / refund / penalty / admin). */
+export async function getMyCreditHistory(limit = 50): Promise<CreditEntry[]> {
+  const realId = await currentRealMemberId();
+  if (!realId) return [];
+  try {
+    const supabase = await getServerSupabase();
+    const { data, error } = await q(supabase, "credit_ledger")
+      .select("change,reason,balance_after,created_at")
+      .eq("member_id", realId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("[credits] history error", error.message ?? error);
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data ?? []) as any[];
+  } catch (e) {
+    console.error("getMyCreditHistory failed", e);
+    return [];
+  }
+}
+
 export async function getMemberContext() {
   // Resolve the real authenticated subscriber strictly via auth_user_id
   // (current_member_id), never by email. Linking happens in the signup trigger.

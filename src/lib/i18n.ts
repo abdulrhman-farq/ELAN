@@ -30,7 +30,8 @@ export const dict = {
     bookings: { title: "حجوزاتي", upcoming: "القادمة", past: "السابقة", empty: "لا توجد حجوزات." },
     bstatus: { confirmed: "مؤكد", waitlisted: "قائمة الانتظار", attended: "تم الحضور", cancelled: "ملغي", late_cancelled: "إلغاء متأخر", no_show: "لم تحضر" },
     memberships: { title: "العضويات", noMembership: "لا توجد عضوية", noCredits: "لا يوجد رصيد حصص", plans: "باقات العضوية", packs: "باقات الحصص", credits: "{n} حصة", validDays: "صالحة {n} يوم", bought: "تم الشراء بنجاح" },
-    profile: { title: "حسابي", attended: "{n} حصة تم حضورها", language: "اللغة", logout: "تسجيل الخروج", admin: "لوحة الإدارة", version: "الإصدار", active: "فعّالة", renews: "تتجدد في {d}", personalData: "بياناتي الشخصية", payment: "طريقة الدفع", notifications: "الإشعارات" },
+    profile: { title: "حسابي", attended: "{n} حصة تم حضورها", language: "اللغة", logout: "تسجيل الخروج", admin: "لوحة الإدارة", version: "الإصدار", active: "فعّالة", renews: "تتجدد في {d}", personalData: "بياناتي الشخصية", payment: "طريقة الدفع", notifications: "الإشعارات", creditHistory: "سجل الرصيد", noCreditHistory: "لا توجد حركات بعد" },
+    ledger: { purchase: "شراء", booking: "حجز حصة", refund: "استرجاع", penalty: "غرامة", admin: "تعديل إداري" },
     login: { title: "تسجيل الدخول", email: "البريد الإلكتروني", password: "كلمة المرور", submit: "دخول", demo: "دخول كعضوة تجريبية", demoAdmin: "دخول كمسؤولة", hint: "للتجربة: noor@elan.demo / elan1234", error: "تعذّر تسجيل الدخول، يرجى المحاولة مرة أخرى." },
     toast: {
       booked: "تم تأكيد حجزكِ",
@@ -82,7 +83,8 @@ export const dict = {
     bookings: { title: "Bookings", upcoming: "Upcoming", past: "Past", empty: "No bookings yet." },
     bstatus: { confirmed: "Confirmed", waitlisted: "Waitlisted", attended: "Attended", cancelled: "Cancelled", late_cancelled: "Late cancelled", no_show: "No-show" },
     memberships: { title: "Memberships", noMembership: "No membership", noCredits: "No credits remaining", plans: "Membership plans", packs: "Credit packs", credits: "{n} credits", validDays: "Valid {n} days", bought: "Purchase successful" },
-    profile: { title: "Profile", attended: "{n} classes attended", language: "Language", logout: "Log out", admin: "Admin panel", version: "Version", active: "Active", renews: "Renews {d}", personalData: "Personal details", payment: "Payment method", notifications: "Notifications" },
+    profile: { title: "Profile", attended: "{n} classes attended", language: "Language", logout: "Log out", admin: "Admin panel", version: "Version", active: "Active", renews: "Renews {d}", personalData: "Personal details", payment: "Payment method", notifications: "Notifications", creditHistory: "Credits history", noCreditHistory: "No activity yet" },
+    ledger: { purchase: "Purchase", booking: "Class booking", refund: "Refund", penalty: "Penalty", admin: "Admin adjustment" },
     login: { title: "Sign in", email: "Email", password: "Password", submit: "Sign in", demo: "Enter as demo member", demoAdmin: "Enter as admin", hint: "Demo: noor@elan.demo / elan1234", error: "Couldn't sign in. Please try again." },
     toast: {
       booked: "Your booking is confirmed",

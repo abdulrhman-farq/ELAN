@@ -61,7 +61,17 @@ export default async function AdminSchedule() {
                           <div className="font-number text-body text-primary-900">{c.confirmed} / {c.capacity}</div>
                         </div>
                       </div>
-                      <ClassRowActions id={c.id} confirmed={c.confirmed} cancelled={c.status === "cancelled"} ar={ar} />
+                      <ClassRowActions
+                        id={c.id}
+                        confirmed={c.confirmed}
+                        cancelled={c.status === "cancelled"}
+                        ar={ar}
+                        instructors={opts.instructors}
+                        instructorId={c.instructor_id}
+                        capacity={c.capacity}
+                        startsAt={c.starts_at}
+                        endsAt={c.ends_at}
+                      />
                     </div>
                   </div>
                 );
