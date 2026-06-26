@@ -101,31 +101,43 @@ export interface ScheduleRow {
 export async function getAdminSchedule(days = 14): Promise<ScheduleRow[]> {
   const supabase = await getServerSupabase();
   const { start, end } = nextDaysIso(days);
-  const { data: rows } = await supabase
-    .from("class_instances")
-    .select("id,starts_at,ends_at,level,capacity,status,class_types(name_ar,name_en),instructors(name_ar,name_en)")
+  // No embedded joins (they can silently return null); fetch + join in JS.
+  const { data: rows } = await anyFrom(supabase, "class_instances")
+    .select("id,starts_at,ends_at,level,capacity,status,class_type_id,instructor_id")
     .gte("starts_at", start)
     .lt("starts_at", end)
     .order("starts_at", { ascending: true });
-  const classes = rows ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const classes = (rows ?? []) as any[];
   if (classes.length === 0) return [];
 
-  const { data: avail } = await supabase
-    .from("class_instance_availability")
-    .select("class_instance_id,confirmed_count,waitlist_count")
-    .in("class_instance_id", classes.map((c) => c.id));
-  const am = new Map((avail ?? []).map((a) => [a.class_instance_id, a]));
+  const ids = classes.map((c) => c.id);
+  const typeIds = [...new Set(classes.map((c) => c.class_type_id).filter(Boolean))];
+  const instrIds = [...new Set(classes.map((c) => c.instructor_id).filter(Boolean))];
+  const [availR, typesR, instrsR] = await Promise.all([
+    anyFrom(supabase, "class_instance_availability").select("class_instance_id,confirmed_count,waitlist_count").in("class_instance_id", ids),
+    typeIds.length ? anyFrom(supabase, "class_types").select("id,name_ar,name_en").in("id", typeIds) : Promise.resolve({ data: [] }),
+    instrIds.length ? anyFrom(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const am = new Map((availR.data ?? []).map((a: any) => [a.class_instance_id, a]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tm = new Map((typesR.data ?? []).map((t: any) => [t.id, t]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const im = new Map((instrsR.data ?? []).map((i: any) => [i.id, i]));
 
-  return classes.map((c) => {
-    const a = am.get(c.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return classes.map((c: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const a = am.get(c.id) as any; const ct = tm.get(c.class_type_id) as any; const ins = im.get(c.instructor_id) as any;
     return {
       id: c.id,
       starts_at: c.starts_at,
       ends_at: c.ends_at,
-      name_ar: c.class_types?.name_ar ?? "",
-      name_en: c.class_types?.name_en ?? "",
-      instructor_ar: c.instructors?.name_ar ?? null,
-      instructor_en: c.instructors?.name_en ?? null,
+      name_ar: ct?.name_ar ?? "",
+      name_en: ct?.name_en ?? "",
+      instructor_ar: ins?.name_ar ?? null,
+      instructor_en: ins?.name_en ?? null,
       level: c.level,
       status: c.status,
       capacity: c.capacity,
@@ -162,37 +174,51 @@ export interface ClassRoster {
 
 export async function getClassRoster(id: string): Promise<ClassRoster | null> {
   const supabase = await getServerSupabase();
-  const { data: c } = await supabase
-    .from("class_instances")
-    .select("id,starts_at,ends_at,level,capacity,status,class_types(name_ar,name_en),instructors(name_ar,name_en)")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: c } = await anyFrom(supabase, "class_instances")
+    .select("id,starts_at,ends_at,level,capacity,status,class_type_id,instructor_id")
     .eq("id", id)
     .maybeSingle();
   if (!c) return null;
 
-  const { data: rows } = await supabase
-    .from("bookings")
-    .select("id,status,waitlist_position,members(id,full_name,phone,level)")
-    .eq("class_instance_id", id)
-    .order("waitlist_position", { ascending: true });
+  const [ctR, insR, rowsR] = await Promise.all([
+    c.class_type_id ? anyFrom(supabase, "class_types").select("name_ar,name_en").eq("id", c.class_type_id).maybeSingle() : Promise.resolve({ data: null }),
+    c.instructor_id ? anyFrom(supabase, "instructors").select("name_ar,name_en").eq("id", c.instructor_id).maybeSingle() : Promise.resolve({ data: null }),
+    anyFrom(supabase, "bookings").select("id,status,waitlist_position,member_id").eq("class_instance_id", id).order("waitlist_position", { ascending: true }),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (rowsR.data ?? []) as any[];
+  const memberIds = [...new Set(rows.map((b) => b.member_id).filter(Boolean))];
+  const { data: mems } = memberIds.length
+    ? await anyFrom(supabase, "members").select("id,full_name,phone,level").in("id", memberIds)
+    : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mm = new Map((mems ?? []).map((m: any) => [m.id, m]));
 
-  const entries: RosterEntry[] = (rows ?? []).map((b) => ({
-    booking_id: b.id,
-    status: b.status,
-    waitlist_position: b.waitlist_position,
-    member_id: b.members?.id ?? "",
-    full_name: b.members?.full_name ?? "—",
-    phone: b.members?.phone ?? null,
-    level: b.members?.level ?? "level_1",
-  }));
+  const entries: RosterEntry[] = rows.map((b) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const m = mm.get(b.member_id) as any;
+    return {
+      booking_id: b.id,
+      status: b.status,
+      waitlist_position: b.waitlist_position,
+      member_id: b.member_id ?? "",
+      full_name: m?.full_name ?? "—",
+      phone: m?.phone ?? null,
+      level: m?.level ?? "level_1",
+    };
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ct = ctR.data as any; const ins = insR.data as any;
 
   return {
     id: c.id,
     starts_at: c.starts_at,
     ends_at: c.ends_at,
-    name_ar: c.class_types?.name_ar ?? "",
-    name_en: c.class_types?.name_en ?? "",
-    instructor_ar: c.instructors?.name_ar ?? null,
-    instructor_en: c.instructors?.name_en ?? null,
+    name_ar: ct?.name_ar ?? "",
+    name_en: ct?.name_en ?? "",
+    instructor_ar: ins?.name_ar ?? null,
+    instructor_en: ins?.name_en ?? null,
     level: c.level,
     status: c.status,
     capacity: c.capacity,
@@ -313,60 +339,114 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
   };
 }
 
+export interface ReportParams {
+  from?: string; // YYYY-MM-DD (Riyadh), inclusive
+  to?: string; // YYYY-MM-DD (Riyadh), inclusive
+  days?: number; // fallback window when from/to not given
+  instructorId?: string; // filter booking metrics to one trainer
+  classTypeId?: string; // filter booking metrics to one class type
+}
+
+export interface ReportGroupRow {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  bookings: number;
+  attended: number;
+  valueHalalas: number; // sum of list value (utilization)
+}
+
 export interface AdminReports {
-  // Cash sales (from payments, last 30 days) — halalas
+  rangeStart: string; // ISO
+  rangeEnd: string; // ISO
+  // Cash sales (from paid payments in range) — halalas
   grossHalalas: number;
   netHalalas: number;
   vatHalalas: number;
   discountsHalalas: number;
   paymentsCount: number;
   revenueByType: Record<string, number>; // gross halalas per payment type
-  // Booking-derived value (last 30 days, by list value) — halalas
+  // Booking-derived value (in range, by list value) — halalas
   compValueHalalas: number;
   packageUtilHalalas: number;
   unlimitedUtilHalalas: number;
   noShowLostHalalas: number;
   cancellationValueHalalas: number;
   bookingsByStatus: Record<string, number>;
+  byTrainer: ReportGroupRow[]; // booking utilization grouped by instructor
+  byClassType: ReportGroupRow[]; // booking utilization grouped by class type
 }
 
-export async function getReports(days = 30): Promise<AdminReports> {
+export async function getReports(params: ReportParams | number = {}): Promise<AdminReports> {
+  const p: ReportParams = typeof params === "number" ? { days: params } : params;
   const supabase = await getServerSupabase();
-  const windowDays = Math.min(365, Math.max(1, Math.floor(days) || 30));
-  const { start } = lastDaysIso(windowDays);
+
+  // Resolve the date range: explicit from/to (Riyadh days) override the rolling window.
+  let startIso: string, endIso: string;
+  if (p.from || p.to) {
+    const from = p.from || p.to!;
+    const to = p.to || p.from!;
+    startIso = new Date(`${from}T00:00:00+03:00`).toISOString();
+    endIso = new Date(`${to}T23:59:59+03:00`).toISOString();
+  } else {
+    const windowDays = Math.min(365, Math.max(1, Math.floor(p.days || 30) || 30));
+    const r = lastDaysIso(windowDays);
+    startIso = r.start;
+    endIso = r.end;
+  }
 
   const [{ data: pays }, { data: books }] = await Promise.all([
-    // Revenue: only paid payments are aggregated (status filter in the query).
     anyFrom(supabase, "payments")
       .select("type,amount_sar,gross_halalas,net_halalas,vat_amount_halalas,discount_amount_halalas")
       .eq("status", "paid")
-      .gte("created_at", start),
-    anyFrom(supabase, "bookings").select("status,pricing_source,list_value_halalas").gte("created_at", start),
+      .gte("created_at", startIso).lte("created_at", endIso),
+    anyFrom(supabase, "bookings")
+      .select("status,pricing_source,list_value_halalas,class_instance_id")
+      .gte("created_at", startIso).lte("created_at", endIso),
   ]);
 
-  let grossHalalas = 0,
-    netHalalas = 0,
-    vatHalalas = 0,
-    discountsHalalas = 0;
+  let grossHalalas = 0, netHalalas = 0, vatHalalas = 0, discountsHalalas = 0;
   const revenueByType: Record<string, number> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const p of (pays ?? []) as any[]) {
-    const g = p.gross_halalas ?? Math.round(Number(p.amount_sar || 0) * 100);
-    grossHalalas += g;
-    netHalalas += p.net_halalas ?? 0;
-    vatHalalas += p.vat_amount_halalas ?? 0;
-    discountsHalalas += p.discount_amount_halalas ?? 0;
-    revenueByType[p.type] = (revenueByType[p.type] ?? 0) + g;
+  for (const pay of (pays ?? []) as any[]) {
+    const g = pay.gross_halalas ?? Math.round(Number(pay.amount_sar || 0) * 100);
+    grossHalalas += g; netHalalas += pay.net_halalas ?? 0; vatHalalas += pay.vat_amount_halalas ?? 0;
+    discountsHalalas += pay.discount_amount_halalas ?? 0;
+    revenueByType[pay.type] = (revenueByType[pay.type] ?? 0) + g;
   }
 
-  let compValueHalalas = 0,
-    packageUtilHalalas = 0,
-    unlimitedUtilHalalas = 0,
-    noShowLostHalalas = 0,
-    cancellationValueHalalas = 0;
-  const bookingsByStatus: Record<string, number> = {};
+  // Resolve each booking's class instance → instructor + class type (for grouping/filtering).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const b of (books ?? []) as any[]) {
+  const allBooks = (books ?? []) as any[];
+  const ciIds = [...new Set(allBooks.map((b) => b.class_instance_id).filter(Boolean))];
+  const { data: cis } = ciIds.length
+    ? await anyFrom(supabase, "class_instances").select("id,instructor_id,class_type_id").in("id", ciIds)
+    : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ciMap = new Map((cis ?? []).map((c: any) => [c.id, c]));
+  const [{ data: trainers }, { data: ctypes }] = await Promise.all([
+    anyFrom(supabase, "instructors").select("id,name_ar,name_en"),
+    anyFrom(supabase, "class_types").select("id,name_ar,name_en"),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trMap = new Map((trainers ?? []).map((t: any) => [t.id, t]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ctMap = new Map((ctypes ?? []).map((t: any) => [t.id, t]));
+
+  let compValueHalalas = 0, packageUtilHalalas = 0, unlimitedUtilHalalas = 0, noShowLostHalalas = 0, cancellationValueHalalas = 0;
+  const bookingsByStatus: Record<string, number> = {};
+  const byTrainerMap = new Map<string, ReportGroupRow>();
+  const byClassTypeMap = new Map<string, ReportGroupRow>();
+
+  for (const b of allBooks) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ci = ciMap.get(b.class_instance_id) as any;
+    const instId = ci?.instructor_id as string | undefined;
+    const ctId = ci?.class_type_id as string | undefined;
+    // Apply optional trainer / class-type filters to the booking metrics.
+    if (p.instructorId && instId !== p.instructorId) continue;
+    if (p.classTypeId && ctId !== p.classTypeId) continue;
+
     const lv = b.list_value_halalas ?? 0;
     bookingsByStatus[b.status] = (bookingsByStatus[b.status] ?? 0) + 1;
     if (b.pricing_source === "complimentary") compValueHalalas += lv;
@@ -374,21 +454,34 @@ export async function getReports(days = 30): Promise<AdminReports> {
     if (b.pricing_source === "unlimited_membership") unlimitedUtilHalalas += lv;
     if (b.status === "no_show") noShowLostHalalas += lv;
     if (b.status === "cancelled" || b.status === "late_cancelled") cancellationValueHalalas += lv;
+
+    if (instId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const t = trMap.get(instId) as any;
+      const row = byTrainerMap.get(instId) ?? { id: instId, name_ar: t?.name_ar ?? "—", name_en: t?.name_en ?? "—", bookings: 0, attended: 0, valueHalalas: 0 };
+      row.bookings++; if (b.status === "attended") row.attended++; row.valueHalalas += lv;
+      byTrainerMap.set(instId, row);
+    }
+    if (ctId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const t = ctMap.get(ctId) as any;
+      const row = byClassTypeMap.get(ctId) ?? { id: ctId, name_ar: t?.name_ar ?? "—", name_en: t?.name_en ?? "—", bookings: 0, attended: 0, valueHalalas: 0 };
+      row.bookings++; if (b.status === "attended") row.attended++; row.valueHalalas += lv;
+      byClassTypeMap.set(ctId, row);
+    }
   }
 
+  const paysCount = p.instructorId || p.classTypeId ? 0 : (pays ?? []).length;
   return {
-    grossHalalas,
-    netHalalas,
-    vatHalalas,
-    discountsHalalas,
-    paymentsCount: (pays ?? []).length,
+    rangeStart: startIso,
+    rangeEnd: endIso,
+    grossHalalas, netHalalas, vatHalalas, discountsHalalas,
+    paymentsCount: paysCount,
     revenueByType,
-    compValueHalalas,
-    packageUtilHalalas,
-    unlimitedUtilHalalas,
-    noShowLostHalalas,
-    cancellationValueHalalas,
+    compValueHalalas, packageUtilHalalas, unlimitedUtilHalalas, noShowLostHalalas, cancellationValueHalalas,
     bookingsByStatus,
+    byTrainer: [...byTrainerMap.values()].sort((a, b) => b.bookings - a.bookings),
+    byClassType: [...byClassTypeMap.values()].sort((a, b) => b.bookings - a.bookings),
   };
 }
 
@@ -533,36 +626,40 @@ export async function getDashboard(): Promise<DashboardData> {
   const d = new Date();
   const monthStartIso = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
 
-  const { data: classes } = await supabase
-    .from("class_instances")
-    .select("id,starts_at,capacity,class_types(name_ar,name_en),instructors(name_ar,name_en)")
+  // No embedded joins — fetch today's classes, then resolve type/instructor in JS.
+  const { data: classesRaw } = await anyFrom(supabase, "class_instances")
+    .select("id,starts_at,capacity,class_type_id,instructor_id")
     .gte("starts_at", today.start)
     .lt("starts_at", today.end)
     .eq("status", "scheduled")
     .order("starts_at", { ascending: true });
-  const cls = classes ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cls = (classesRaw ?? []) as any[];
   const ids = cls.map((c) => c.id);
+  const typeIds = [...new Set(cls.map((c) => c.class_type_id).filter(Boolean))];
+  const instrIds = [...new Set(cls.map((c) => c.instructor_id).filter(Boolean))];
 
-  const [{ data: avail }, { data: wl }, { count: newMembersWeek }, { data: pays }, { count: newBookingsToday }] = await Promise.all([
-    ids.length
-      ? supabase.from("class_instance_availability").select("class_instance_id,confirmed_count").in("class_instance_id", ids)
-      : Promise.resolve({ data: [] as { class_instance_id: string; confirmed_count: number | null }[] }),
-    ids.length
-      ? supabase
-          .from("bookings")
-          .select("id,members(full_name),class_instances(starts_at,class_types(name_ar,name_en))")
-          .eq("status", "waitlisted")
-          .in("class_instance_id", ids)
-      : Promise.resolve({ data: [] as { members: { full_name: string } | null; class_instances: { starts_at: string; class_types: { name_ar: string; name_en: string } | null } | null }[] }),
-    supabase.from("members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
-    supabase.from("payments").select("amount_sar").eq("status", "paid").gte("created_at", monthStartIso),
-    supabase
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "confirmed")
-      .gte("created_at", today.start)
-      .lt("created_at", today.end),
+  const [availR, wlR, newMembersR, paysR, newBookingsR, typesR, instrsR] = await Promise.all([
+    ids.length ? anyFrom(supabase, "class_instance_availability").select("class_instance_id,confirmed_count").in("class_instance_id", ids) : Promise.resolve({ data: [] }),
+    ids.length ? anyFrom(supabase, "bookings").select("id,member_id,class_instance_id").eq("status", "waitlisted").in("class_instance_id", ids) : Promise.resolve({ data: [] }),
+    anyFrom(supabase, "members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
+    anyFrom(supabase, "payments").select("amount_sar").eq("status", "paid").gte("created_at", monthStartIso),
+    anyFrom(supabase, "bookings").select("id", { count: "exact", head: true }).eq("status", "confirmed").gte("created_at", today.start).lt("created_at", today.end),
+    typeIds.length ? anyFrom(supabase, "class_types").select("id,name_ar,name_en").in("id", typeIds) : Promise.resolve({ data: [] }),
+    instrIds.length ? anyFrom(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
   ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const avail = availR.data as any[]; const wl = (wlR.data ?? []) as any[]; const newMembersWeek = newMembersR.count; const pays = (paysR.data ?? []) as any[]; const newBookingsToday = newBookingsR.count;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tm = new Map((typesR.data ?? []).map((t: any) => [t.id, t]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const im = new Map((instrsR.data ?? []).map((i: any) => [i.id, i]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ciInfo = new Map(cls.map((c: any) => [c.id, c]));
+  const wlMemberIds = [...new Set(wl.map((w) => w.member_id).filter(Boolean))];
+  const { data: wlMems } = wlMemberIds.length ? await anyFrom(supabase, "members").select("id,full_name").in("id", wlMemberIds) : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wlmm = new Map((wlMems ?? []).map((m: any) => [m.id, m]));
 
   const conf = new Map((avail ?? []).map((a) => [a.class_instance_id, a.confirmed_count ?? 0]));
   const booked = cls.reduce((s, c) => s + (conf.get(c.id) ?? 0), 0);
@@ -571,34 +668,42 @@ export async function getDashboard(): Promise<DashboardData> {
   let topClass: { name_en: string; pct: number } | null = null;
   for (const c of cls) {
     const pct = c.capacity ? Math.round(((conf.get(c.id) ?? 0) / c.capacity) * 100) : 0;
-    if (!topClass || pct > topClass.pct) topClass = { name_en: c.class_types?.name_en ?? "", pct };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!topClass || pct > topClass.pct) topClass = { name_en: (tm.get(c.class_type_id) as any)?.name_en ?? "", pct };
   }
 
   return {
     bookingsToday: booked,
     fillRate: cap ? Math.round((booked / cap) * 100) : null,
     newMembersWeek: newMembersWeek ?? 0,
-    revenueMonth: (pays ?? []).reduce((s, p) => s + Number(p.amount_sar), 0),
+    revenueMonth: pays.reduce((s, p) => s + Number(p.amount_sar), 0),
     today: cls.map((c) => {
       const b = conf.get(c.id) ?? 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ct = tm.get(c.class_type_id) as any; const ins = im.get(c.instructor_id) as any;
       return {
         id: c.id,
         starts_at: c.starts_at,
-        name_ar: c.class_types?.name_ar ?? "",
-        name_en: c.class_types?.name_en ?? "",
-        instructor_ar: c.instructors?.name_ar ?? null,
-        instructor_en: c.instructors?.name_en ?? null,
+        name_ar: ct?.name_ar ?? "",
+        name_en: ct?.name_en ?? "",
+        instructor_ar: ins?.name_ar ?? null,
+        instructor_en: ins?.name_en ?? null,
         booked: b,
         capacity: c.capacity,
         open: b < c.capacity,
       };
     }),
-    waitlist: (wl ?? []).map((w) => ({
-      name: w.members?.full_name ?? "—",
-      class_ar: w.class_instances?.class_types?.name_ar ?? "",
-      class_en: w.class_instances?.class_types?.name_en ?? "",
-      starts_at: w.class_instances?.starts_at ?? "",
-    })),
+    waitlist: wl.map((w) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ci = ciInfo.get(w.class_instance_id) as any; const ct = ci ? (tm.get(ci.class_type_id) as any) : null;
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        name: (wlmm.get(w.member_id) as any)?.full_name ?? "—",
+        class_ar: ct?.name_ar ?? "",
+        class_en: ct?.name_en ?? "",
+        starts_at: ci?.starts_at ?? "",
+      };
+    }),
     topClass,
     newBookingsToday: newBookingsToday ?? 0,
   };
