@@ -89,6 +89,7 @@ export interface ScheduleRow {
   ends_at: string;
   name_ar: string;
   name_en: string;
+  instructor_id: string | null;
   instructor_ar: string | null;
   instructor_en: string | null;
   level: "level_1" | "level_1_5" | "level_2";
@@ -136,6 +137,7 @@ export async function getAdminSchedule(days = 14): Promise<ScheduleRow[]> {
       ends_at: c.ends_at,
       name_ar: ct?.name_ar ?? "",
       name_en: ct?.name_en ?? "",
+      instructor_id: c.instructor_id ?? null,
       instructor_ar: ins?.name_ar ?? null,
       instructor_en: ins?.name_en ?? null,
       level: c.level,

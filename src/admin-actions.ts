@@ -668,6 +668,33 @@ export async function deleteClassAction(classInstanceId: string): Promise<Action
   return { ok: true };
 }
 
+/** Edit a single class: time / instructor (manual override) / capacity. */
+export async function editClassAction(
+  classInstanceId: string,
+  input: { startsAt?: string; endsAt?: string; instructorId?: string | null; capacity?: number },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, unknown> = {};
+  if (input.startsAt) { patch.starts_at = input.startsAt; patch.booking_closes_at = input.startsAt; }
+  if (input.endsAt) patch.ends_at = input.endsAt;
+  if (input.instructorId !== undefined) patch.instructor_id = input.instructorId || null;
+  if (typeof input.capacity === "number" && Number.isFinite(input.capacity)) patch.capacity = Math.max(1, Math.floor(input.capacity));
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const { error } = await tbl(supabase, "class_instances").update(patch).eq("id", classInstanceId);
+  if (error) {
+    if (/no_instructor_time_overlap|exclusion|overlap|23P01/i.test(error.message)) return { ok: false, error: "instructor_overlap" };
+    return { ok: false, error: error.message };
+  }
+  await writeAudit(supabase, userId, { entity_type: "class_instance", entity_id: classInstanceId, action: "edit_class", reason: Object.keys(patch).join(",") });
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin");
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
 export interface ScheduleGenInput {
   startDate: string; // YYYY-MM-DD (Riyadh)
   days: number;
