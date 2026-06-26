@@ -21,12 +21,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [["list"]],
-  timeout: 30_000,
+  reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
+  timeout: 45_000,
   expect: { timeout: 10_000 },
+  // Full evidence capture for acceptance runs: trace, video, screenshots.
   use: {
     baseURL: BASE_URL,
-    trace: "on-first-retry",
+    trace: "on",
+    video: "on",
+    screenshot: "on",
     launchOptions: { executablePath: CHROMIUM },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

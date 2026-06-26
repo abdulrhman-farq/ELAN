@@ -78,7 +78,15 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
         setMsg(ar ? `تعذّر التوليد: ${res.error}` : `Failed: ${res.error}`);
         return;
       }
-      setMsg(ar ? `تم إنشاء ${res.created} حصة.` : `Created ${res.created} classes.`);
+      setMsg(
+        res.created === 0
+          ? ar
+            ? "لم تُنشأ حصص جديدة — كل الفترات المحددة موجودة مسبقاً في الجدول. غيّري تاريخ البداية (الجدول الحالي ينتهي مبكراً) أو وقت أول حصة لإضافة فترات جديدة."
+            : "No new classes — the selected slots already exist. Change the start date or the first-class time to add new slots."
+          : ar
+            ? `تم إنشاء ${res.created} حصة.`
+            : `Created ${res.created} classes.`,
+      );
       router.refresh();
     });
 

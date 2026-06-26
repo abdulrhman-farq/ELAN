@@ -36,35 +36,68 @@ export interface ClassCardData {
   my_booking_id: string | null;
 }
 
+/** Untyped Supabase accessor — avoids PostgREST embedded-join fragility by
+ *  fetching related tables separately and joining in JS. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function q(supabase: Awaited<ReturnType<typeof getServerSupabase>>, name: string): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as unknown as { from: (t: string) => any }).from(name);
+}
+
 async function fetchBetween(startIso: string, endIso: string): Promise<ClassCardData[]> {
  try {
   const supabase = await getServerSupabase();
-  const { data: rows } = await supabase
-    .from("class_instances")
-    .select("id,starts_at,ends_at,level,capacity,class_types(name_ar,name_en,description_ar,description_en,duration_minutes),instructors(name_ar,name_en)")
+  // Base rows only — NO embedded joins (a single failing embed used to make the
+  // whole query return null, which then read as an empty schedule).
+  const { data: rows, error } = await q(supabase, "class_instances")
+    .select("id,starts_at,ends_at,level,capacity,class_type_id,instructor_id")
     .gte("starts_at", startIso).lt("starts_at", endIso)
     .order("starts_at", { ascending: true });
+  if (error) {
+    // Never swallow the error silently — surface it in server logs.
+    const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/^https?:\/\//, "").split(".")[0];
+    console.error(`[schedule] class_instances query error (project ref: ${ref || "default"})`, error.message ?? error);
+    return [];
+  }
   if (!rows || rows.length === 0) return [];
 
-  const ids = rows.map((r) => r.id);
-  const [{ data: avail }, { data: mine }] = await Promise.all([
-    supabase.from("class_instance_availability").select("*").in("class_instance_id", ids),
-    supabase.from("bookings").select("id,status,class_instance_id").in("class_instance_id", ids).in("status", ["confirmed", "waitlisted"]),
-  ]);
-  const am = new Map((avail ?? []).map((a) => [a.class_instance_id, a]));
-  const bm = new Map((mine ?? []).map((b) => [b.class_instance_id, b]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ids = rows.map((r: any) => r.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typeIds = [...new Set(rows.map((r: any) => r.class_type_id).filter(Boolean))];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const instrIds = [...new Set(rows.map((r: any) => r.instructor_id).filter(Boolean))];
 
-  return rows.map((r) => {
-    const a = am.get(r.id); const b = bm.get(r.id);
+  const [types, instrs, avail, mine] = await Promise.all([
+    typeIds.length ? q(supabase, "class_types").select("id,name_ar,name_en,description_ar,description_en,duration_minutes").in("id", typeIds) : Promise.resolve({ data: [] }),
+    instrIds.length ? q(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
+    q(supabase, "class_instance_availability").select("*").in("class_instance_id", ids),
+    q(supabase, "bookings").select("id,status,class_instance_id").in("class_instance_id", ids).in("status", ["confirmed", "waitlisted"]),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tm = new Map((types.data ?? []).map((t: any) => [t.id, t]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const im = new Map((instrs.data ?? []).map((i: any) => [i.id, i]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const am = new Map((avail.data ?? []).map((a: any) => [a.class_instance_id, a]));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bm = new Map((mine.data ?? []).map((b: any) => [b.class_instance_id, b]));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return rows.map((r: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ct = tm.get(r.class_type_id) as any; const ins = im.get(r.instructor_id) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const a = am.get(r.id) as any; const b = bm.get(r.id) as any;
     return {
       id: r.id, starts_at: r.starts_at, ends_at: r.ends_at, level: r.level,
-      name_ar: r.class_types?.name_ar ?? "", name_en: r.class_types?.name_en ?? "",
-      description_ar: r.class_types?.description_ar ?? null, description_en: r.class_types?.description_en ?? null,
-      duration_minutes: r.class_types?.duration_minutes ?? 0,
-      instructor_ar: r.instructors?.name_ar ?? null, instructor_en: r.instructors?.name_en ?? null,
+      name_ar: ct?.name_ar ?? "", name_en: ct?.name_en ?? "",
+      description_ar: ct?.description_ar ?? null, description_en: ct?.description_en ?? null,
+      duration_minutes: ct?.duration_minutes ?? 0,
+      instructor_ar: ins?.name_ar ?? null, instructor_en: ins?.name_en ?? null,
       display_status: (a?.display_status as DisplayStatus) ?? "available",
       spots_left: a?.spots_left ?? r.capacity, waitlist_count: a?.waitlist_count ?? 0, capacity: a?.capacity ?? r.capacity,
-      is_bookable_now: a?.is_bookable_now ?? false,
+      is_bookable_now: a?.is_bookable_now ?? true,
       my_status: (b?.status as "confirmed" | "waitlisted" | undefined) ?? null,
       my_booking_id: b?.id ?? null,
     };
@@ -80,6 +113,9 @@ export async function getTimetable(date: string) {
   if (!realId && DEMO) return mockClasses(date);
   const { start, end } = dayBoundsUtc(date);
   const rows = await fetchBetween(start, end);
+  // Temporary diagnostic (no secrets): which project + how many rows for this day.
+  const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "default").replace(/^https?:\/\//, "").split(".")[0];
+  console.log(`[schedule] date=${date} window=${start}..${end} ref=${ref} rows=${rows.length}`);
   // Real subscribers and production always see real data (even if empty). The
   // demo showcase only fills in mock classes when there is no real schedule.
   if (realId || !DEMO) return rows;
