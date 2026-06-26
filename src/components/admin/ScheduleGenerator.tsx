@@ -22,7 +22,10 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
     bufferMin: "10",
     capacity: "6",
     instructorId: "",
+    maxPerDay: "",
+    maxPerWeek: "",
   });
+  const [distribute, setDistribute] = useState(true);
   const [types, setTypes] = useState<string[]>(classTypes.map((c) => c.id));
   const [skip, setSkip] = useState<number[]>([]);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -71,7 +74,10 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
         bufferMin: Number(f.bufferMin),
         capacity: Number(f.capacity),
         classTypeIds: types,
-        instructorId: f.instructorId || undefined,
+        instructorId: distribute ? undefined : f.instructorId || undefined,
+        distribute,
+        maxPerDayPerTrainer: distribute && f.maxPerDay ? Number(f.maxPerDay) : undefined,
+        maxPerWeekPerTrainer: distribute && f.maxPerWeek ? Number(f.maxPerWeek) : undefined,
         skipWeekdays: skip,
       });
       if (!res.ok) {
@@ -90,8 +96,8 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
             ? "لم تُنشأ حصص جديدة — كل الفترات المحددة موجودة مسبقاً في الجدول. غيّري تاريخ البداية (الجدول الحالي ينتهي مبكراً) أو وقت أول حصة لإضافة فترات جديدة."
             : "No new classes — the selected slots already exist. Change the start date or the first-class time to add new slots."
           : ar
-            ? `تم إنشاء ${res.created} حصة.`
-            : `Created ${res.created} classes.`,
+            ? `تم إنشاء ${res.created} حصة${res.unassigned ? ` · ${res.unassigned} بلا مدرّبة (تجاوزت الحدود/التعارض)` : ""}.`
+            : `Created ${res.created} classes${res.unassigned ? ` · ${res.unassigned} left unassigned (limits/overlap)` : ""}.`,
       );
       router.refresh();
     });
@@ -144,14 +150,44 @@ export function ScheduleGenerator({ ar, classTypes, instructors }: { ar: boolean
               </div>
             </div>
 
-            <div>
-              <label className={lab}>{ar ? "المدرّبة" : "Instructor"}</label>
-              <select value={f.instructorId} onChange={(e) => set("instructorId", e.target.value)} className={field}>
-                <option value="">{ar ? "بدون تحديد" : "Unassigned"}</option>
-                {instructors.map((i) => (
-                  <option key={i.id} value={i.id}>{ar ? i.name_ar : i.name_en}</option>
-                ))}
-              </select>
+            <div className="rounded-md border border-outline p-3">
+              <button
+                type="button"
+                onClick={() => setDistribute((v) => !v)}
+                aria-pressed={distribute}
+                className="flex w-full items-center justify-between gap-3 text-start"
+              >
+                <span>
+                  <span className="block text-body text-primary-900">{ar ? "توزيع تلقائي على المدرّبات" : "Auto-distribute across trainers"}</span>
+                  <span className="block text-caption text-status-full">{ar ? "يوزّع الحصص بالتساوي ويمنع التعارض" : "Balances classes fairly and avoids overlaps"}</span>
+                </span>
+                <span className={`relative inline-flex h-6 w-11 shrink-0 rounded-pill transition-colors ${distribute ? "bg-primary" : "bg-outline"}`}>
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${distribute ? "start-[1.375rem]" : "start-0.5"}`} />
+                </span>
+              </button>
+
+              {distribute ? (
+                <div className="mt-3 flex gap-3">
+                  <div className="flex-1">
+                    <label className={lab}>{ar ? "حد أقصى/يوم للمدرّبة" : "Max/day per trainer"}</label>
+                    <input dir="ltr" value={f.maxPerDay} onChange={(e) => set("maxPerDay", e.target.value)} className={field} inputMode="numeric" placeholder={ar ? "بلا حد" : "no cap"} />
+                  </div>
+                  <div className="flex-1">
+                    <label className={lab}>{ar ? "حد أقصى/أسبوع للمدرّبة" : "Max/week per trainer"}</label>
+                    <input dir="ltr" value={f.maxPerWeek} onChange={(e) => set("maxPerWeek", e.target.value)} className={field} inputMode="numeric" placeholder={ar ? "بلا حد" : "no cap"} />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <label className={lab}>{ar ? "المدرّبة (يدوي لكل الحصص)" : "Instructor (manual, all classes)"}</label>
+                  <select value={f.instructorId} onChange={(e) => set("instructorId", e.target.value)} className={field}>
+                    <option value="">{ar ? "بدون تحديد" : "Unassigned"}</option>
+                    {instructors.map((i) => (
+                      <option key={i.id} value={i.id}>{ar ? i.name_ar : i.name_en}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div>

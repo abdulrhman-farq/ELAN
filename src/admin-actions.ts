@@ -677,8 +677,12 @@ export interface ScheduleGenInput {
   bufferMin: number; // cleaning time between classes
   capacity: number;
   classTypeIds: string[]; // rotated across slots
-  instructorId?: string;
-  skipWeekdays?: number[]; // 0=Sun … 6=Sat — these weekdays are skipped
+  instructorId?: string; // manual: assign every slot to this one trainer
+  distribute?: boolean; // auto: balance slots across all active trainers
+  maxPerDayPerTrainer?: number; // cap a trainer's classes per day (0/undefined = no cap)
+  maxPerWeekPerTrainer?: number; // cap a trainer's classes per ISO week
+  instructorDaysOff?: Record<string, number[]>; // per-trainer weekday days off (0=Sun…6=Sat)
+  skipWeekdays?: number[]; // 0=Sun … 6=Sat — these weekdays are skipped (whole studio)
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -691,7 +695,7 @@ function addDaysStr(dateStr: string, n: number): string {
 /** Generate class instances (default: 8/day × 6 days, 09:00 start, 50min + cleaning). */
 export async function generateScheduleAction(
   input: ScheduleGenInput,
-): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+): Promise<{ ok: true; created: number; unassigned?: number } | { ok: false; error: string }> {
   const ctx = await adminCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
@@ -721,9 +725,13 @@ export async function generateScheduleAction(
 
   const nowIso = new Date().toISOString();
   const skip = new Set(input.skipWeekdays ?? []);
-  const rows: Record<string, unknown>[] = [];
+  // ISO-week bucket (Monday-aligned) for weekly caps.
+  const weekKey = (dateStr: string) => Math.floor(Date.parse(dateStr + "T00:00:00Z") / 86400000 + 4) / 7 | 0;
+
+  // Build the slot list first (without an instructor), in chronological order.
+  type Slot = { dateStr: string; weekday: number; week: number; startIso: string; endIso: string; startMs: number; endMs: number; ctId: string };
+  const slots: Slot[] = [];
   let rot = 0;
-  // Produce `days` ACTIVE days, skipping excluded weekdays (e.g. Friday).
   let active = 0;
   for (let i = 0; active < days && i < days * 3 + 14; i++) {
     const dateStr = addDaysStr(input.startDate, i);
@@ -738,24 +746,85 @@ export async function generateScheduleAction(
       const endIso = `${dateStr}T${pad(Math.floor(endTotal / 60))}:${pad(endTotal % 60)}:00+03:00`;
       const ctId = typeIds[rot % typeIds.length];
       rot++;
-      rows.push({
-        class_type_id: ctId,
-        instructor_id: input.instructorId || null,
-        starts_at: startIso,
-        ends_at: endIso,
-        capacity,
-        level: levelMap.get(ctId) ?? "level_1",
-        status: "scheduled",
-        booking_opens_at: nowIso, // open for booking immediately
-        booking_closes_at: startIso, // closes when the class starts
+      slots.push({ dateStr, weekday, week: weekKey(dateStr), startIso, endIso, startMs: Date.parse(startIso), endMs: Date.parse(endIso), ctId });
+    }
+  }
+  if (slots.length === 0) return { ok: true, created: 0 };
+
+  // Resolve the instructor for every slot.
+  let unassigned = 0;
+  const distribute = Boolean(input.distribute) && !input.instructorId;
+  const assignment = new Array<string | null>(slots.length).fill(input.instructorId || null);
+
+  if (distribute) {
+    const { data: trainers } = await tbl(supabase, "instructors").select("id").eq("active", true).order("name_en");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids: string[] = (trainers ?? []).map((t: any) => t.id);
+    if (ids.length === 0) return { ok: false, error: "no_active_trainers" };
+
+    const maxDay = Math.max(0, Math.floor(input.maxPerDayPerTrainer || 0)); // 0 = no cap
+    const maxWeek = Math.max(0, Math.floor(input.maxPerWeekPerTrainer || 0));
+    const daysOff = input.instructorDaysOff ?? {};
+
+    // Seed each trainer's existing load (counts toward caps) and busy intervals
+    // (so we never create an overlapping session) from classes already in range.
+    const { data: existingCls } = await tbl(supabase, "class_instances")
+      .select("instructor_id,starts_at,ends_at,status")
+      .gte("starts_at", rangeStart).lte("starts_at", rangeEnd);
+    type Load = { total: number; day: Map<string, number>; week: Map<number, number>; busy: Array<[number, number]> };
+    const load = new Map<string, Load>(ids.map((id) => [id, { total: 0, day: new Map(), week: new Map(), busy: [] }]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const c of (existingCls ?? []) as any[]) {
+      const L = c.instructor_id && load.get(c.instructor_id);
+      if (!L || c.status === "cancelled") continue;
+      const ms = Date.parse(c.starts_at);
+      const rDate = new Date(ms + 3 * 3600000).toISOString().slice(0, 10); // Riyadh calendar date
+      L.total++;
+      L.day.set(rDate, (L.day.get(rDate) ?? 0) + 1);
+      L.week.set(weekKey(rDate), (L.week.get(weekKey(rDate)) ?? 0) + 1);
+      L.busy.push([ms, Date.parse(c.ends_at)]);
+    }
+
+    for (let k = 0; k < slots.length; k++) {
+      const slot = slots[k];
+      const eligible = ids.filter((id) => {
+        if ((daysOff[id] ?? []).includes(slot.weekday)) return false;
+        const L = load.get(id)!;
+        if (maxDay && (L.day.get(slot.dateStr) ?? 0) >= maxDay) return false;
+        if (maxWeek && (L.week.get(slot.week) ?? 0) >= maxWeek) return false;
+        // no overlapping session for this trainer
+        return !L.busy.some(([s2, e2]) => slot.startMs < e2 && s2 < slot.endMs);
       });
+      if (eligible.length === 0) { unassigned++; assignment[k] = null; continue; }
+      // Balance: fewest total so far, tie-broken by least daily load then order.
+      eligible.sort((a, b) => {
+        const la = load.get(a)!, lb = load.get(b)!;
+        return la.total - lb.total || (la.day.get(slot.dateStr) ?? 0) - (lb.day.get(slot.dateStr) ?? 0) || ids.indexOf(a) - ids.indexOf(b);
+      });
+      const pick = eligible[0];
+      const L = load.get(pick)!;
+      L.total++;
+      L.day.set(slot.dateStr, (L.day.get(slot.dateStr) ?? 0) + 1);
+      L.week.set(slot.week, (L.week.get(slot.week) ?? 0) + 1);
+      L.busy.push([slot.startMs, slot.endMs]);
+      assignment[k] = pick;
     }
   }
 
-  if (rows.length === 0) return { ok: true, created: 0 };
+  const rows: Record<string, unknown>[] = slots.map((slot, k) => ({
+    class_type_id: slot.ctId,
+    instructor_id: assignment[k],
+    starts_at: slot.startIso,
+    ends_at: slot.endIso,
+    capacity,
+    level: levelMap.get(slot.ctId) ?? "level_1",
+    status: "scheduled",
+    booking_opens_at: nowIso,
+    booking_closes_at: slot.startIso,
+  }));
+
   const { error } = await tbl(supabase, "class_instances").insert(rows);
   if (error) {
-    // GiST exclusion constraint: the chosen instructor already has an overlapping class.
     if (/no_instructor_time_overlap|exclusion|overlap|23P01/i.test(error.message))
       return { ok: false, error: "instructor_overlap" };
     return { ok: false, error: error.message };
@@ -767,10 +836,10 @@ export async function generateScheduleAction(
     field: "class_instances",
     old_value: "0",
     new_value: String(rows.length),
-    reason: `${perDay}/day × ${days}d from ${input.startDate} ${input.firstTime}`,
+    reason: `${perDay}/day × ${days}d from ${input.startDate} ${input.firstTime}${distribute ? " · distributed" : ""}${unassigned ? ` · ${unassigned} unassigned` : ""}`,
   });
   revalidatePath("/admin/schedule");
   revalidatePath("/admin");
   revalidatePath("/schedule");
-  return { ok: true, created: rows.length };
+  return { ok: true, created: rows.length, unassigned };
 }
