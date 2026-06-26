@@ -489,3 +489,14 @@ CREATE OR REPLACE VIEW public.class_instance_availability AS
    FROM (class_instances ci
      LEFT JOIN bookings b ON ((b.class_instance_id = ci.id)))
   GROUP BY ci.id;
+
+-- ── Auth helper functions ───────────────────────────────────────────────────
+-- Defined here (after the tables they read) so the RLS policies in
+-- 0002_rls_policies.sql can reference them on a fresh `supabase db reset`.
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = public, pg_temp
+as $$ select exists (select 1 from admin_users where auth_user_id = auth.uid() and active); $$;
+
+create or replace function public.current_member_id()
+returns uuid language sql stable security definer set search_path = public, pg_temp
+as $$ select id from members where auth_user_id = auth.uid(); $$;
