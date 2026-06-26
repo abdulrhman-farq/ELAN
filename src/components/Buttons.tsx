@@ -50,8 +50,9 @@ export function CtaButton({
         if (res.bookingId) router.push(`/confirmation/${res.bookingId}`);
         else router.refresh();
       } else {
-        setErr(t.toast.bookFailed);
-        toast.error(t.toast.bookFailed);
+        const msg = res.error === "suspended" ? t.toast.suspended : t.toast.bookFailed;
+        setErr(msg);
+        toast.error(msg);
       }
     });
 

@@ -272,6 +272,8 @@ export interface MemberDetail {
   membershipPlanAr: string | null;
   membershipPlanEn: string | null;
   membershipEnd: string | null;
+  suspendedUntil: string | null; // effective suspension end (null = active)
+  recentPenalties: number; // no-show + late-cancel in the suspension window
   notes: MemberNote[];
   bookings: {
     id: string;
@@ -298,7 +300,8 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     .maybeSingle();
   if (!member) return null;
 
-  const [{ data: balance }, { data: membership }, { data: bookings }, { data: notes }] = await Promise.all([
+  const penaltyWindowIso = new Date(Date.now() - 60 * 86400000).toISOString();
+  const [{ data: balance }, { data: membership }, { data: bookings }, { data: notes }, { data: suspendedUntil }, { data: penaltyRows }] = await Promise.all([
     rpc<number>(supabase, "elan_credit_balance", { p_member: id }),
     supabase
       .from("member_memberships")
@@ -318,6 +321,12 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
       .select("id,body,created_at")
       .eq("member_id", id)
       .order("created_at", { ascending: false }),
+    rpc<string>(supabase, "member_suspended_until", { p_member: id }),
+    anyFrom(supabase, "penalties")
+      .select("id")
+      .eq("member_id", id)
+      .in("kind", ["no_show", "late_cancel"])
+      .gte("created_at", penaltyWindowIso),
   ]);
 
   return {
@@ -329,6 +338,8 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     membershipPlanAr: membership?.membership_plans?.name_ar ?? null,
     membershipPlanEn: membership?.membership_plans?.name_en ?? null,
     membershipEnd: membership?.current_period_end ?? null,
+    suspendedUntil: (suspendedUntil as string | null) ?? null,
+    recentPenalties: (penaltyRows ?? []).length,
     notes: (notes ?? []) as MemberNote[],
     bookings: (bookings ?? []).map((b) => ({
       id: b.id,

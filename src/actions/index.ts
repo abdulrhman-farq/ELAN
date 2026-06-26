@@ -24,7 +24,11 @@ export async function bookAction(classInstanceId: string) {
   revalidatePath("/schedule");
   revalidatePath(`/class/${classInstanceId}`);
   revalidatePath("/bookings");
-  return error ? { error: error.message } : { ok: true as const, bookingId: data?.id ?? null };
+  if (error) {
+    const code = /SUSPENDED/i.test(error.message) ? "suspended" : error.message;
+    return { error: code };
+  }
+  return { ok: true as const, bookingId: data?.id ?? null };
 }
 
 export async function cancelAction(bookingId: string, classInstanceId?: string) {

@@ -715,6 +715,35 @@ export async function linkInstructorAuthAction(instructorId: string, email: stri
   return { ok: true };
 }
 
+/** Manually suspend a member from self-booking for `days` days. */
+export async function suspendMemberAction(memberId: string, days: number): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const d = Math.max(1, Math.floor(days || 0));
+  if (!Number.isFinite(d)) return { ok: false, error: "invalid_days" };
+  const until = new Date(Date.now() + d * 86400000).toISOString();
+  const { error } = await tbl(supabase, "members").update({ suspended_until: until }).eq("id", memberId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "member", entity_id: memberId, action: "suspend", new_value: `${d}d` });
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true };
+}
+
+/** Lift any suspension (manual + auto) for a member and forgive prior penalties. */
+export async function liftSuspensionAction(memberId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await tbl(supabase, "members")
+    .update({ suspended_until: null, penalty_forgiven_at: new Date().toISOString() })
+    .eq("id", memberId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "member", entity_id: memberId, action: "lift_suspension" });
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true };
+}
+
 /** Revoke a trainer's portal access by clearing her auth link. */
 export async function unlinkInstructorAuthAction(instructorId: string): Promise<ActionResult> {
   const ctx = await adminCtx();

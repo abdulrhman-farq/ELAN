@@ -41,6 +41,7 @@ export const dict = {
       purchased: "تم الشراء بنجاح",
       purchasePending: "تم إنشاء طلب الشراء، بانتظار تأكيد الدفع",
       purchaseFailed: "تعذّر إتمام الشراء، يرجى المحاولة مرة أخرى.",
+      suspended: "حسابكِ موقوف مؤقتًا عن الحجز بسبب تكرار عدم الحضور أو الإلغاء المتأخر. تواصلي مع الاستوديو.",
       dismiss: "إغلاق",
     },
     cancelDialog: {
@@ -94,6 +95,7 @@ export const dict = {
       purchased: "Purchase successful",
       purchasePending: "Purchase request created — awaiting payment confirmation",
       purchaseFailed: "We couldn't complete your purchase. Please try again.",
+      suspended: "Your account is temporarily suspended from booking due to repeated no-shows or late cancellations. Please contact the studio.",
       dismiss: "Dismiss",
     },
     cancelDialog: {

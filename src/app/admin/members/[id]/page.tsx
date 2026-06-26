@@ -12,6 +12,7 @@ import { WhatsAppActions } from "@/components/admin/WhatsAppActions";
 import { MemberTasks } from "@/components/admin/MemberTasks";
 import { SellBundleDialog, BookingMoneyControls } from "@/components/admin/MemberMoney";
 import { MemberPayments } from "@/components/admin/MemberPayments";
+import { MemberSuspension } from "@/components/admin/MemberSuspension";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,13 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
           <WhatsAppActions phone={member.phone} name={member.full_name} ar={ar} />
         </div>
       </section>
+
+      <MemberSuspension
+        memberId={member.id}
+        suspendedUntil={detail.suspendedUntil}
+        recentPenalties={detail.recentPenalties}
+        ar={ar}
+      />
 
       <section className="space-y-3">
         <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "مهام المتابعة" : "Follow-up tasks"}</h3>
