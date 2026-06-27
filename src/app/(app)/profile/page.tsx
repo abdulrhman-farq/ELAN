@@ -2,8 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications } from "@/lib/queries";
+import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications, getMyUnreadCount } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
+import { MarkNotificationsRead } from "@/components/MarkNotificationsRead";
 import { HERO_IMAGE } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function ProfilePage() {
   const locale = await getLocale();
   const t = dict[locale];
   const ar = locale === "ar";
-  const [ctx, bookings, credits, notifications] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30), getMyNotifications(30)]);
+  const [ctx, bookings, credits, notifications, unread] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30), getMyNotifications(30), getMyUnreadCount()]);
   const attended = bookings.filter((b) => b.status === "attended").length;
   const fullName = ctx.member?.full_name ?? t.profile.title;
   const initial = (fullName.trim()[0] ?? "·").toUpperCase();
@@ -80,6 +81,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* In-app notifications inbox (#17/#19) */}
+      <MarkNotificationsRead hasUnread={unread > 0} />
       <div className="card overflow-hidden">
         <div className="border-b border-outline px-5 py-3 text-meta font-medium text-status-full">{t.profile.inbox}</div>
         {notifications.length === 0 ? (

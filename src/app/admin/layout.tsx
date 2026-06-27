@@ -38,6 +38,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/promo", label: ar ? "أكواد الخصم" : "Promo codes" },
     { href: "/admin/managers", label: ar ? "الصلاحيات" : "Roles" },
     { href: "/admin/audit", label: ar ? "سجل التدقيق" : "Audit log" },
+    { href: "/admin/export", label: ar ? "نسخ احتياطي" : "Backup" },
     { href: "/admin/settings", label: ar ? "الإعدادات" : "Settings" },
     { href: "/admin/health", label: ar ? "فحص النظام" : "Health" },
   ];

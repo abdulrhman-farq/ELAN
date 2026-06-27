@@ -268,6 +268,24 @@ export async function getMyNotifications(limit = 30): Promise<NotificationEntry[
   }
 }
 
+/** Count of unread in-app notifications for the current member (for a badge). */
+export async function getMyUnreadCount(): Promise<number> {
+  const realId = await currentRealMemberId();
+  if (!realId) return 0;
+  try {
+    const supabase = await getServerSupabase();
+    const { count, error } = await q(supabase, "notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("channel", "in_app")
+      .is("read_at", null);
+    if (error) { console.error("[notifications] unread count error", error.message ?? error); return 0; }
+    return count ?? 0;
+  } catch (e) {
+    console.error("getMyUnreadCount failed", e);
+    return 0;
+  }
+}
+
 /** Whether the current member is watching a (full) class for a free seat. */
 export async function isWatchingClass(classInstanceId: string): Promise<boolean> {
   const realId = await currentRealMemberId();

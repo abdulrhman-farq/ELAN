@@ -12,7 +12,7 @@ const TABS = [
 ] as const;
 
 /** Desktop-only left nav for the member app (mobile uses BottomTabs). */
-export function MemberSidebar({ labels }: { labels: Record<string, string> }) {
+export function MemberSidebar({ labels, unread = 0 }: { labels: Record<string, string>; unread?: number }) {
   const path = usePathname();
   return (
     <aside className="sticky top-0 hidden h-screen shrink-0 flex-col gap-8 border-e border-outline bg-surface-elevated p-7 md:flex md:w-[240px]">
@@ -28,7 +28,12 @@ export function MemberSidebar({ labels }: { labels: Record<string, string> }) {
               className={`flex min-h-[44px] items-center gap-3 rounded-sm px-4 py-3 text-body outline-none transition-[transform,background-color] active:scale-[.98] focus-visible:ring-2 focus-visible:ring-accent ${active ? "bg-primary font-medium text-ink ring-1 ring-accent" : "text-primary-900/70 hover:bg-surface-variant hover:text-primary-900"}`}
             >
               <Icon name={t.icon} filled={active} className="text-[20px]" />
-              <span>{labels[t.key]}</span>
+              <span className="flex-1">{labels[t.key]}</span>
+              {t.key === "profile" && unread > 0 ? (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 font-number text-[11px] font-medium text-primary-900">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              ) : null}
             </Link>
           );
         })}
