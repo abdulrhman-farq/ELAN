@@ -13,6 +13,7 @@ export interface CatalogueItem {
   name: string;
   meta: string;
   price: number;
+  featured?: boolean;
 }
 
 /** Client list of purchasable catalogue items. Tapping a card selects it (ring +
@@ -69,10 +70,15 @@ export function MembershipCards({
                 setSelectedId(p.id);
               }
             }}
-            className={`card flex w-full cursor-pointer items-center justify-between gap-3 p-5 text-start outline-none transition-[transform,box-shadow] active:scale-[.99] focus-visible:ring-2 focus-visible:ring-accent ${
-              isSelected ? "ring-2 ring-accent shadow-glow" : ""
-            }`}
+            className={`card relative flex w-full cursor-pointer items-center justify-between gap-3 p-5 text-start outline-none transition-[transform,box-shadow] active:scale-[.99] focus-visible:ring-2 focus-visible:ring-accent ${
+              p.featured ? "ring-2 ring-accent" : ""
+            } ${isSelected ? "ring-2 ring-accent shadow-glow" : ""}`}
           >
+            {p.featured ? (
+              <span className="absolute -top-2 end-4 rounded-pill bg-accent px-2.5 py-0.5 text-caption font-medium text-primary-900">
+                {t.memberships.mostPopular}
+              </span>
+            ) : null}
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 font-display text-lead font-medium text-primary-900">
                 {isSelected ? (
@@ -82,7 +88,7 @@ export function MembershipCards({
                 ) : null}
                 {p.name}
               </p>
-              <p className="truncate text-caption text-status-full">{p.meta}</p>
+              <p className="whitespace-pre-line text-caption text-status-full">{p.meta}</p>
               <p className="mt-1 text-body font-number font-semibold text-primary-700">
                 {p.price} {t.common.sar}
               </p>

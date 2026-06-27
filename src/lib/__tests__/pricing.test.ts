@@ -10,14 +10,14 @@ import {
 } from "../pricing";
 
 describe("computePrice — class value accounting (halalas)", () => {
-  it("dossier default: net 150 SAR + 15% VAT = 172.50 gross", () => {
+  it("single-class default: 250.00 SAR VAT-inclusive (217.39 net + 32.61 VAT)", () => {
     expect(computePrice({ baseNetHalalas: DEFAULT_CLASS_NET_HALALAS })).toEqual({
-      baseNetHalalas: 15000,
+      baseNetHalalas: 21739,
       discountAmountHalalas: 0,
-      finalNetHalalas: 15000,
+      finalNetHalalas: 21739,
       vatBps: VAT_BPS,
-      vatAmountHalalas: 2250,
-      finalGrossHalalas: 17250,
+      vatAmountHalalas: 3261,
+      finalGrossHalalas: 25000,
     });
   });
 
