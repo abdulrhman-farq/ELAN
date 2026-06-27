@@ -896,6 +896,23 @@ export async function getInstructors(): Promise<TrainerRow[]> {
   }));
 }
 
+export interface ManagerRow {
+  id: string;
+  name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export async function getManagers(): Promise<ManagerRow[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await anyFrom(supabase, "managers")
+    .select("id,name,active,created_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name, active: m.active, created_at: m.created_at }));
+}
+
 export interface ScheduleFormOptions {
   classTypes: { id: string; name_ar: string; name_en: string }[];
   instructors: { id: string; name_ar: string; name_en: string }[];

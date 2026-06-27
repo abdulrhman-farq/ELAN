@@ -1,12 +1,14 @@
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale-server";
 import { DEMO } from "@/lib/demo";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 type Check = { label: string; status: "ok" | "warn" | "fail" | "info"; detail: string };
 
 export default async function HealthPage() {
+  await requireAdmin();
   const ar = (await getLocale()) === "ar";
   const supabase = await getServerSupabase();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

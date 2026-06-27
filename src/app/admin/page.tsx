@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
 import { getDashboard, getOverdueTasks } from "@/lib/admin";
+import { getIsAdmin } from "@/lib/admin-guard";
 import { fmtTime } from "@/lib/format";
 import { classImage } from "@/lib/classColor";
 
@@ -11,7 +12,7 @@ export default async function AdminDashboard() {
   const locale = await getLocale();
   const ar = locale === "ar";
   const date = new Intl.DateTimeFormat(ar ? "ar-SA" : "en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
-  const [d, overdue] = await Promise.all([getDashboard(), getOverdueTasks()]);
+  const [d, overdue, isAdmin] = await Promise.all([getDashboard(), getOverdueTasks(), getIsAdmin()]);
   const dueFmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short" }).format(new Date(iso)) : "");
 
   return (
@@ -28,11 +29,15 @@ export default async function AdminDashboard() {
         <Kpi label={ar ? "نسبة إشغال اليوم" : "Today's fill rate"} value={d.fillRate === null ? "—" : `${d.fillRate}٪`} note={ar ? `${d.bookingsToday} حجز · ${d.today.length} حصص` : `${d.bookingsToday} booked · ${d.today.length} classes`} />
         <Kpi label={ar ? "الغيابات اليوم" : "No-shows today"} value={String(d.noShowsToday)} note={ar ? "لم تحضر" : "absent"} />
         <Kpi label={ar ? "الحصص القادمة" : "Upcoming classes"} value={String(d.upcomingCount)} note={ar ? "مجدولة" : "scheduled"} />
-        <div className="card-ink p-5">
-          <div className="text-caption text-primary-200">{ar ? "إيراد اليوم" : "Revenue (today)"}</div>
-          <div className="mt-2 font-number text-3xl">{d.revenueToday.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
-          <div className="text-caption text-ink/70">{ar ? `الشهر: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} ر.س` : `Month: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} SAR`}</div>
-        </div>
+        {isAdmin ? (
+          <div className="card-ink p-5">
+            <div className="text-caption text-primary-200">{ar ? "إيراد اليوم" : "Revenue (today)"}</div>
+            <div className="mt-2 font-number text-3xl">{d.revenueToday.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
+            <div className="text-caption text-ink/70">{ar ? `الشهر: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} ر.س` : `Month: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} SAR`}</div>
+          </div>
+        ) : (
+          <Kpi label={ar ? "حجوزات اليوم" : "Bookings today"} value={String(d.bookingsToday)} note={ar ? "اليوم" : "today"} />
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">

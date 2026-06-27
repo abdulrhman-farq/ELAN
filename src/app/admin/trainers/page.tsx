@@ -1,12 +1,13 @@
 import { getLocale } from "@/lib/locale-server";
 import { getInstructors } from "@/lib/admin";
+import { getIsAdmin } from "@/lib/admin-guard";
 import { TrainerAccessControl } from "@/components/admin/TrainerAccessControl";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTrainers() {
   const ar = (await getLocale()) === "ar";
-  const trainers = await getInstructors();
+  const [trainers, isAdmin] = await Promise.all([getInstructors(), getIsAdmin()]);
   const totalClasses = trainers.reduce((s, t) => s + t.classesThisWeek, 0);
 
   return (
@@ -36,9 +37,11 @@ export default async function AdminTrainers() {
                   <p className="mt-2 text-meta text-primary-700">
                     {ar ? `${tr.classesThisWeek} حصة هذا الأسبوع` : `${tr.classesThisWeek} classes this week`}
                   </p>
-                  <div className="mt-3">
-                    <TrainerAccessControl instructorId={tr.id} linked={tr.linked} ar={ar} />
-                  </div>
+                  {isAdmin ? (
+                    <div className="mt-3">
+                      <TrainerAccessControl instructorId={tr.id} linked={tr.linked} ar={ar} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );

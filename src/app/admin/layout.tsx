@@ -15,23 +15,33 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const supabase = await getServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
-  const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
-  if (!isAdmin) redirect("/");
+  const [{ data: isAdmin }, { data: isManager }] = await Promise.all([
+    rpc<boolean>(supabase, "is_admin"),
+    rpc<boolean>(supabase, "is_manager"),
+  ]);
+  // Admins get the full console; managers get an ops-only subset.
+  if (!isAdmin && !isManager) redirect("/");
 
   const locale = await getLocale();
   const ar = locale === "ar";
-  const nav = [
+  // Ops items — visible to managers and admins.
+  const opsNav = [
     { href: "/admin", label: ar ? "لوحة التحكم" : "Dashboard" },
     { href: "/admin/schedule", label: ar ? "الجدول والحصص" : "Schedule" },
     { href: "/admin/members", label: ar ? "الأعضاء" : "Members" },
     { href: "/admin/trainers", label: ar ? "المدرّبات" : "Trainers" },
+    { href: "/admin/broadcast", label: ar ? "الإعلانات" : "Broadcast" },
+  ];
+  // Admin-only items — finances, settings, audit, access management.
+  const adminNav = [
     { href: "/admin/reports", label: ar ? "التقارير المالية" : "Reports" },
     { href: "/admin/promo", label: ar ? "أكواد الخصم" : "Promo codes" },
-    { href: "/admin/broadcast", label: ar ? "الإعلانات" : "Broadcast" },
+    { href: "/admin/managers", label: ar ? "الصلاحيات" : "Roles" },
     { href: "/admin/audit", label: ar ? "سجل التدقيق" : "Audit log" },
     { href: "/admin/settings", label: ar ? "الإعدادات" : "Settings" },
     { href: "/admin/health", label: ar ? "فحص النظام" : "Health" },
   ];
+  const nav = isAdmin ? [...opsNav, ...adminNav] : opsNav;
 
   return (
     <ToastProvider dismissLabel={ar ? "إغلاق" : "Dismiss"}>

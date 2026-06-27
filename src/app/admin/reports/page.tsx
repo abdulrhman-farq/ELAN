@@ -1,6 +1,7 @@
 import { getLocale } from "@/lib/locale-server";
 import { getReports, getOccupancy, type OccupancyCell } from "@/lib/admin";
 import { fmtHalalas } from "@/lib/pricing";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function AdminReports({
 }: {
   searchParams: Promise<{ days?: string; from?: string; to?: string }>;
 }) {
+  await requireAdmin();
   const sp = await searchParams;
   const locale = await getLocale();
   const ar = locale === "ar";

@@ -1,5 +1,6 @@
 import { getLocale } from "@/lib/locale-server";
 import { getRecentAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ const ENTITY: Record<string, [string, string]> = {
 };
 
 export default async function AdminAudit() {
+  await requireAdmin();
   const locale = await getLocale();
   const ar = locale === "ar";
   const rows = await getRecentAudit(100);
