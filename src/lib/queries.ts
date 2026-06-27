@@ -268,6 +268,20 @@ export async function getMyNotifications(limit = 30): Promise<NotificationEntry[
   }
 }
 
+/** The current member's personal check-in code (shown at the studio). */
+export async function getMyCheckinCode(): Promise<string | null> {
+  const realId = await currentRealMemberId();
+  if (!realId) return null;
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await q(supabase, "members").select("checkin_code").eq("id", realId).maybeSingle();
+    return data?.checkin_code ?? null;
+  } catch (e) {
+    console.error("getMyCheckinCode failed", e);
+    return null;
+  }
+}
+
 /** Count of unread in-app notifications for the current member (for a badge). */
 export async function getMyUnreadCount(): Promise<number> {
   const realId = await currentRealMemberId();

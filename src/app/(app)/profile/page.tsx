@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications, getMyUnreadCount } from "@/lib/queries";
+import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications, getMyUnreadCount, getMyCheckinCode } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
 import { MarkNotificationsRead } from "@/components/MarkNotificationsRead";
 import { HERO_IMAGE } from "@/lib/classColor";
@@ -13,7 +13,7 @@ export default async function ProfilePage() {
   const locale = await getLocale();
   const t = dict[locale];
   const ar = locale === "ar";
-  const [ctx, bookings, credits, notifications, unread] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30), getMyNotifications(30), getMyUnreadCount()]);
+  const [ctx, bookings, credits, notifications, unread, checkinCode] = await Promise.all([getMemberContext(), getMyBookings(), getMyCreditHistory(30), getMyNotifications(30), getMyUnreadCount(), getMyCheckinCode()]);
   const attended = bookings.filter((b) => b.status === "attended").length;
   const fullName = ctx.member?.full_name ?? t.profile.title;
   const initial = (fullName.trim()[0] ?? "·").toUpperCase();
@@ -46,6 +46,16 @@ export default async function ProfilePage() {
         </p>
         {renews ? <p className="text-caption text-ink/50">{t.profile.renews.replace("{d}", renews)}</p> : null}
       </div>
+
+      {checkinCode ? (
+        <div className="card flex items-center justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <p className="text-meta font-medium text-primary-900">{t.profile.checkinCode}</p>
+            <p className="mt-0.5 text-caption text-status-full">{t.profile.checkinHint}</p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-surface-variant px-4 py-2 font-number text-2xl font-medium tracking-[0.3em] text-primary-900">{checkinCode}</span>
+        </div>
+      ) : null}
 
       <div className="card overflow-hidden">
         <Row label={t.profile.personalData} />

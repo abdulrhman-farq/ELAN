@@ -3,6 +3,7 @@ import { getLocale } from "@/lib/locale-server";
 import { getClassRoster, type RosterEntry } from "@/lib/admin";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { AttendanceButtons } from "@/components/admin/AttendanceButtons";
+import { QuickCheckin } from "@/components/admin/QuickCheckin";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,8 @@ export default async function AdminClassRosterPage({ params }: { params: Promise
           {` · ${roster.confirmed.length}/${roster.capacity}`}
         </p>
       </section>
+
+      {roster.status !== "cancelled" ? <QuickCheckin classInstanceId={id} ar={ar} /> : null}
 
       <section className="space-y-2">
         <h3 className="font-semibold text-primary-800">
