@@ -20,13 +20,18 @@ export default async function MembershipsPage() {
     name: ar ? p.name_ar : p.name_en,
     meta: (ar ? p.description_ar : p.description_en) ?? "",
     price: p.price_sar,
+    featured: Boolean((p as { featured?: boolean }).featured),
   }));
-  const packItems = packs.map((p) => ({
-    id: p.id,
-    name: ar ? p.name_ar : p.name_en,
-    meta: `${t.memberships.credits.replace("{n}", String(p.credits))} · ${t.memberships.validDays.replace("{n}", String(p.valid_days))}`,
-    price: p.price_sar,
-  }));
+  const packItems = packs.map((p) => {
+    const desc = (ar ? (p as { description_ar?: string }).description_ar : (p as { description_en?: string }).description_en) ?? "";
+    const line1 = `${t.memberships.credits.replace("{n}", String(p.credits))} · ${t.memberships.validDays.replace("{n}", String(p.valid_days))}`;
+    return {
+      id: p.id,
+      name: ar ? p.name_ar : p.name_en,
+      meta: desc ? `${line1}\n${desc}` : line1,
+      price: p.price_sar,
+    };
+  });
 
   return (
     <section className="space-y-6 p-6">

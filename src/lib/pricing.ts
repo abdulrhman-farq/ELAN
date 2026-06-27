@@ -15,7 +15,9 @@
  */
 
 export const VAT_BPS = 1500; // 15% expressed in basis points (1500 / 10000)
-export const DEFAULT_CLASS_NET_HALALAS = 15000; // 150.00 SAR
+// Single-class (drop-in) value. Net is set so the VAT-inclusive price is the
+// 250.00 SAR floor: 21739 net + 3261 VAT (15%) = 25000 = 250.00 SAR gross.
+export const DEFAULT_CLASS_NET_HALALAS = 21739; // → 250.00 SAR incl. VAT
 
 /** How the discount amount is derived. Stored on the booking as discount_type. */
 export type DiscountType = "none" | "percentage" | "fixed" | "promo_code" | "manual";
