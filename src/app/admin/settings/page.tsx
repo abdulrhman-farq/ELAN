@@ -1,4 +1,5 @@
 import { getLocale } from "@/lib/locale-server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ const S = {
 };
 
 export default async function AdminSettings() {
+  await requireAdmin();
   const ar = (await getLocale()) === "ar";
   return (
     <div className="space-y-6">

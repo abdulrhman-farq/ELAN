@@ -11,7 +11,7 @@ const TABS = [
   { href: "/profile", key: "profile", icon: "person" },
 ] as const;
 
-export function BottomTabs({ labels }: { labels: Record<string, string> }) {
+export function BottomTabs({ labels, unread = 0 }: { labels: Record<string, string>; unread?: number }) {
   const path = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-outline bg-surface-elevated pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-sticky md:hidden">
@@ -33,7 +33,14 @@ export function BottomTabs({ labels }: { labels: Record<string, string> }) {
                   aria-hidden
                   className={`absolute top-0 h-1 w-1 rounded-full bg-accent transition-opacity ${active ? "opacity-100" : "opacity-0"}`}
                 />
-                <Icon name={t.icon} filled={active || anchor} className={anchor ? "text-[24px]" : "text-[20px]"} />
+                <span className="relative">
+                  <Icon name={t.icon} filled={active || anchor} className={anchor ? "text-[24px]" : "text-[20px]"} />
+                  {t.key === "profile" && unread > 0 ? (
+                    <span className="absolute -end-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-number text-[10px] font-medium text-primary-900">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  ) : null}
+                </span>
                 <span>{labels[t.key]}</span>
               </Link>
             </li>

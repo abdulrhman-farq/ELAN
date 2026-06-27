@@ -1,10 +1,12 @@
 import { getLocale } from "@/lib/locale-server";
 import { getPromoCodes } from "@/lib/admin";
 import { PromoManager } from "@/components/admin/PromoManager";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPromo() {
+  await requireAdmin();
   const ar = (await getLocale()) === "ar";
   const promos = await getPromoCodes();
   return (

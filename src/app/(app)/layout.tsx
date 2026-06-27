@@ -7,6 +7,7 @@ import { DEMO } from "@/lib/demo";
 import { BottomTabs } from "@/components/BottomTabs";
 import { MemberSidebar } from "@/components/MemberSidebar";
 import { ToastProvider } from "@/components/Toast";
+import { getMyUnreadCount } from "@/lib/queries";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await getServerSupabase();
@@ -17,12 +18,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!auth.user && !DEMO) redirect("/login");
 
   const locale = await getLocale();
+  const unread = await getMyUnreadCount();
   return (
     <ToastProvider dismissLabel={dict[locale].toast.dismiss}>
       <div className="md:flex md:min-h-screen">
-        <MemberSidebar labels={dict[locale].tabs} />
+        <MemberSidebar labels={dict[locale].tabs} unread={unread} />
         <div className="mx-auto w-full max-w-md pb-24 md:max-w-3xl md:pb-10">{children}</div>
-        <BottomTabs labels={dict[locale].tabs} />
+        <BottomTabs labels={dict[locale].tabs} unread={unread} />
       </div>
     </ToastProvider>
   );

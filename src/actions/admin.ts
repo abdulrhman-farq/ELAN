@@ -36,3 +36,24 @@ export async function markAttendedAction(bookingId: string, classInstanceId: str
   revalidateRoster(classInstanceId);
   return error ? { error: error.message } : { ok: true };
 }
+
+/** Quick check-in by the member's personal code. Returns her name on success. */
+export async function checkinByCodeAction(
+  classInstanceId: string,
+  code: string,
+): Promise<{ ok: true; name: string } | { error: string }> {
+  const { supabase, ok } = await ensureAuthed();
+  if (!ok) return { error: "unauthorized" };
+  if (!code?.trim()) return { error: "empty" };
+  const { data, error } = await rpc<string>(supabase, "checkin_by_code", {
+    p_class_instance_id: classInstanceId,
+    p_code: code.trim(),
+  });
+  if (error) {
+    const m = error.message || "";
+    const code2 = /BAD_CODE/.test(m) ? "bad_code" : /NO_BOOKING/.test(m) ? "no_booking" : /NOT_CONFIRMED/.test(m) ? "not_confirmed" : /FORBIDDEN/.test(m) ? "forbidden" : "failed";
+    return { error: code2 };
+  }
+  revalidateRoster(classInstanceId);
+  return { ok: true, name: data ?? "" };
+}

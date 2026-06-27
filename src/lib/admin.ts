@@ -734,6 +734,11 @@ export interface DashboardData {
   waitlist: { name: string; class_ar: string; class_en: string; starts_at: string }[];
   topClass: { name_en: string; pct: number } | null;
   newBookingsToday: number;
+  noShowsToday: number;
+  revenueToday: number;
+  upcomingCount: number;
+  topAttenders: { id: string; name: string; attended: number }[];
+  atRisk: { id: string; name: string; ends_at: string }[];
 }
 
 export async function getDashboard(): Promise<DashboardData> {
@@ -756,7 +761,11 @@ export async function getDashboard(): Promise<DashboardData> {
   const typeIds = [...new Set(cls.map((c) => c.class_type_id).filter(Boolean))];
   const instrIds = [...new Set(cls.map((c) => c.instructor_id).filter(Boolean))];
 
-  const [availR, wlR, newMembersR, paysR, newBookingsR, typesR, instrsR] = await Promise.all([
+  const nowIso = new Date().toISOString();
+  const attendedSinceIso = new Date(Date.now() - 90 * 86400000).toISOString();
+  const riskUntilIso = new Date(Date.now() + 7 * 86400000).toISOString();
+
+  const [availR, wlR, newMembersR, paysR, newBookingsR, typesR, instrsR, noShowR, revTodayR, upcomingR, attendedR, atRiskR] = await Promise.all([
     ids.length ? anyFrom(supabase, "class_instance_availability").select("class_instance_id,confirmed_count").in("class_instance_id", ids) : Promise.resolve({ data: [] }),
     ids.length ? anyFrom(supabase, "bookings").select("id,member_id,class_instance_id").eq("status", "waitlisted").in("class_instance_id", ids) : Promise.resolve({ data: [] }),
     anyFrom(supabase, "members").select("id", { count: "exact", head: true }).gte("created_at", weekAgoIso),
@@ -764,9 +773,33 @@ export async function getDashboard(): Promise<DashboardData> {
     anyFrom(supabase, "bookings").select("id", { count: "exact", head: true }).eq("status", "confirmed").gte("created_at", today.start).lt("created_at", today.end),
     typeIds.length ? anyFrom(supabase, "class_types").select("id,name_ar,name_en").in("id", typeIds) : Promise.resolve({ data: [] }),
     instrIds.length ? anyFrom(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
+    ids.length ? anyFrom(supabase, "bookings").select("id", { count: "exact", head: true }).eq("status", "no_show").in("class_instance_id", ids) : Promise.resolve({ count: 0 }),
+    anyFrom(supabase, "payments").select("amount_sar").eq("status", "paid").gte("created_at", today.start).lt("created_at", today.end),
+    anyFrom(supabase, "class_instances").select("id", { count: "exact", head: true }).eq("status", "scheduled").gte("starts_at", nowIso),
+    anyFrom(supabase, "bookings").select("member_id").eq("status", "attended").gte("created_at", attendedSinceIso),
+    anyFrom(supabase, "member_memberships").select("member_id,current_period_end").eq("status", "active").gte("current_period_end", nowIso).lte("current_period_end", riskUntilIso).order("current_period_end", { ascending: true }),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const avail = availR.data as any[]; const wl = (wlR.data ?? []) as any[]; const newMembersWeek = newMembersR.count; const pays = (paysR.data ?? []) as any[]; const newBookingsToday = newBookingsR.count;
+  const noShowsToday = noShowR.count ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const revenueToday = ((revTodayR.data ?? []) as any[]).reduce((s, p) => s + Number(p.amount_sar || 0), 0);
+  const upcomingCount = upcomingR.count ?? 0;
+
+  // Top attenders (last 90 days) + at-risk members (membership ending within 7 days).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attCounts = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const b of ((attendedR.data ?? []) as any[])) if (b.member_id) attCounts.set(b.member_id, (attCounts.get(b.member_id) ?? 0) + 1);
+  const topAttenderIds = [...attCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const atRiskRaw = ((atRiskR.data ?? []) as any[]).slice(0, 8);
+  const nameIds = [...new Set([...topAttenderIds.map(([id]) => id), ...atRiskRaw.map((r) => r.member_id)].filter(Boolean))];
+  const { data: nameRows } = nameIds.length ? await anyFrom(supabase, "members").select("id,full_name").in("id", nameIds) : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nameMap = new Map(((nameRows ?? []) as any[]).map((m) => [m.id, m.full_name]));
+  const topAttenders = topAttenderIds.map(([id, attended]) => ({ id, name: nameMap.get(id) ?? "—", attended }));
+  const atRisk = atRiskRaw.map((r) => ({ id: r.member_id, name: nameMap.get(r.member_id) ?? "—", ends_at: r.current_period_end }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tm = new Map((typesR.data ?? []).map((t: any) => [t.id, t]));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -823,6 +856,11 @@ export async function getDashboard(): Promise<DashboardData> {
     }),
     topClass,
     newBookingsToday: newBookingsToday ?? 0,
+    noShowsToday,
+    revenueToday,
+    upcomingCount,
+    topAttenders,
+    atRisk,
   };
 }
 
@@ -856,6 +894,23 @@ export async function getInstructors(): Promise<TrainerRow[]> {
     classesThisWeek: counts.get(t.id) ?? 0,
     linked: Boolean(t.auth_user_id),
   }));
+}
+
+export interface ManagerRow {
+  id: string;
+  name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export async function getManagers(): Promise<ManagerRow[]> {
+  const supabase = await getServerSupabase();
+  const { data } = await anyFrom(supabase, "managers")
+    .select("id,name,active,created_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((m) => ({ id: m.id, name: m.name, active: m.active, created_at: m.created_at }));
 }
 
 export interface ScheduleFormOptions {

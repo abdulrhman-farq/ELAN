@@ -21,6 +21,15 @@ async function adminClient() {
   return supabase;
 }
 
+/** Ops gate: admin OR manager. Used for day-to-day actions (members, schedule,
+ *  attendance, broadcast). Finance/settings/access stay on the admin gates. */
+async function staffClient() {
+  const supabase = await getServerSupabase();
+  const { data: isStaff } = await rpc<boolean>(supabase, "is_staff");
+  if (!isStaff) return null;
+  return supabase;
+}
+
 export async function createMemberAction(input: {
   full_name: string;
   phone?: string;
@@ -29,7 +38,7 @@ export async function createMemberAction(input: {
   lead_status?: string;
   recommended_class?: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const full_name = input.full_name?.trim();
   if (!full_name) return { ok: false, error: "name_required" };
@@ -55,7 +64,7 @@ export async function updateMemberAction(
   memberId: string,
   input: { full_name: string; phone?: string; email?: string; source?: string; lead_status?: string },
 ): Promise<ActionResult> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const full_name = input.full_name?.trim();
   if (!full_name) return { ok: false, error: "name_required" };
@@ -77,7 +86,7 @@ export async function updateMemberAction(
 }
 
 export async function createTaskAction(memberId: string, title: string, dueDate?: string): Promise<ActionResult> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const t = title?.trim();
   if (!t) return { ok: false, error: "title_required" };
@@ -94,7 +103,7 @@ export async function createTaskAction(memberId: string, title: string, dueDate?
 }
 
 export async function setTaskStatusAction(taskId: string, status: "open" | "done", memberId: string): Promise<ActionResult> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const { error } = await (supabase as unknown as {
     from: (x: string) => { update: (v: Record<string, unknown>) => { eq: (c: string, val: string) => Promise<{ error: { message: string } | null }> } };
@@ -109,7 +118,7 @@ export async function setTaskStatusAction(taskId: string, status: "open" | "done
 }
 
 export async function setLeadStatusAction(memberId: string, status: string): Promise<ActionResult> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const { error } = await supabase
     .from("members")
@@ -122,7 +131,7 @@ export async function setLeadStatusAction(memberId: string, status: string): Pro
 }
 
 export async function addNoteAction(memberId: string, body: string): Promise<ActionResult> {
-  const supabase = await adminClient();
+  const supabase = await staffClient();
   if (!supabase) return { ok: false, error: "forbidden" };
   const text = body?.trim();
   if (!text) return { ok: false, error: "empty" };
@@ -151,6 +160,16 @@ async function adminCtx(): Promise<{ supabase: Awaited<ReturnType<typeof getServ
   if (!auth.user) return null;
   const { data: isAdmin } = await rpc<boolean>(supabase, "is_admin");
   if (!isAdmin) return null;
+  return { supabase, userId: auth.user.id };
+}
+
+/** Ops context: admin OR manager. */
+async function staffCtx(): Promise<{ supabase: Awaited<ReturnType<typeof getServerSupabase>>; userId: string } | null> {
+  const supabase = await getServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+  const { data: isStaff } = await rpc<boolean>(supabase, "is_staff");
+  if (!isStaff) return null;
   return { supabase, userId: auth.user.id };
 }
 
@@ -637,7 +656,7 @@ export async function setPromoCodeActiveAction(id: string, active: boolean): Pro
 
 /** Cancel a class instance (soft — keeps it visible as "cancelled", unbookable). */
 export async function cancelClassAction(classInstanceId: string): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   const { error } = await tbl(supabase, "class_instances").update({ status: "cancelled" }).eq("id", classInstanceId);
@@ -651,7 +670,7 @@ export async function cancelClassAction(classInstanceId: string): Promise<Action
 
 /** Hard-delete a class instance — only when it has no bookings. */
 export async function deleteClassAction(classInstanceId: string): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   const { count } = await tbl(supabase, "bookings")
@@ -673,7 +692,7 @@ export async function editClassAction(
   classInstanceId: string,
   input: { startsAt?: string; endsAt?: string; instructorId?: string | null; capacity?: number },
 ): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   const patch: Record<string, unknown> = {};
@@ -722,7 +741,7 @@ export async function broadcastAction(input: {
   channel: "in_app" | "whatsapp";
   segment: "all" | "active";
 }): Promise<{ ok: true; queued: number } | { ok: false; error: string }> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   if (!input.message?.trim()) return { ok: false, error: "empty_message" };
@@ -739,7 +758,7 @@ export async function broadcastAction(input: {
 
 /** Manually suspend a member from self-booking for `days` days. */
 export async function suspendMemberAction(memberId: string, days: number): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   const d = Math.max(1, Math.floor(days || 0));
@@ -754,7 +773,7 @@ export async function suspendMemberAction(memberId: string, days: number): Promi
 
 /** Lift any suspension (manual + auto) for a member and forgive prior penalties. */
 export async function liftSuspensionAction(memberId: string): Promise<ActionResult> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
   const { error } = await tbl(supabase, "members")
@@ -775,6 +794,35 @@ export async function unlinkInstructorAuthAction(instructorId: string): Promise<
   if (error) return { ok: false, error: error.message };
   await writeAudit(supabase, userId, { entity_type: "instructor", entity_id: instructorId, action: "unlink_auth" });
   revalidatePath("/admin/trainers");
+  return { ok: true };
+}
+
+/** Grant a Manager (ops-only) role to an existing auth account by email. Admin only. */
+export async function linkManagerAction(email: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const clean = email?.trim();
+  if (!clean) return { ok: false, error: "email_required" };
+  const { error } = await rpc(supabase, "link_manager_auth", { p_email: clean });
+  if (error) {
+    if (/NO_AUTH_USER/i.test(error.message)) return { ok: false, error: "no_auth_user" };
+    return { ok: false, error: error.message };
+  }
+  await writeAudit(supabase, userId, { entity_type: "manager", action: "link_auth", new_value: clean });
+  revalidatePath("/admin/managers");
+  return { ok: true };
+}
+
+/** Revoke a Manager role. Admin only. */
+export async function unlinkManagerAction(managerId: string): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await rpc(supabase, "unlink_manager_auth", { p_manager_id: managerId });
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "manager", entity_id: managerId, action: "unlink_auth" });
+  revalidatePath("/admin/managers");
   return { ok: true };
 }
 
@@ -806,7 +854,7 @@ function addDaysStr(dateStr: string, n: number): string {
 export async function generateScheduleAction(
   input: ScheduleGenInput,
 ): Promise<{ ok: true; created: number; unassigned?: number } | { ok: false; error: string }> {
-  const ctx = await adminCtx();
+  const ctx = await staffCtx();
   if (!ctx) return { ok: false, error: "forbidden" };
   const { supabase, userId } = ctx;
 

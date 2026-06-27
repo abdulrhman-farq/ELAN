@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale-server";
 import { getMemberDetail, getMemberTasks, getMemberFinancials, getMemberPayments } from "@/lib/admin";
+import { getIsAdmin } from "@/lib/admin-guard";
 import { fmtLongDateTime, levelLabel } from "@/lib/format";
 import { fmtHalalas } from "@/lib/pricing";
 import { CLASS_INFO, type ClassRec } from "@/lib/quiz";
@@ -36,11 +37,12 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
   const { id } = await params;
   const locale = await getLocale();
   const ar = locale === "ar";
-  const [detail, tasks, fin, payments] = await Promise.all([
+  const [detail, tasks, fin, payments, isAdmin] = await Promise.all([
     getMemberDetail(id),
     getMemberTasks(id),
     getMemberFinancials(id),
     getMemberPayments(id),
+    getIsAdmin(),
   ]);
   if (!detail) notFound();
   const { member, balance, notes } = detail;
@@ -125,27 +127,31 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
         </div>
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "الملخص المالي" : "Financial summary"}</h3>
-          <SellBundleDialog memberId={member.id} ar={ar} />
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <MoneyStat label={ar ? "إجمالي المدفوع" : "Total paid"} value={sar(fin.totalPaidHalalas)} />
-          <MoneyStat label={ar ? "إجمالي الخصومات" : "Total discount"} value={sar(fin.totalDiscountHalalas)} />
-          <MoneyStat label={ar ? "قيمة الحصص المحضورة" : "Attended value"} value={sar(fin.attendedValueHalalas)} />
-          <MoneyStat label={ar ? "قيمة الرصيد المتبقي" : "Remaining package value"} value={sar(fin.remainingPackageHalalas)} />
-          <MoneyStat label={ar ? "قيمة عدم الحضور" : "No-show value"} value={sar(fin.noShowValueHalalas)} />
-          <MoneyStat label={ar ? "قيمة الحصص المجانية" : "Complimentary value"} value={sar(fin.compValueHalalas)} />
-        </div>
-      </section>
+      {isAdmin ? (
+        <>
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "الملخص المالي" : "Financial summary"}</h3>
+              <SellBundleDialog memberId={member.id} ar={ar} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+              <MoneyStat label={ar ? "إجمالي المدفوع" : "Total paid"} value={sar(fin.totalPaidHalalas)} />
+              <MoneyStat label={ar ? "إجمالي الخصومات" : "Total discount"} value={sar(fin.totalDiscountHalalas)} />
+              <MoneyStat label={ar ? "قيمة الحصص المحضورة" : "Attended value"} value={sar(fin.attendedValueHalalas)} />
+              <MoneyStat label={ar ? "قيمة الرصيد المتبقي" : "Remaining package value"} value={sar(fin.remainingPackageHalalas)} />
+              <MoneyStat label={ar ? "قيمة عدم الحضور" : "No-show value"} value={sar(fin.noShowValueHalalas)} />
+              <MoneyStat label={ar ? "قيمة الحصص المجانية" : "Complimentary value"} value={sar(fin.compValueHalalas)} />
+            </div>
+          </section>
 
-      <section className="space-y-3">
-        <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "المدفوعات" : "Payments"}</h3>
-        <div className="card p-5">
-          <MemberPayments ar={ar} payments={payments} />
-        </div>
-      </section>
+          <section className="space-y-3">
+            <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "المدفوعات" : "Payments"}</h3>
+            <div className="card p-5">
+              <MemberPayments ar={ar} payments={payments} />
+            </div>
+          </section>
+        </>
+      ) : null}
 
       <section className="space-y-3">
         <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "سجل المتابعة" : "Follow-up log"}</h3>
@@ -181,7 +187,7 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <BookingMoneyControls bookingId={b.id} ar={ar} />
+                  {isAdmin ? <BookingMoneyControls bookingId={b.id} ar={ar} /> : null}
                   <span className="chip bg-surface-variant text-primary-700">{bstatusLabel(b.status, ar)}</span>
                 </div>
               </div>

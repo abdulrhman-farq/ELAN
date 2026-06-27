@@ -31,6 +31,15 @@ export async function bookAction(classInstanceId: string) {
   return { ok: true as const, bookingId: data?.id ?? null };
 }
 
+/** Mark the member's in-app notifications as read (clears the unread badge). */
+export async function markNotificationsReadAction() {
+  const supabase = await getServerSupabase();
+  const { error } = await rpc(supabase, "mark_my_notifications_read");
+  revalidatePath("/profile");
+  revalidatePath("/");
+  return error ? { error: error.message } : { ok: true as const };
+}
+
 /** Watch a full class to be notified when a seat opens (#19). */
 export async function watchClassAction(classInstanceId: string) {
   const supabase = await getServerSupabase();
