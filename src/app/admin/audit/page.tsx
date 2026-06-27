@@ -14,7 +14,13 @@ const ACTION: Record<string, [string, string]> = {
   promo_toggle: ["تبديل كود خصم", "Promo toggled"],
   cancel_class: ["إلغاء حصة", "Class cancelled"],
   delete_class: ["حذف حصة", "Class deleted"],
+  edit_class: ["تعديل حصة", "Class edited"],
   generate: ["توليد جدول", "Schedule generated"],
+  link_auth: ["ربط دخول مدرّبة", "Trainer access linked"],
+  unlink_auth: ["إلغاء دخول مدرّبة", "Trainer access revoked"],
+  suspend: ["إيقاف عضوة", "Member suspended"],
+  lift_suspension: ["رفع إيقاف", "Suspension lifted"],
+  broadcast: ["إعلان جماعي", "Broadcast sent"],
 };
 
 const ENTITY: Record<string, [string, string]> = {
@@ -23,6 +29,9 @@ const ENTITY: Record<string, [string, string]> = {
   promo: ["كود خصم", "Promo"],
   class_instance: ["حصة", "Class"],
   schedule: ["الجدول", "Schedule"],
+  instructor: ["مدرّبة", "Trainer"],
+  member: ["عضوة", "Member"],
+  broadcast: ["إعلان", "Broadcast"],
 };
 
 export default async function AdminAudit() {

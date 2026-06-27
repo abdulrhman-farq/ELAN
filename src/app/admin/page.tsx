@@ -25,14 +25,53 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi label={ar ? "حجوزات اليوم" : "Bookings today"} value={String(d.bookingsToday)} note={ar ? `${d.today.length} حصص اليوم` : `${d.today.length} classes today`} />
-        <Kpi label={ar ? "نسبة الإشغال" : "Fill rate"} value={d.fillRate === null ? "—" : `${d.fillRate}٪`} note={ar ? "اليوم" : "today"} />
-        <Kpi label={ar ? "عضوات جدد" : "New members"} value={String(d.newMembersWeek)} note={ar ? "هذا الأسبوع" : "this week"} good />
+        <Kpi label={ar ? "نسبة إشغال اليوم" : "Today's fill rate"} value={d.fillRate === null ? "—" : `${d.fillRate}٪`} note={ar ? `${d.bookingsToday} حجز · ${d.today.length} حصص` : `${d.bookingsToday} booked · ${d.today.length} classes`} />
+        <Kpi label={ar ? "الغيابات اليوم" : "No-shows today"} value={String(d.noShowsToday)} note={ar ? "لم تحضر" : "absent"} />
+        <Kpi label={ar ? "الحصص القادمة" : "Upcoming classes"} value={String(d.upcomingCount)} note={ar ? "مجدولة" : "scheduled"} />
         <div className="card-ink p-5">
-          <div className="text-caption text-primary-200">{ar ? "إيراد الشهر" : "Revenue (month)"}</div>
-          <div className="mt-2 font-number text-3xl">{d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
-          <div className="text-caption text-ink/70">{ar ? "ريال سعودي" : "SAR"}</div>
+          <div className="text-caption text-primary-200">{ar ? "إيراد اليوم" : "Revenue (today)"}</div>
+          <div className="mt-2 font-number text-3xl">{d.revenueToday.toLocaleString(ar ? "ar-SA" : "en-US")}</div>
+          <div className="text-caption text-ink/70">{ar ? `الشهر: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} ر.س` : `Month: ${d.revenueMonth.toLocaleString(ar ? "ar-SA" : "en-US")} SAR`}</div>
         </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="card p-6">
+          <h2 className="mb-4 font-display text-lead font-medium text-primary-900">{ar ? "الأكثر حضورًا" : "Top attenders"}</h2>
+          <p className="mb-3 text-caption text-status-full">{ar ? "آخر ٩٠ يومًا" : "Last 90 days"}</p>
+          {d.topAttenders.length === 0 ? (
+            <p className="py-4 text-center text-body text-status-full">{ar ? "لا توجد بيانات بعد." : "No data yet."}</p>
+          ) : (
+            <ul className="space-y-2">
+              {d.topAttenders.map((m, i) => (
+                <li key={m.id} className="flex items-center gap-3 text-body">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-variant font-number text-caption text-primary-700">{i + 1}</span>
+                  <Link href={`/admin/members/${m.id}`} className="flex-1 truncate text-primary-900">{m.name}</Link>
+                  <span className="font-number text-primary-700">{ar ? `${m.attended} حصة` : `${m.attended}`}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card border-s-4 border-s-accent p-6">
+          <h2 className="mb-4 font-display text-lead font-medium text-primary-900">{ar ? "مهددات بفقدان الاشتراك" : "At risk of lapsing"}</h2>
+          <p className="mb-3 text-caption text-status-full">{ar ? "اشتراكها ينتهي خلال ٧ أيام" : "Membership ends within 7 days"}</p>
+          {d.atRisk.length === 0 ? (
+            <p className="py-4 text-center text-body text-status-full">{ar ? "لا توجد عضوات مهددات." : "Nobody at risk."}</p>
+          ) : (
+            <ul className="space-y-2">
+              {d.atRisk.map((m) => (
+                <li key={m.id} className="flex items-center justify-between gap-3 text-body">
+                  <Link href={`/admin/members/${m.id}`} className="min-w-0 flex-1 truncate text-primary-900">{m.name}</Link>
+                  <span className="font-number shrink-0 text-caption text-accent">
+                    {new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short" }).format(new Date(m.ends_at))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
       {(() => {
