@@ -85,6 +85,32 @@ export async function purchaseAction(type: "membership" | "credit_pack", refId: 
   return error ? { error: error.message } : { ok: true as const, pending: true as const };
 }
 
+/** Member self-service: update editable profile fields (name, phone). Email,
+ *  role and level are intentionally NOT editable here — they are locked by the
+ *  members_guard_self_update DB trigger and RLS, so even a crafted request can
+ *  only change full_name / phone for the caller's own row. */
+export async function updateProfileAction(input: { fullName: string; phone: string }) {
+  const supabase = await getServerSupabase();
+  const fullName = input.fullName.trim();
+  const phone = input.phone.trim();
+  if (!fullName) return { error: "invalid_name" as const };
+
+  if (DEMO && !(await isRealMember(supabase))) {
+    revalidatePath("/profile");
+    return { ok: true as const };
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" as const };
+
+  const { error } = await supabase
+    .from("members")
+    .update({ full_name: fullName, phone })
+    .eq("auth_user_id", user.id);
+  revalidatePath("/profile");
+  return error ? { error: error.message } : { ok: true as const };
+}
+
 export async function setLocaleAction(locale: Locale) {
   (await cookies()).set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365 });
 }

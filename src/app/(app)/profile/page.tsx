@@ -6,6 +6,7 @@ import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications
 import { LangToggle, LogoutButton } from "@/components/Buttons";
 import { MarkNotificationsRead } from "@/components/MarkNotificationsRead";
 import { HERO_IMAGE } from "@/lib/classColor";
+import { APP_VERSION } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +59,8 @@ export default async function ProfilePage() {
       ) : null}
 
       <div className="card overflow-hidden">
-        <Row label={t.profile.personalData} />
-        <Row label={t.profile.payment} />
-        <Row label={t.profile.notifications} />
+        <Row label={t.profile.personalData} href="/profile/edit" />
+        <Row label={t.profile.notifications} href="#inbox" />
         <div className="flex items-center justify-between px-5 py-4">
           <span className="text-body">{t.profile.language}</span>
           <LangToggle current={locale} />
@@ -92,7 +92,7 @@ export default async function ProfilePage() {
 
       {/* In-app notifications inbox (#17/#19) */}
       <MarkNotificationsRead hasUnread={unread > 0} />
-      <div className="card overflow-hidden">
+      <div id="inbox" className="card overflow-hidden scroll-mt-6">
         <div className="border-b border-outline px-5 py-3 text-meta font-medium text-status-full">{t.profile.inbox}</div>
         {notifications.length === 0 ? (
           <p className="px-5 py-5 text-center text-meta text-status-full">{t.profile.noNotifications}</p>
@@ -123,16 +123,21 @@ export default async function ProfilePage() {
       ) : null}
 
       <LogoutButton label={t.profile.logout} />
-      <p className="text-center text-xs text-status-full">{t.profile.version} 0.1.0</p>
+      <p className="text-center text-xs text-status-full">{t.profile.version} {APP_VERSION}</p>
+      <nav className="mt-3 flex justify-center gap-4 text-caption text-status-full">
+        <Link href="/privacy">{t.legal.privacy}</Link>
+        <Link href="/terms">{t.legal.terms}</Link>
+        <Link href="/contact">{t.legal.contact}</Link>
+      </nav>
       </div>
     </section>
   );
 }
 
-function Row({ label }: { label: string }) {
+function Row({ label, href }: { label: string; href: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-outline px-5 py-4 text-body">
+    <Link href={href} className="flex items-center justify-between border-b border-outline px-5 py-4 text-body">
       <span>{label}</span><span className="chevron text-status-full">›</span>
-    </div>
+    </Link>
   );
 }

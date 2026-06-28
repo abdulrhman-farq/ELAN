@@ -20,6 +20,11 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
 
   const name = b.name_en; // class names always shown in English
   const instructor = ar ? b.instructor_ar : b.instructor_en;
+  // Reflect the real booking state: a waitlisted booking must never read as
+  // "confirmed". Anything else (confirmed) shows the success hero.
+  const waitlisted = b.status === "waitlisted";
+  const heroTitle = waitlisted ? t.confirmation.waitlistTitle : t.confirmation.title;
+  const heroSubtitle = waitlisted ? t.confirmation.waitlistSubtitle : t.confirmation.subtitle;
 
   return (
     <section className="pb-10">
@@ -28,10 +33,10 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(33,28,24,.25),rgba(33,28,24,.92))" }} />
         <div className="relative flex h-full flex-col items-center justify-center px-6 text-center text-ink">
           <div className="mb-3 flex h-[68px] w-[68px] items-center justify-center rounded-full border-2 border-accent text-accent">
-            <Icon name="check" className="text-3xl" />
+            <Icon name={waitlisted ? "hourglass_top" : "check"} className="text-3xl" />
           </div>
-          <h1 className="font-display text-page-title font-medium text-ink">{t.confirmation.title}</h1>
-          <p className="mt-1.5 text-body text-ink/75">{t.confirmation.subtitle}</p>
+          <h1 className="font-display text-page-title font-medium text-ink">{heroTitle}</h1>
+          <p className="mt-1.5 text-body text-ink/75">{heroSubtitle}</p>
         </div>
       </div>
 

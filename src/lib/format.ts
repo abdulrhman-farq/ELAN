@@ -18,6 +18,11 @@ export function upcomingDays(count: number): string[] {
   );
 }
 
+/** True when the given instant falls on the current Riyadh calendar day. */
+export function isTodayInRiyadh(iso: string): boolean {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(iso)) === todayInRiyadh();
+}
+
 export function fmtTime(iso: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
     timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true,

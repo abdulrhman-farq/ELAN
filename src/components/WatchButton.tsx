@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { watchClassAction, unwatchClassAction } from "@/actions";
 import { useToast } from "@/components/Toast";
+import { dict } from "@/lib/i18n";
 
 /** "Notify me when a seat opens" toggle for full classes (#19). */
 export function WatchButton({
@@ -16,6 +17,7 @@ export function WatchButton({
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
+  const t = ar ? dict.ar.watch : dict.en.watch;
 
   const toggle = () =>
     start(async () => {
@@ -23,14 +25,10 @@ export function WatchButton({
         ? await unwatchClassAction(classInstanceId)
         : await watchClassAction(classInstanceId);
       if ("error" in res) {
-        toast.error(ar ? "تعذّر الحفظ" : "Something went wrong");
+        toast.error(t.error);
         return;
       }
-      toast.success(
-        watching
-          ? ar ? "أوقفنا التنبيه" : "Alert turned off"
-          : ar ? "سننبّهكِ عند توفّر مقعد" : "We'll alert you when a seat opens",
-      );
+      toast.success(watching ? t.turnedOff : t.turnedOn);
       router.refresh();
     });
 
@@ -41,9 +39,7 @@ export function WatchButton({
       disabled={pending}
       className="mt-2 w-full rounded-pill border border-outline px-4 py-2.5 text-body text-primary-700 disabled:opacity-50"
     >
-      {watching
-        ? ar ? "إيقاف التنبيه عند توفّر مقعد" : "Stop seat alerts"
-        : ar ? "نبّهيني عند توفّر مقعد" : "Notify me when a seat opens"}
+      {watching ? t.off : t.on}
     </button>
   );
 }

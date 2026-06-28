@@ -3,7 +3,7 @@ import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getMemberContext, getMyBookings, getTimetable } from "@/lib/queries";
-import { fmtTime, todayInRiyadh } from "@/lib/format";
+import { fmtTime, fmtDayHeading, isTodayInRiyadh, todayInRiyadh } from "@/lib/format";
 import { classImage, HERO_IMAGE, INSTRUCTOR_IMAGE } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function HomePage() {
           <div className="mt-auto pb-14">
             <p className="text-body text-ink/80">{t.home.greeting}</p>
             <h1 className="font-display text-hero font-medium leading-tight text-ink">{fullName}</h1>
-            <p className="mt-1 text-meta text-ink/70">{next ? `${t.home.nextClass} · ${t.common.today}` : t.home.none}</p>
+            <p className="mt-1 text-meta text-ink/70">{next ? `${t.home.nextClass} · ${isTodayInRiyadh(next.starts_at) ? t.common.today : fmtDayHeading(next.starts_at, locale)}` : t.home.none}</p>
           </div>
         </div>
       </div>
