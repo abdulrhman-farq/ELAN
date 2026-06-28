@@ -14,6 +14,7 @@ import { MemberTasks } from "@/components/admin/MemberTasks";
 import { SellBundleDialog, BookingMoneyControls } from "@/components/admin/MemberMoney";
 import { MemberPayments } from "@/components/admin/MemberPayments";
 import { MemberSuspension } from "@/components/admin/MemberSuspension";
+import { LoyaltyControls } from "@/components/admin/LoyaltyControls";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,11 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
         suspendedUntil={detail.suspendedUntil}
         recentPenalties={detail.recentPenalties}
         ar={ar}
+        hasActiveMembership={detail.hasActiveMembership}
+        frozenUntil={detail.membershipFrozenUntil}
       />
+
+      <LoyaltyControls memberId={member.id} points={detail.points} ar={ar} />
 
       <section className="space-y-3">
         <h3 className="font-display text-lead font-medium text-primary-900">{ar ? "مهام المتابعة" : "Follow-up tasks"}</h3>
