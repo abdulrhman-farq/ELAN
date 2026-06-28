@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
  *  at signup — no email-based linking happens here. */
 export async function GET(req: Request) {
   const url = new URL(req.url);
+  const base = process.env.NEXT_PUBLIC_SITE_URL || url.origin;
   const code = url.searchParams.get("code");
-  const res = NextResponse.redirect(new URL("/", url.origin));
+  const res = NextResponse.redirect(new URL("/", base));
   if (!code) return res;
 
   const cookieStore = await cookies();
@@ -26,6 +27,6 @@ export async function GET(req: Request) {
   });
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(new URL(`/login?error=link`, url.origin));
+  if (error) return NextResponse.redirect(new URL(`/login?error=link`, base));
   return res;
 }

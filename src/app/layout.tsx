@@ -30,7 +30,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="font-sans">
-        <div data-app={dict[locale].appName}>{children}</div>
+        <a href="#main-content" className="skip-link">
+          {locale === "ar" ? "تخطٍ إلى المحتوى" : "Skip to content"}
+        </a>
+        <div id="main-content" data-app={dict[locale].appName}>{children}</div>
         <CookieConsent
           message={dict[locale].cookies.message}
           accept={dict[locale].cookies.accept}

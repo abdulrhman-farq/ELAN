@@ -114,3 +114,23 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Skip-to-content link: visually hidden until focused, then revealed at the
+   top corner for keyboard users. Mirrors to the right edge under RTL. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: #2B2420;
+  color: #FBF6EF;
+  border-radius: 0 0 0.5rem 0;
+}
+.skip-link:focus { left: 0; }
+[dir="rtl"] .skip-link {
+  left: auto;
+  right: -9999px;
+  border-radius: 0 0 0 0.5rem;
+}
+[dir="rtl"] .skip-link:focus { right: 0; }

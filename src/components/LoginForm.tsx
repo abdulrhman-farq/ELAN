@@ -6,6 +6,9 @@ import Link from "next/link";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { dict, dirFor, type Locale } from "@/lib/i18n";
 import { DEMO } from "@/lib/demo";
+import { Captcha } from "@/components/Captcha";
+
+const CAPTCHA_ENABLED = Boolean(process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY);
 
 /** Login form. The member path (email magic link) is the PRIMARY action; staff
  *  password sign-in is secondary, behind a disclosure. Locale-aware; all copy
@@ -21,15 +24,18 @@ export function LoginForm({ locale }: { locale: Locale }) {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [showStaff, setShowStaff] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Member login: email magic link (OTP). No password — the admin creates the
   // client with her email and she signs in via the link.
   async function memberMagicLink() {
     if (!email.trim()) { setErr(t.error); return; }
+    if (CAPTCHA_ENABLED && !captchaToken) { setErr(L.captcha.failed); return; }
     setBusy(true); setErr(null);
+    const base = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${base}/auth/callback`, captchaToken: captchaToken ?? undefined },
     });
     setBusy(false);
     if (error) { setErr(error.message || t.error); return; }
@@ -38,8 +44,13 @@ export function LoginForm({ locale }: { locale: Locale }) {
 
   // Real Supabase auth — required for the admin/trainer consoles.
   async function signIn(e?: string, p?: string) {
+    if (CAPTCHA_ENABLED && !captchaToken) { setErr(L.captcha.failed); return; }
     setBusy(true); setErr(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: e ?? email, password: p ?? password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: e ?? email,
+      password: p ?? password,
+      options: { captchaToken: captchaToken ?? undefined },
+    });
     if (error) { setBusy(false); setErr(t.error); return; }
     const [{ data: isAdmin }, { data: isInstructor }] = await Promise.all([
       supabase.rpc("is_admin"),
@@ -73,6 +84,8 @@ export function LoginForm({ locale }: { locale: Locale }) {
           <input dir="ltr" inputMode="email" autoComplete="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
         </label>
         {err ? <p className="text-meta text-danger" role="alert">{err}</p> : null}
+
+        <Captcha onToken={setCaptchaToken} />
 
         {sent ? (
           <p className="rounded-sm border border-outline bg-surface-variant px-4 py-3 text-center text-meta text-sage-700" role="status">{t.magicLinkSent}</p>

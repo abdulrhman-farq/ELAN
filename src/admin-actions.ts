@@ -325,8 +325,9 @@ export async function recordClassSaleAction(memberId: string, classInstanceId: s
   if (bErr || !booking) return { ok: false, error: bErr?.message ?? "booking_failed" };
 
   if (input.pricingSource === "package_credit") {
-    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
-    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: -1, reason: "booking", balance_after: (bal ?? 0) - 1, ref_id: booking.id });
+    // B1: atomic, floored credit write (requires migration 0019 applied).
+    const { error: cErr } = await rpc(supabase, "adjust_credits_admin", { p_member: memberId, p_delta: -1, p_reason: "booking", p_ref: booking.id });
+    if (cErr) return { ok: false, error: cErr.message };
   }
 
   if (cash && p.finalGrossHalalas > 0) {
@@ -512,8 +513,9 @@ export async function sellPackageAction(memberId: string, input: PackageSaleInpu
   // only; credits are applied later via markPaymentPaidAction (idempotent).
   const grant = creditsGrantedFor(status, credits);
   if (grant > 0) {
-    const { data: bal } = await rpc<number>(supabase, "elan_credit_balance", { p_member: memberId });
-    await tbl(supabase, "credit_ledger").insert({ member_id: memberId, change: grant, reason: "purchase", balance_after: (bal ?? 0) + grant, ref_id: pay.id });
+    // B1: atomic, floored credit write (requires migration 0019 applied).
+    const { error: cErr } = await rpc(supabase, "adjust_credits_admin", { p_member: memberId, p_delta: grant, p_reason: "purchase", p_ref: pay.id });
+    if (cErr) return { ok: false, error: cErr.message };
   }
   if (d.promoId)
     await tbl(supabase, "promo_redemptions").insert({ promo_code_id: d.promoId, member_id: memberId, payment_id: pay.id, discount_amount_halalas: p.discountAmountHalalas });

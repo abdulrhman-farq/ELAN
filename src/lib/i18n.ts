@@ -35,6 +35,7 @@ export const dict = {
     ledger: { purchase: "شراء", booking: "حجز حصة", refund: "استرجاع", penalty: "غرامة", admin: "تعديل إداري" },
     notif: { broadcast: "إعلان", spot_opened: "توفّر مقعد في حصة كنتِ تتابعينها", waitlist_promoted: "تم تأكيد حجزكِ من قائمة الانتظار", waitlist_promotion_failed: "تعذّر ترقيتكِ من قائمة الانتظار" },
     login: { title: "تسجيل الدخول", email: "البريد الإلكتروني", password: "كلمة المرور", submit: "دخول", demo: "دخول كعضوة تجريبية", demoAdmin: "دخول كمسؤولة", hint: "للتجربة: noor@elan.demo / elan1234", error: "تعذّر تسجيل الدخول، يرجى المحاولة مرة أخرى.", magicLink: "دخول العميلات برابط عبر البريد", magicLinkSent: "أرسلنا رابط الدخول إلى بريدكِ ✦ افتحيه من جوالكِ للدخول.", memberHint: "العميلات يدخلن عبر رابط يُرسل للبريد — بدون كلمة مرور.", staffSignIn: "دخول فريق العمل (كلمة المرور)" },
+    captcha: { failed: "تعذّر التحقق، يرجى المحاولة مرة أخرى." },
     legal: { privacy: "سياسة الخصوصية", terms: "الشروط والأحكام", contact: "تواصلي معنا", rights: "© ٢٠٢٦ إيلان. جميع الحقوق محفوظة.", lastUpdated: "آخر تحديث" },
     cookies: { message: "نستخدم ملفات تعريف الارتباط الضرورية لتشغيل التطبيق وتذكّر تفضيلاتكِ.", accept: "موافقة", learnMore: "اعرفي المزيد" },
     toast: {
@@ -94,6 +95,7 @@ export const dict = {
     ledger: { purchase: "Purchase", booking: "Class booking", refund: "Refund", penalty: "Penalty", admin: "Admin adjustment" },
     notif: { broadcast: "Announcement", spot_opened: "A seat opened in a class you're watching", waitlist_promoted: "You're confirmed from the waitlist", waitlist_promotion_failed: "We couldn't promote you from the waitlist" },
     login: { title: "Sign in", email: "Email", password: "Password", submit: "Sign in", demo: "Enter as demo member", demoAdmin: "Enter as admin", hint: "Demo: noor@elan.demo / elan1234", error: "Couldn't sign in. Please try again.", magicLink: "Sign in with an email link", magicLinkSent: "We've sent a sign-in link to your email ✦ open it on your phone.", memberHint: "Members sign in via a link sent to their email — no password needed.", staffSignIn: "Staff sign-in (password)" },
+    captcha: { failed: "Verification failed. Please try again." },
     legal: { privacy: "Privacy Policy", terms: "Terms of Service", contact: "Contact us", rights: "© 2026 ÉLAN. All rights reserved.", lastUpdated: "Last updated" },
     cookies: { message: "We use essential cookies to run the app and remember your preferences.", accept: "Accept", learnMore: "Learn more" },
     toast: {

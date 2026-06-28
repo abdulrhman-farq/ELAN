@@ -21,11 +21,12 @@ against any DB — **validate on staging before production.**
 `supabase db reset` succeeds, then `0018`–`0021`, then `scripts/verify_rls.sql`,
 then the integration suite with `SUPABASE_TEST_*` set.
 
-### App wiring still to flip (after migrations land on staging)
-- `src/admin-actions.ts`: replace the read-compute-insert ledger writes (~L327, L514)
-  with `rpc("adjust_credits_admin", { p_member, p_delta, p_reason, p_ref })`. Not done
-  yet because calling a not-yet-deployed function would break admin flows against the
-  current DB. Flip once `0019` is applied to the connected environment.
+### App wiring — DONE (requires migration 0019 applied to run)
+- `src/admin-actions.ts`: the read-compute-insert ledger writes now call
+  `rpc("adjust_credits_admin", { p_member, p_delta, p_reason, p_ref })` (atomic +
+  floored). ⚠️ These admin credit flows will error until `0019_adjust_credits_admin.sql`
+  is applied to the connected DB — apply migrations BEFORE deploying this branch
+  (see RELEASE_CHECKLIST.md).
 
 ---
 

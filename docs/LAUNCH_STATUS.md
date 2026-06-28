@@ -46,6 +46,16 @@
 ### QA
 - New `config.test.ts` (fail-fast). `e2e/public.spec.ts` updated for the new login UX + protected-route redirects, and extended with legal-page coverage.
 
+### Cycle 5 (safe in-repo, max-readiness sweep)
+- **`0022_penalty_applies_to.sql`** — `cancel_booking` + `mark_no_show` now honor `penalty_settings.applies_to` via `_elan_penalty_applies()` (PENDING STAGING VALIDATION).
+- **B1 wiring flipped** — `src/admin-actions.ts` credit writes now call `adjust_credits_admin` (atomic, floored). Requires `0019` applied to the connected DB (documented).
+- **S3 CAPTCHA** — `Captcha` component (hCaptcha via script injection, no npm dep) + `captchaToken` threaded into login OTP/password; inert without `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
+- **Site URL wired** — `NEXT_PUBLIC_SITE_URL` now used for magic-link `emailRedirectTo` and the auth-callback redirect base.
+- **`withSentryConfig`** — wraps the build for source-map upload only when a DSN is set (default/CI build unaffected).
+- **Health + robots + a11y** — `/api/health` liveness probe, `robots.ts` (disallows admin/trainer/api/auth), and a keyboard "skip to content" link.
+- **Tests** — added `ics.test.ts` + `format.test.ts` (now 52 passing). CI gained a non-blocking `integration` job gated on `SUPABASE_TEST_*`.
+- **`.env.example`** — documents every new env var (server-only vs public) for the owner.
+
 ### Cycle 4 (safe in-repo, 5 parallel workstreams)
 - **D2 Observability** — Sentry wired (`instrumentation.ts`, `instrumentation-client.ts`, `src/lib/observability.ts`); error boundaries now `captureException`. **Inert without `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN`**; source-map upload via `withSentryConfig` left as an optional owner follow-up.
 - **U1** — cancel dialog now shows a late-cancel/no-show **penalty policy** note (`cancelDialog.policy`, both locales); `ConfirmDialog` body renders multi-line.

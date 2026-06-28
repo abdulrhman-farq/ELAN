@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 import pkg from "./package.json";
 
 /** Allow remote class/hero photos served from Supabase Storage
@@ -44,4 +45,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+
+// Only wrap when a DSN is present so builds without Sentry secrets are untouched.
+// Source-map upload additionally requires SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN
+// (owner-provided); withSentryConfig no-ops the upload when they're absent.
+export default dsn
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: !process.env.CI,
+      widenClientFileUpload: true,
+    })
+  : nextConfig;
