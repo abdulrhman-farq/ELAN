@@ -7,6 +7,8 @@ import { fontVariables } from "@/lib/fonts";
 import { CookieConsent } from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
+  // metadataBase resolves canonical/OG URLs against the canonical site when set.
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   title: "ÉLAN",
   description: "ÉLAN — women's Pilates studio booking, Riyadh.",
 };
