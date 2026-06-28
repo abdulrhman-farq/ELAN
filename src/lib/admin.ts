@@ -275,6 +275,8 @@ export interface MemberDetail {
   suspendedUntil: string | null; // effective suspension end (null = active)
   recentPenalties: number; // no-show + late-cancel in the suspension window
   points: number; // loyalty points balance
+  hasActiveMembership: boolean;
+  membershipFrozenUntil: string | null;
   notes: MemberNote[];
   bookings: {
     id: string;
@@ -302,7 +304,7 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
   if (!member) return null;
 
   const penaltyWindowIso = new Date(Date.now() - 60 * 86400000).toISOString();
-  const [{ data: balance }, { data: membership }, { data: bookings }, { data: notes }, { data: suspendedUntil }, { data: penaltyRows }, { data: points }] = await Promise.all([
+  const [{ data: balance }, { data: membership }, { data: bookings }, { data: notes }, { data: suspendedUntil }, { data: penaltyRows }, { data: points }, { data: mmState }] = await Promise.all([
     rpc<number>(supabase, "elan_credit_balance", { p_member: id }),
     supabase
       .from("member_memberships")
@@ -329,6 +331,10 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
       .in("kind", ["no_show", "late_cancel"])
       .gte("created_at", penaltyWindowIso),
     rpc<number>(supabase, "elan_points_balance", { p_member: id }),
+    anyFrom(supabase, "member_memberships")
+      .select("frozen_until,current_period_end")
+      .eq("member_id", id).eq("status", "active")
+      .order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   return {
@@ -343,6 +349,8 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     suspendedUntil: (suspendedUntil as string | null) ?? null,
     recentPenalties: (penaltyRows ?? []).length,
     points: (points as number) ?? 0,
+    hasActiveMembership: Boolean(mmState),
+    membershipFrozenUntil: (mmState as { frozen_until?: string } | null)?.frozen_until ?? null,
     notes: (notes ?? []) as MemberNote[],
     bookings: (bookings ?? []).map((b) => ({
       id: b.id,

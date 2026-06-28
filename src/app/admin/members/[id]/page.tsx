@@ -102,6 +102,8 @@ export default async function AdminMemberDetailPage({ params }: { params: Promis
         suspendedUntil={detail.suspendedUntil}
         recentPenalties={detail.recentPenalties}
         ar={ar}
+        hasActiveMembership={detail.hasActiveMembership}
+        frozenUntil={detail.membershipFrozenUntil}
       />
 
       <LoyaltyControls memberId={member.id} points={detail.points} ar={ar} />

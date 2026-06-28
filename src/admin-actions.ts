@@ -756,6 +756,34 @@ export async function broadcastAction(input: {
   return { ok: true, queued: data ?? 0 };
 }
 
+/** Freeze a member's active membership for `days` days (staff). */
+export async function freezeMembershipAction(memberId: string, days: number): Promise<ActionResult> {
+  const ctx = await staffCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const d = Math.max(1, Math.floor(days || 0));
+  const { error } = await rpc(supabase, "freeze_membership", { p_member: memberId, p_days: d });
+  if (error) {
+    if (/NO_ACTIVE_MEMBERSHIP/i.test(error.message)) return { ok: false, error: "no_membership" };
+    return { ok: false, error: error.message };
+  }
+  await writeAudit(supabase, userId, { entity_type: "member", entity_id: memberId, action: "freeze_membership", new_value: `${d}d` });
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true };
+}
+
+/** Lift a membership freeze early (staff). */
+export async function unfreezeMembershipAction(memberId: string): Promise<ActionResult> {
+  const ctx = await staffCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await rpc(supabase, "unfreeze_membership", { p_member: memberId });
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, { entity_type: "member", entity_id: memberId, action: "unfreeze_membership" });
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true };
+}
+
 /** Redeem a member's loyalty points (staff). Returns the SAR value redeemed. */
 export async function redeemPointsAction(memberId: string, points: number): Promise<{ ok: true; sar: number } | { ok: false; error: string }> {
   const ctx = await staffCtx();

@@ -2,22 +2,47 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { suspendMemberAction, liftSuspensionAction } from "@/admin-actions";
+import { suspendMemberAction, liftSuspensionAction, freezeMembershipAction, unfreezeMembershipAction } from "@/admin-actions";
 import { useToast } from "@/components/Toast";
 
-/** Admin control: shows suspension status + recent penalties, with suspend / lift. */
+/** Admin control: shows suspension status + recent penalties, with suspend / lift,
+ *  plus membership freeze/pause. */
 export function MemberSuspension({
-  memberId, suspendedUntil, recentPenalties, ar,
+  memberId, suspendedUntil, recentPenalties, ar, hasActiveMembership = false, frozenUntil = null,
 }: {
   memberId: string;
   suspendedUntil: string | null;
   recentPenalties: number;
   ar: boolean;
+  hasActiveMembership?: boolean;
+  frozenUntil?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [days, setDays] = useState("14");
+  const [freezeDays, setFreezeDays] = useState("7");
+
+  const isFrozen = frozenUntil ? new Date(frozenUntil).getTime() > Date.now() : false;
+  const frozenLabel = frozenUntil
+    ? new Intl.DateTimeFormat(ar ? "ar-SA" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(frozenUntil))
+    : null;
+
+  const freeze = () =>
+    start(async () => {
+      const res = await freezeMembershipAction(memberId, Number(freezeDays));
+      if (!res.ok) { toast.error(res.error === "no_membership" ? (ar ? "لا توجد عضوية فعّالة" : "No active membership") : ar ? "تعذّر التجميد" : "Freeze failed"); return; }
+      toast.success(ar ? "تم تجميد العضوية" : "Membership frozen");
+      router.refresh();
+    });
+
+  const unfreeze = () =>
+    start(async () => {
+      const res = await unfreezeMembershipAction(memberId);
+      if (!res.ok) { toast.error(ar ? "تعذّر الإلغاء" : "Unfreeze failed"); return; }
+      toast.success(ar ? "تم استئناف العضوية" : "Membership resumed");
+      router.refresh();
+    });
 
   const active = suspendedUntil ? new Date(suspendedUntil).getTime() > Date.now() : false;
   const untilLabel = suspendedUntil
@@ -79,6 +104,29 @@ export function MemberSuspension({
           </button>
         </div>
       )}
+
+      {/* Membership freeze/pause (perk) */}
+      {hasActiveMembership ? (
+        <div className="border-t border-outline pt-3">
+          <p className="mb-2 text-meta font-medium text-primary-900">{ar ? "تجميد العضوية" : "Freeze membership"}</p>
+          {isFrozen ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-meta text-primary-700">{ar ? `مجمّدة حتى ${frozenLabel}` : `Frozen until ${frozenLabel}`}</span>
+              <button type="button" disabled={pending} onClick={unfreeze} className="rounded-pill border border-outline px-3 py-1.5 text-caption text-primary-700 disabled:opacity-50">
+                {ar ? "استئناف" : "Resume"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <input type="number" min={1} value={freezeDays} onChange={(e) => setFreezeDays(e.target.value)} className="w-20 rounded-md border border-outline px-2.5 py-1 text-caption" />
+              <span className="text-caption text-status-full">{ar ? "يوم" : "days"}</span>
+              <button type="button" disabled={pending} onClick={freeze} className="rounded-pill border border-outline px-3 py-1.5 text-caption text-primary-700 disabled:opacity-50">
+                {ar ? "تجميد" : "Freeze"}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
