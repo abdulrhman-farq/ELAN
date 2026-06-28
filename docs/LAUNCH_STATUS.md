@@ -53,19 +53,32 @@
 - **Playwright config** hardened: Chromium executablePath is now conditional so CI (`npx playwright install`) auto-detects the browser instead of failing on the sandbox path.
 - **i18n cleanup** — moved the membership "Selected" label into the dictionary; remaining Arabic literals are the intentionally Arabic-only admin/trainer console and language-toggle endonyms.
 
-## In progress / Backend (live-DB-gated)
-See `docs/BACKEND_DB_HANDOFF.md`. These require access to the live/staging Supabase DB and **cannot be safely completed from the repo alone**:
-- **Migration capture (B4, critical path)** — `_elan_membership_covers`, `_elan_add_ledger`, `elan_credit_balance`, `booking_eligibility_self`, `book_class_self`, `mark_no_show`, `checkin_by_code`, `handle_new_user`, etc. are referenced but not defined in `supabase/migrations/`.
-- **Atomic admin credit RPC (B1)** — replace the read-compute-insert ledger writes in `src/admin-actions.ts` with a DEFINER RPC (row lock + balance floor).
-- **Suspension in eligibility (B3)** — add `member_suspended_until` to `booking_eligibility`.
-- **Notification delivery (B2)** — cron worker to drain `notifications` (status `pending` → `sent`).
-- **RLS verification** — `scripts/verify_rls.sql` + CI `db reset` job.
+## Backend (Milestone 2) — written in-repo, ⏳ PENDING STAGING VALIDATION
+All artifacts below exist in the repo as **ready-to-apply, forward-only** migrations/scripts/tests. They are **not validated** — none has run against a Supabase DB. Apply to a **staging** project first (see `docs/BACKEND_DB_HANDOFF.md`), run `scripts/verify_rls.sql` + the integration suite, then promote. **Do not apply to production unverified.**
+
+- **`0018_harden_handle_new_user.sql` (S1)** — gates email-based member linking on `email_confirmed_at` (account-takeover fix) and re-points the auth trigger to fire on confirmation. ⚠️ Verify the existing trigger name + that Supabase "Confirm email" is enabled before applying.
+- **`0019_adjust_credits_admin.sql` (B1)** — atomic, staff-only, floored credit RPC (row lock + `INSUFFICIENT_CREDITS`). App wiring in `src/admin-actions.ts` flips to call it **after** it exists in the connected DB (not yet wired — see handoff).
+- **`0020_suspension_aware_eligibility.sql` (B3)** — adds a `SUSPENDED` branch to `booking_eligibility`. App side is wired now (`cta.ts` + `i18n` + class page) and is harmless until the migration lands (the function simply never returns `SUSPENDED` yet).
+- **`0021_notification_delivery_queue.sql` (B2)** — additive `attempts`/`last_error`/`updated_at` columns + partial pending index, consumed by the worker.
+- **Notification worker** — `src/app/api/cron/notifications/route.ts` + `vercel.json` cron (`*/2 * * * *`). Inert (503) without `CRON_SECRET` + `SUPABASE_SERVICE_ROLE_KEY`.
+- **B4 capture** — `scripts/dump_functions.sh` dumps the live function bodies still missing from version control; `scripts/verify_rls.sql` asserts RLS + sensitive-function grants. A full from-scratch `supabase db reset` will not pass until B4 capture is committed.
+
+### Conditional integration tests (run on staging only)
+`src/lib/__tests__/integration.test.ts` (replaces the 14 skipped stubs) covers RLS isolation, admin-action authorization, duplicate-booking, capacity, suspension-blocks-booking, and credit-floor. Gated on `SUPABASE_TEST_URL` / `SUPABASE_TEST_ANON_KEY` / `SUPABASE_TEST_SERVICE_ROLE_KEY` — **skips cleanly** without them (keeps `npm test` green), runs for real when set.
 
 ## Owner / external actions (cannot be done from repo)
 - Enable **"Confirm email"** in Supabase Auth; restrict redirect URLs (S1 — account-takeover).
 - Create the **staging Supabase project** + Vercel Preview env; set prod env vars; **rotate** the committed demo anon key.
+- Apply migrations `0018`–`0021` + the B4 capture to **staging**, run `scripts/verify_rls.sql` and the integration suite (set `SUPABASE_TEST_URL` / `SUPABASE_TEST_ANON_KEY` / `SUPABASE_TEST_SERVICE_ROLE_KEY`), then promote.
+- Set `CRON_SECRET` + `SUPABASE_SERVICE_ROLE_KEY` (server-only) so the notification worker runs; pick a messaging provider (Resend/WhatsApp) for real delivery.
 - Provision **hCaptcha** (CAPTCHA on OTP), **Sentry** DSN, **Resend** custom SMTP, uptime monitor.
 - Provide real **legal/contact facts** (registered entity, CR/VAT, DPO, address, phone, email).
+
+## Remaining true blockers (external access required)
+1. Staging Supabase project — gates all DB/RLS validation (the single biggest blocker).
+2. Supabase Auth "Confirm email" toggle — gates the S1 takeover fix going live.
+3. B4 function capture from the live DB — gates a reproducible from-scratch rebuild.
+4. Prod env vars + key rotation + branch-protection required checks — gate cutover.
 
 ## Risks
 - Middleware uses `@supabase/ssr` on the Edge runtime — build shows the known `process.version` warning from supabase-js; compiles and runs, but watch for Edge runtime issues; can pin middleware to Node runtime if needed.

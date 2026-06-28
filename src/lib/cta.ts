@@ -2,8 +2,8 @@
  * Kept side-effect-free so it can be unit-tested without a database. */
 import type { DisplayStatus } from "./queries";
 
-export type Eligibility = "ELIGIBLE" | "LEVEL_TOO_LOW" | "NO_CREDITS" | "ALREADY_BOOKED" | "BOOKING_CLOSED";
-export type CtaKey = "book" | "joinWaitlist" | "cancel" | "leaveWaitlist" | "closed" | "levelTooLow" | "noCredits" | "fullyBooked";
+export type Eligibility = "ELIGIBLE" | "LEVEL_TOO_LOW" | "NO_CREDITS" | "ALREADY_BOOKED" | "BOOKING_CLOSED" | "SUSPENDED";
+export type CtaKey = "book" | "joinWaitlist" | "cancel" | "leaveWaitlist" | "closed" | "levelTooLow" | "noCredits" | "fullyBooked" | "suspended";
 
 export interface CtaState {
   key: CtaKey;
@@ -21,6 +21,7 @@ export function ctaState(input: {
   if (myStatus === "confirmed") return { key: "cancel", variant: "muted", disabled: false, isCancel: true };
   if (myStatus === "waitlisted") return { key: "leaveWaitlist", variant: "muted", disabled: false, isCancel: true };
   if (eligibility === "BOOKING_CLOSED") return { key: "closed", variant: "disabled", disabled: true, isCancel: false };
+  if (eligibility === "SUSPENDED") return { key: "suspended", variant: "disabled", disabled: true, isCancel: false };
   if (eligibility === "LEVEL_TOO_LOW") return { key: "levelTooLow", variant: "disabled", disabled: true, isCancel: false };
   if (eligibility === "NO_CREDITS") return { key: "noCredits", variant: "disabled", disabled: true, isCancel: false };
   if (displayStatus === "waitlist_open") return { key: "joinWaitlist", variant: "primary", disabled: false, isCancel: false };

@@ -1,10 +1,37 @@
 # Backend / Database Handoff — live-DB-gated work
 
 These items change Postgres functions/RLS and **must be applied against the staging
-Supabase project first**, verified, then promoted to prod. They are documented here
-(not committed as migrations) because several depend on the *current live* function
-bodies, which are referenced from code but absent from `supabase/migrations/`.
-Applying a reconstructed body blindly risks diverging from production data behaviour.
+Supabase project first**, verified, then promoted to prod.
+
+## Status: migrations now exist as files (PENDING STAGING VALIDATION)
+
+Milestone 2 committed ready-to-apply, forward-only migrations. None has been run
+against any DB — **validate on staging before production.**
+
+| File | Workstream | Notes |
+|------|-----------|-------|
+| `0018_harden_handle_new_user.sql` | S1 | verified-email linking + trigger re-point; confirm trigger name + "Confirm email" first |
+| `0019_adjust_credits_admin.sql` | B1 | atomic staff-only credit RPC; app wiring flips after it exists in the DB |
+| `0020_suspension_aware_eligibility.sql` | B3 | `SUSPENDED` branch; app side already wired (harmless until applied) |
+| `0021_notification_delivery_queue.sql` | B2 | additive columns + index for the worker |
+| `scripts/verify_rls.sql` | B4/RLS | read-only assertions |
+| `scripts/dump_functions.sh` | B4 | captures still-missing live function bodies |
+
+**Apply order on staging:** run `scripts/dump_functions.sh` (B4) first so a clean
+`supabase db reset` succeeds, then `0018`–`0021`, then `scripts/verify_rls.sql`,
+then the integration suite with `SUPABASE_TEST_*` set.
+
+### App wiring still to flip (after migrations land on staging)
+- `src/admin-actions.ts`: replace the read-compute-insert ledger writes (~L327, L514)
+  with `rpc("adjust_credits_admin", { p_member, p_delta, p_reason, p_ref })`. Not done
+  yet because calling a not-yet-deployed function would break admin flows against the
+  current DB. Flip once `0019` is applied to the connected environment.
+
+---
+
+Original capture notes (still apply) — several functions are referenced from code
+but absent from `supabase/migrations/`; applying a reconstructed body blindly risks
+diverging from production behaviour, so capture them from the live DB.
 
 ## Step 0 — Capture ground truth (critical path, do first)
 

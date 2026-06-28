@@ -37,6 +37,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     book: t.cta.book, joinWaitlist: t.cta.joinWaitlist, cancel: t.cta.cancel,
     leaveWaitlist: t.cta.leaveWaitlist, closed: t.cta.closed, levelTooLow: t.cta.levelTooLow,
     noCredits: t.cta.noCredits, fullyBooked: t.status.fully_booked,
+    suspended: t.cta.suspended,
   };
   const label = ctaLabels[cta.key];
   const variant = cta.variant;

@@ -24,6 +24,10 @@ describe("ctaState — server-driven booking button", () => {
     expect(ctaState({ myStatus: null, eligibility: "NO_CREDITS", displayStatus: "available" }))
       .toMatchObject({ key: "noCredits", disabled: true });
   });
+  it("disables when the member is suspended", () => {
+    expect(ctaState({ myStatus: null, eligibility: "SUSPENDED", displayStatus: "available" }))
+      .toMatchObject({ key: "suspended", disabled: true });
+  });
   it("offers Join waitlist when full but waitlist open", () => {
     expect(ctaState({ myStatus: null, eligibility: "ELIGIBLE", displayStatus: "waitlist_open" }))
       .toMatchObject({ key: "joinWaitlist", disabled: false });
