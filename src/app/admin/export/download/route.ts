@@ -42,7 +42,25 @@ export async function GET(req: NextRequest) {
   const { data, error } = await anyFrom(supabase, ds.table).select(ds.cols).order("created_at", { ascending: false });
   if (error) return new NextResponse(error.message, { status: 500 });
 
-  const csv = toCsv((data ?? []) as Record<string, unknown>[]);
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const csv = toCsv(rows);
+
+  // O1 — record who exported which PII dataset and how many rows. Audit must
+  // never block the export, so failures are swallowed.
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    await anyFrom(supabase, "pricing_audit").insert({
+      actor_id: auth.user?.id ?? null,
+      action: "export",
+      entity_type: ds.table,
+      field: "rows",
+      new_value: String(rows.length),
+      reason: `CSV export: ${type}`,
+    });
+  } catch {
+    /* best-effort audit */
+  }
+
   const stamp = req.nextUrl.searchParams.get("stamp") || "export";
   return new NextResponse(csv, {
     headers: {

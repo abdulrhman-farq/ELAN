@@ -46,6 +46,10 @@
 ### QA
 - New `config.test.ts` (fail-fast). `e2e/public.spec.ts` updated for the new login UX + protected-route redirects, and extended with legal-page coverage.
 
+### Cycle 3 (safe in-repo)
+- **M2** — admin member-search `.or()` filter hardened (length cap + double-quoted, escaped values) in `src/lib/admin.ts` (both call sites).
+- **O1** — PII CSV export now writes a `pricing_audit` row (actor, dataset, row count) in `src/app/admin/export/download/route.ts` (best-effort, never blocks export).
+
 ### Cycle 2 (safe in-repo, PR #38 follow-on)
 - **Home discover** now shows upcoming bookable classes across the next 7 days (`getDiscoverClasses`), not just today; tiles show a day label.
 - **Cookie consent** notice (`CookieConsent`), bilingual/PDPL-aware, mounted in the root layout, persisted to `localStorage`, links to `/privacy`.

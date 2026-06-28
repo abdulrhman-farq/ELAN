@@ -250,8 +250,12 @@ export async function getMembersDirectory(search?: string, page = 1, pageSize = 
     .order("created_at", { ascending: false })
     .range(from, to);
   if (search && search.trim()) {
-    const s = search.trim().replace(/[%,()]/g, " ");
-    q = q.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
+    // Harden the PostgREST .or() filter (M2): cap length, then wrap each value
+    // in double quotes so commas/parens/% are treated literally, and neutralize
+    // the quote/backslash that could break out of the quoted value. This keeps
+    // emails/dots searchable while preventing filter-syntax injection.
+    const s = search.trim().slice(0, 100).replace(/["\\]/g, " ");
+    q = q.or(`full_name.ilike."%${s}%",phone.ilike."%${s}%",email.ilike."%${s}%"`);
   }
   const { data } = await q;
   return (data ?? []) as MemberRow[];
@@ -1012,8 +1016,12 @@ export async function getMembersOverview(search?: string, status?: string, page 
     .order("created_at", { ascending: false });
   if (status && status.trim()) q = q.eq("lead_status", status.trim());
   if (search && search.trim()) {
-    const s = search.trim().replace(/[%,()]/g, " ");
-    q = q.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
+    // Harden the PostgREST .or() filter (M2): cap length, then wrap each value
+    // in double quotes so commas/parens/% are treated literally, and neutralize
+    // the quote/backslash that could break out of the quoted value. This keeps
+    // emails/dots searchable while preventing filter-syntax injection.
+    const s = search.trim().slice(0, 100).replace(/["\\]/g, " ");
+    q = q.or(`full_name.ilike."%${s}%",phone.ilike."%${s}%",email.ilike."%${s}%"`);
   }
   q = q.range(from, to); // fetch safeSize + 1 to detect a next page
   const { data: members } = await q;
