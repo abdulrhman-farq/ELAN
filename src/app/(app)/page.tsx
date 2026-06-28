@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getMemberContext, getMyBookings, getTimetable } from "@/lib/queries";
-import { fmtTime, fmtDayHeading, isTodayInRiyadh, todayInRiyadh } from "@/lib/format";
+import { getMemberContext, getMyBookings, getDiscoverClasses } from "@/lib/queries";
+import { fmtTime, fmtDayHeading, fmtWeekdayShort, isTodayInRiyadh } from "@/lib/format";
 import { classImage, HERO_IMAGE, INSTRUCTOR_IMAGE } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export default async function HomePage() {
   const locale = await getLocale();
   const t = dict[locale];
   const ar = locale === "ar";
-  const [ctx, bookings, todays] = await Promise.all([getMemberContext(), getMyBookings(), getTimetable(todayInRiyadh())]);
+  const [ctx, bookings, discover] = await Promise.all([getMemberContext(), getMyBookings(), getDiscoverClasses(2)]);
 
   const now = Date.now();
   const next =
@@ -20,7 +20,6 @@ export default async function HomePage() {
       .filter((b) => (b.status === "confirmed" || b.status === "waitlisted") && new Date(b.starts_at).getTime() >= now)
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0] ?? null;
   const attended = bookings.filter((b) => b.status === "attended").length;
-  const discover = todays.filter((c) => c.display_status === "available").slice(0, 2);
   const fullName = ctx.member?.full_name ?? t.appName;
   const initial = (fullName.trim()[0] ?? "·").toUpperCase();
 
@@ -86,7 +85,7 @@ export default async function HomePage() {
                   <div className="absolute inset-x-3 bottom-3 text-ink">
                     <div className="font-display text-body font-medium">{c.name_en}</div>
                     <div className="truncate text-caption text-ink/80">
-                      {(ar ? c.instructor_ar : c.instructor_en) ?? ""} · {fmtTime(c.starts_at, locale)}
+                      {isTodayInRiyadh(c.starts_at) ? t.common.today : fmtWeekdayShort(c.starts_at, locale)} · {fmtTime(c.starts_at, locale)}
                     </div>
                   </div>
                 </Link>

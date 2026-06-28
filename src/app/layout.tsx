@@ -4,6 +4,7 @@ import "./globals.css";
 import { dirFor, dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { fontVariables } from "@/lib/fonts";
+import { CookieConsent } from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
   title: "ÉLAN",
@@ -30,6 +31,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </head>
       <body className="font-sans">
         <div data-app={dict[locale].appName}>{children}</div>
+        <CookieConsent
+          message={dict[locale].cookies.message}
+          accept={dict[locale].cookies.accept}
+          learnMore={dict[locale].cookies.learnMore}
+        />
       </body>
     </html>
   );

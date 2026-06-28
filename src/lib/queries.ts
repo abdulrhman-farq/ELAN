@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { getServerSupabase, rpc } from "./supabase/server";
-import { dayBoundsUtc } from "./format";
+import { dayBoundsUtc, todayInRiyadh } from "./format";
 import { DEMO } from "./demo";
 import { mockBooking, mockBookings, mockCatalogue, mockClassById, mockClasses, mockMemberContext } from "./mock";
 
@@ -117,6 +117,24 @@ export async function getTimetable(date: string) {
   // demo showcase only fills in mock classes when there is no real schedule.
   if (realId || !DEMO) return rows;
   return rows.length ? rows : mockClasses(date);
+}
+
+/** Upcoming bookable classes for the home "Discover" rail — looks ahead across
+ *  the next week (not just today) so the rail isn't empty late in the day or when
+ *  today is full. Returns only future, still-available instances, soonest first. */
+export async function getDiscoverClasses(limit = 4) {
+  const realId = await currentRealMemberId();
+  const now = Date.now();
+  if (!realId && DEMO) {
+    return mockClasses(todayInRiyadh())
+      .filter((c) => c.display_status === "available")
+      .slice(0, limit);
+  }
+  const rows = await fetchBetween(new Date(now).toISOString(), new Date(now + 7 * 86400000).toISOString());
+  return rows
+    .filter((c) => c.display_status === "available" && new Date(c.starts_at).getTime() >= now)
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+    .slice(0, limit);
 }
 
 export async function getClass(id: string): Promise<{ card: ClassCardData; eligibility: string }> {

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
 
 /**
  * Playwright e2e config for ÉLAN.
@@ -13,7 +14,10 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORT = Number(process.env.PORT ?? 3000);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
+// Use the managed-sandbox Chromium when present; otherwise (e.g. GitHub CI after
+// `npx playwright install`) leave executablePath unset so Playwright auto-detects.
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const CHROMIUM_EXEC = existsSync(CHROMIUM) ? CHROMIUM : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -30,7 +34,7 @@ export default defineConfig({
     trace: "on",
     video: "on",
     screenshot: "on",
-    launchOptions: { executablePath: CHROMIUM },
+    launchOptions: CHROMIUM_EXEC ? { executablePath: CHROMIUM_EXEC } : undefined,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // Skip the managed server when pointing at an already-running URL.

@@ -40,6 +40,13 @@
 ### QA
 - New `config.test.ts` (fail-fast). `e2e/public.spec.ts` updated for the new login UX + protected-route redirects, and extended with legal-page coverage.
 
+### Cycle 2 (safe in-repo, PR #38 follow-on)
+- **Home discover** now shows upcoming bookable classes across the next 7 days (`getDiscoverClasses`), not just today; tiles show a day label.
+- **Cookie consent** notice (`CookieConsent`), bilingual/PDPL-aware, mounted in the root layout, persisted to `localStorage`, links to `/privacy`.
+- **Accessibility tests** — `@axe-core/playwright` + `e2e/a11y.spec.ts` scanning `/login`, `/privacy`, `/terms`, `/contact` for serious/critical WCAG 2 A/AA violations.
+- **Playwright config** hardened: Chromium executablePath is now conditional so CI (`npx playwright install`) auto-detects the browser instead of failing on the sandbox path.
+- **i18n cleanup** — moved the membership "Selected" label into the dictionary; remaining Arabic literals are the intentionally Arabic-only admin/trainer console and language-toggle endonyms.
+
 ## In progress / Backend (live-DB-gated)
 See `docs/BACKEND_DB_HANDOFF.md`. These require access to the live/staging Supabase DB and **cannot be safely completed from the repo alone**:
 - **Migration capture (B4, critical path)** — `_elan_membership_covers`, `_elan_add_ledger`, `elan_credit_balance`, `booking_eligibility_self`, `book_class_self`, `mark_no_show`, `checkin_by_code`, `handle_new_user`, etc. are referenced but not defined in `supabase/migrations/`.

@@ -50,7 +50,7 @@ export function MembershipCards({
     });
   };
 
-  const selectedLabel = locale === "ar" ? "محدد" : "Selected";
+  const selectedLabel = t.memberships.selected;
 
   return (
     <div className="space-y-3">

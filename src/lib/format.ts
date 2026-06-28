@@ -29,6 +29,11 @@ export function fmtTime(iso: string, locale: Locale): string {
   }).format(new Date(iso));
 }
 
+/** Short weekday (e.g. "Mon" / "الاثنين") for an instant, in Riyadh time. */
+export function fmtWeekdayShort(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { timeZone: TZ, weekday: "short" }).format(new Date(iso));
+}
+
 export function fmtDayNum(date: string): string {
   return String(new Date(`${date}T00:00:00+03:00`).getUTCDate());
 }
