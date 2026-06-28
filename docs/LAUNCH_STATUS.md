@@ -12,7 +12,13 @@
 | `npm run typecheck` | ✅ pass | clean |
 | `npm test` | ✅ pass | 39 passing, 14 skipped (live-DB integration — see Backend) |
 | `npm run build` | ✅ pass | with Supabase env set; **fails fast without env by design** |
-| `npm run test:e2e` | ⏳ CI | runs in CI `e2e` job (needs Playwright browsers) |
+| e2e — public/legal/a11y | ✅ CI (required) | `e2e-public` job; deterministic, no secrets needed |
+| e2e — authenticated/member/admin | ⏳ pending staging | `e2e-authenticated` job; **non-blocking** (`continue-on-error`), runs only when `E2E_*` secrets exist |
+
+### CI jobs & required checks
+- **Required (must pass to merge):** `verify` (lint · typecheck · unit tests · build) and `e2e-public` (public + legal + a11y).
+- **Non-blocking:** `e2e-authenticated` — gated on staging `E2E_*` secrets; no-ops with a CI notice until staging Supabase is provisioned, and `continue-on-error: true` so it never fails the PR.
+- ⚠️ **Owner action:** in GitHub branch-protection for `main`, add `verify` and `e2e-public` as required status checks; do **not** add `e2e-authenticated`. (Branch protection is a repo setting, not in the YAML.)
 
 ## Done (implemented + verified in-repo)
 
