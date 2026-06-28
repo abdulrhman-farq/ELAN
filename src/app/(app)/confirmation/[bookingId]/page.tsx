@@ -5,6 +5,7 @@ import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
 import { getBooking } from "@/lib/queries";
 import { fmtDayHeading, fmtTime } from "@/lib/format";
+import { googleCalendarUrl } from "@/lib/ics";
 import { Icon } from "@/components/Icon";
 import { HERO_IMAGE, INSTRUCTOR_IMAGE } from "@/lib/classColor";
 
@@ -25,6 +26,9 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
   const waitlisted = b.status === "waitlisted";
   const heroTitle = waitlisted ? t.confirmation.waitlistTitle : t.confirmation.title;
   const heroSubtitle = waitlisted ? t.confirmation.waitlistSubtitle : t.confirmation.subtitle;
+  const calendarUrl = waitlisted
+    ? null
+    : googleCalendarUrl({ title: b.name_en, startIso: b.starts_at, endIso: b.ends_at, location: t.confirmation.studio });
 
   return (
     <section className="pb-10">
@@ -57,6 +61,9 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ b
         </div>
 
         <Link href="/bookings" className="btn-primary mt-5 w-full">{t.confirmation.viewBookings}</Link>
+        {calendarUrl ? (
+          <a href={calendarUrl} target="_blank" rel="noopener noreferrer" className="btn-outline mt-2.5 w-full">{t.confirmation.addCalendar}</a>
+        ) : null}
         <Link href="/schedule" className="btn-outline mt-2.5 w-full">{t.timetable.title}</Link>
       </div>
     </section>

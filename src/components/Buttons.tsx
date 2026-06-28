@@ -1,7 +1,7 @@
 "use client";
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { bookAction, cancelAction, purchaseAction, setLocaleAction, signOutAction } from "@/actions";
+import { bookAction, cancelAction, setLocaleAction, signOutAction } from "@/actions";
 import { dict, type Locale } from "@/lib/i18n";
 import { useToast } from "./Toast";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -79,7 +79,7 @@ export function CtaButton({
       <ConfirmDialog
         open={confirmOpen}
         title={t.cancelDialog.title}
-        body={t.cancelDialog.body}
+        body={`${t.cancelDialog.body}\n\n${t.cancelDialog.policy}`}
         meta={cancelMeta}
         confirmLabel={t.cancelDialog.confirm}
         cancelLabel={t.cancelDialog.keep}
@@ -132,7 +132,7 @@ export function CancelLink({
       <ConfirmDialog
         open={open}
         title={t.cancelDialog.title}
-        body={t.cancelDialog.body}
+        body={`${t.cancelDialog.body}\n\n${t.cancelDialog.policy}`}
         meta={classMeta}
         confirmLabel={t.cancelDialog.confirm}
         cancelLabel={t.cancelDialog.keep}
@@ -142,40 +142,6 @@ export function CancelLink({
         onClose={() => !pending && setOpen(false)}
       />
     </>
-  );
-}
-
-export function BuyButton({
-  type, refId, label, locale,
-}: {
-  type: "membership" | "credit_pack";
-  refId: string;
-  label: string;
-  locale: Locale;
-}) {
-  const router = useRouter();
-  const toast = useToast();
-  const t = dict[locale];
-  const [pending, start] = useTransition();
-  return (
-    <Button
-      size="sm"
-      className="shrink-0"
-      isLoading={pending}
-      onClick={() =>
-        start(async () => {
-          const res = await purchaseAction(type, refId);
-          if (res && "error" in res && res.error) toast.error(t.toast.purchaseFailed);
-          else {
-            // Purchase creates a pending payment; credits arrive once it is confirmed.
-            toast.success("pending" in res && res.pending ? t.toast.purchasePending : t.toast.purchased);
-            router.refresh();
-          }
-        })
-      }
-    >
-      {label}
-    </Button>
   );
 }
 

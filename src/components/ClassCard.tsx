@@ -55,7 +55,7 @@ export function ClassCard({
       <div className="min-w-[2.5rem] shrink-0 text-center">
         <div className="font-number text-lead font-medium text-primary-900">{fmtTime(card.starts_at, locale)}</div>
       </div>
-      <Image src={classImage(name)} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover ring-1 ring-outline" />
+      <Image src={classImage(name)} alt={name} width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover ring-1 ring-outline" />
       <div className="min-w-0 flex-1">
         <div className="font-display text-body font-medium leading-tight text-primary-900">{name}</div>
         <div className="mt-0.5 flex items-center gap-1.5 truncate text-caption">

@@ -94,7 +94,7 @@ export function ConfirmDialog({
         <h2 id="confirm-title" className="font-display text-title font-medium text-primary-900">
           {title}
         </h2>
-        <p id="confirm-body" className="mt-2 text-meta text-status-full">
+        <p id="confirm-body" className="mt-2 whitespace-pre-line text-meta text-status-full">
           {body}
         </p>
         {meta ? <p className="mt-2 text-meta font-medium text-primary-900">{meta}</p> : null}

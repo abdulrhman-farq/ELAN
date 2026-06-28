@@ -44,7 +44,7 @@ export default async function HomePage() {
       <div className="space-y-5 px-6">
         {next ? (
           <Link href="/bookings" className="card relative -mt-16 flex items-center gap-3 p-4">
-            <Image src={classImage(next.name_en)} alt="" width={80} height={80} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+            <Image src={classImage(next.name_en)} alt={next.name_en} width={80} height={80} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
             <div className="min-w-0 flex-1">
               <h3 className="font-display text-title font-medium text-primary-900">{next.name_en}</h3>
               <p className="mt-0.5 truncate text-caption text-status-full">
@@ -80,7 +80,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-3">
               {discover.map((c) => (
                 <Link key={c.id} href={`/class/${c.id}`} className="relative h-36 overflow-hidden rounded-lg">
-                  <Image src={classImage(c.name_en)} alt="" fill sizes="(min-width:768px) 360px, 50vw" className="object-cover" />
+                  <Image src={classImage(c.name_en)} alt={c.name_en} fill sizes="(min-width:768px) 360px, 50vw" className="object-cover" />
                   <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 25%,rgba(17,13,10,.88))" }} />
                   <div className="absolute inset-x-3 bottom-3 text-ink">
                     <div className="font-display text-body font-medium">{c.name_en}</div>

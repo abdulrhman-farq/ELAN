@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { dict, type Locale } from "@/lib/i18n";
+import { captureException } from "@/lib/observability";
 
 function clientLocale(): Locale {
   if (typeof document === "undefined") return "ar";
@@ -12,7 +13,7 @@ function clientLocale(): Locale {
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // Surface the error to monitoring; never swallow it silently.
-    console.error("[route error]", error);
+    captureException(error, { boundary: "route", digest: error.digest });
   }, [error]);
 
   const t = dict[clientLocale()].errors;

@@ -51,6 +51,7 @@ export const dict = {
     cancelDialog: {
       title: "تأكيد إلغاء الحجز",
       body: "هل تريدين إلغاء حجزكِ في هذه الحصة؟",
+      policy: "ملاحظة: الإلغاء المتأخر أو عدم الحضور قد يؤدي إلى خصم رصيد أو إيقاف مؤقت للحجز.",
       confirm: "إلغاء الحجز",
       keep: "الاحتفاظ بالحجز",
     },
@@ -109,6 +110,7 @@ export const dict = {
     cancelDialog: {
       title: "Cancel booking",
       body: "Would you like to cancel your spot in this class?",
+      policy: "Note: late cancellation or a no-show may cost a credit or temporarily suspend booking.",
       confirm: "Cancel booking",
       keep: "Keep booking",
     },

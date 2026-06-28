@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { dict, type Locale, dirFor } from "@/lib/i18n";
+import { captureException } from "@/lib/observability";
 
 function clientLocale(): Locale {
   if (typeof document === "undefined") return "ar";
@@ -11,7 +12,7 @@ function clientLocale(): Locale {
 // global-error replaces the root layout, so it must render its own <html>/<body>.
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error("[global error]", error);
+    captureException(error, { boundary: "global", digest: error.digest });
   }, [error]);
 
   const locale = clientLocale();

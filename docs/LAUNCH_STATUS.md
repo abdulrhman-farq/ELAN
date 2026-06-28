@@ -46,6 +46,14 @@
 ### QA
 - New `config.test.ts` (fail-fast). `e2e/public.spec.ts` updated for the new login UX + protected-route redirects, and extended with legal-page coverage.
 
+### Cycle 4 (safe in-repo, 5 parallel workstreams)
+- **D2 Observability** — Sentry wired (`instrumentation.ts`, `instrumentation-client.ts`, `src/lib/observability.ts`); error boundaries now `captureException`. **Inert without `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN`**; source-map upload via `withSentryConfig` left as an optional owner follow-up.
+- **U1** — cancel dialog now shows a late-cancel/no-show **penalty policy** note (`cancelDialog.policy`, both locales); `ConfirmDialog` body renders multi-line.
+- **M4** — removed the dead/duplicate `BuyButton` from `Buttons.tsx`.
+- **M1** — "Add to calendar" (Google Calendar link via `src/lib/ics.ts`) on confirmed bookings.
+- **M3** — meaningful `alt` on class thumbnails (ClassCard, home next-class + discover); decorative hero/instructor images correctly stay `alt=""`.
+- **DevOps runbooks** — `docs/RELEASE_CHECKLIST.md`, `docs/INCIDENT_RESPONSE.md`, `docs/RUNBOOK.md`.
+
 ### Cycle 3 (safe in-repo)
 - **M2** — admin member-search `.or()` filter hardened (length cap + double-quoted, escaped values) in `src/lib/admin.ts` (both call sites).
 - **O1** — PII CSV export now writes a `pricing_audit` row (actor, dataset, row count) in `src/app/admin/export/download/route.ts` (best-effort, never blocks export).
