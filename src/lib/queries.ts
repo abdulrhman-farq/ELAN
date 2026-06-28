@@ -268,6 +268,20 @@ export async function getMyNotifications(limit = 30): Promise<NotificationEntry[
   }
 }
 
+/** The current member's loyalty points balance. */
+export async function getMyPoints(): Promise<number> {
+  const realId = await currentRealMemberId();
+  if (!realId) return 0;
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await rpc<number>(supabase, "elan_points_balance", { p_member: realId });
+    return data ?? 0;
+  } catch (e) {
+    console.error("getMyPoints failed", e);
+    return 0;
+  }
+}
+
 /** The current member's personal check-in code (shown at the studio). */
 export async function getMyCheckinCode(): Promise<string | null> {
   const realId = await currentRealMemberId();
