@@ -8,6 +8,7 @@ import { fmtLongDateTime, levelLabel, fmtTime, fmtDayHeading } from "@/lib/forma
 import { ctaState, type Eligibility } from "@/lib/cta";
 import { CtaButton } from "@/components/Buttons";
 import { WatchButton } from "@/components/WatchButton";
+import { GuestPassButton } from "@/components/GuestPassButton";
 import { Icon } from "@/components/Icon";
 import { classImage } from "@/lib/classColor";
 
@@ -75,6 +76,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       <div className="sticky-cta mx-auto max-w-md">
         <CtaButton classInstanceId={c.id} bookingId={bookingId} label={label} variant={variant} disabled={disabled} locale={locale} cancelMeta={cancelMeta} />
         {canWatch ? <WatchButton classInstanceId={c.id} watching={watching} ar={locale === "ar"} /> : null}
+        {c.display_status === "available" ? <GuestPassButton classInstanceId={c.id} ar={locale === "ar"} /> : null}
       </div>
     </section>
   );

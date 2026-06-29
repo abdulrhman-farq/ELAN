@@ -157,6 +157,10 @@ export interface RosterEntry {
   full_name: string;
   phone: string | null;
   level: "level_1" | "level_1_5" | "level_2";
+  /** Guest pass: this seat is a guest brought by the host member (تصاريح الضيوف). */
+  is_guest: boolean;
+  /** Host member's name when is_guest is true. */
+  host_name: string | null;
 }
 
 export interface ClassRoster {
@@ -186,7 +190,7 @@ export async function getClassRoster(id: string): Promise<ClassRoster | null> {
   const [ctR, insR, rowsR] = await Promise.all([
     c.class_type_id ? anyFrom(supabase, "class_types").select("name_ar,name_en").eq("id", c.class_type_id).maybeSingle() : Promise.resolve({ data: null }),
     c.instructor_id ? anyFrom(supabase, "instructors").select("name_ar,name_en").eq("id", c.instructor_id).maybeSingle() : Promise.resolve({ data: null }),
-    anyFrom(supabase, "bookings").select("id,status,waitlist_position,member_id").eq("class_instance_id", id).order("waitlist_position", { ascending: true }),
+    anyFrom(supabase, "bookings").select("id,status,waitlist_position,member_id,is_guest,guest_name,guest_phone").eq("class_instance_id", id).order("waitlist_position", { ascending: true }),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (rowsR.data ?? []) as any[];
@@ -200,14 +204,17 @@ export async function getClassRoster(id: string): Promise<ClassRoster | null> {
   const entries: RosterEntry[] = rows.map((b) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = mm.get(b.member_id) as any;
+    const guest = Boolean(b.is_guest);
     return {
       booking_id: b.id,
       status: b.status,
       waitlist_position: b.waitlist_position,
       member_id: b.member_id ?? "",
-      full_name: m?.full_name ?? "—",
-      phone: m?.phone ?? null,
+      full_name: guest ? (b.guest_name ?? "—") : (m?.full_name ?? "—"),
+      phone: guest ? (b.guest_phone ?? null) : (m?.phone ?? null),
       level: m?.level ?? "level_1",
+      is_guest: guest,
+      host_name: guest ? (m?.full_name ?? null) : null,
     };
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

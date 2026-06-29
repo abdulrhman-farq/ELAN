@@ -154,7 +154,7 @@ export async function getMyBookings() {
     // when the booking existed). Fetch bookings, then resolve class/type/instructor
     // by id and join in JS. RLS already scopes bookings to the current member.
     const { data: bks, error } = await q(supabase, "bookings")
-      .select("id,status,waitlist_position,created_at,class_instance_id")
+      .select("id,status,waitlist_position,created_at,class_instance_id,is_guest,guest_name")
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[bookings] query error", error.message ?? error);
@@ -200,6 +200,7 @@ export async function getMyBookings() {
         starts_at: ci?.starts_at ?? "", ends_at: ci?.ends_at ?? "",
         name_ar: ct?.name_ar ?? "", name_en: ct?.name_en ?? "",
         instructor_ar: ins?.name_ar ?? null, instructor_en: ins?.name_en ?? null,
+        is_guest: Boolean(b.is_guest), guest_name: (b.guest_name as string | null) ?? null,
       };
     });
   } catch (e) {
