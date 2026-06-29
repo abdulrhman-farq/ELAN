@@ -11,7 +11,7 @@ export const dict = {
   ar: {
     appName: "ÉLAN",
     tagline: "استوديو بيلاتس للسيدات · الرياض",
-    tabs: { home: "الرئيسية", timetable: "الجدول", bookings: "حجوزاتي", memberships: "العضويات", profile: "حسابي" },
+    tabs: { home: "الرئيسية", timetable: "الجدول", bookings: "حجوزاتي", memberships: "العضويات", workshops: "الورش", profile: "حسابي" },
     home: { greeting: "مساء الخير،", nextClass: "حصتك القادمة", viewDetails: "عرض التفاصيل", none: "لا توجد حصة قادمة", balance: "رصيد الحصص", attended: "حصص تم حضورها", discover: "اكتشفي الحصص", all: "الكل" },
     confirmation: { title: "تم تأكيد حجزك", subtitle: "أرسلنا لكِ تذكيرًا قبل الموعد بساعة", date: "التاريخ", time: "الوقت", place: "المكان", with: "مع المدربة", addCalendar: "إضافة إلى التقويم", viewBookings: "عرض حجوزاتي", studio: "الرياض" },
     common: { loading: "جارٍ التحميل…", error: "حدث خطأ", today: "اليوم", sar: "ر.س", buy: "شراء", cancel: "إلغاء", minutes: "دقيقة", back: "رجوع" },
@@ -66,7 +66,7 @@ export const dict = {
   en: {
     appName: "ÉLAN",
     tagline: "Women's Pilates Studio · Riyadh",
-    tabs: { home: "Home", timetable: "Schedule", bookings: "Bookings", memberships: "Memberships", profile: "Profile" },
+    tabs: { home: "Home", timetable: "Schedule", bookings: "Bookings", memberships: "Memberships", workshops: "Workshops", profile: "Profile" },
     home: { greeting: "Good evening,", nextClass: "Your next class", viewDetails: "View details", none: "No upcoming class", balance: "Credits", attended: "Classes attended", discover: "Discover classes", all: "All" },
     confirmation: { title: "Booking confirmed", subtitle: "We'll remind you an hour before.", date: "Date", time: "Time", place: "Location", with: "with", addCalendar: "Add to calendar", viewBookings: "View my bookings", studio: "Riyadh" },
     common: { loading: "Loading…", error: "Something went wrong", today: "Today", sar: "SAR", buy: "Buy", cancel: "Cancel", minutes: "mins", back: "Back" },

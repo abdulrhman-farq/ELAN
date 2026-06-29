@@ -1,6 +1,6 @@
 import { dict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale-server";
-import { getCatalogue, getMemberContext } from "@/lib/queries";
+import { getCatalogue, getMemberContext, getMyFirstTime } from "@/lib/queries";
 import { MembershipCards } from "@/components/MembershipCards";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -10,28 +10,37 @@ export default async function MembershipsPage() {
   const locale = await getLocale();
   const t = dict[locale];
   const ar = locale === "ar";
-  const [{ plans, packs }, ctx] = await Promise.all([getCatalogue(), getMemberContext()]);
+  const [{ plans, packs }, ctx, firstTime] = await Promise.all([getCatalogue(), getMemberContext(), getMyFirstTime()]);
   const planName = ctx.membership?.membership_plans
     ? ar ? ctx.membership.membership_plans.name_ar : ctx.membership.membership_plans.name_en
     : null;
 
-  const planItems = plans.map((p) => ({
-    id: p.id,
-    name: ar ? p.name_ar : p.name_en,
-    meta: (ar ? p.description_ar : p.description_en) ?? "",
-    price: p.price_sar,
-    featured: Boolean((p as { featured?: boolean }).featured),
-  }));
-  const packItems = packs.map((p) => {
-    const desc = (ar ? (p as { description_ar?: string }).description_ar : (p as { description_en?: string }).description_en) ?? "";
-    const line1 = `${t.memberships.credits.replace("{n}", String(p.credits))} · ${t.memberships.validDays.replace("{n}", String(p.valid_days))}`;
-    return {
+  // First-visit-only offers are hidden from members who are no longer first-time.
+  // (first_time_only is not yet in the generated DB types — read via a cast.)
+  const isIntro = (p: unknown) => Boolean((p as { first_time_only?: boolean }).first_time_only);
+  const planItems = plans
+    .filter((p) => firstTime || !isIntro(p))
+    .map((p) => ({
       id: p.id,
       name: ar ? p.name_ar : p.name_en,
-      meta: desc ? `${line1}\n${desc}` : line1,
+      meta: (ar ? p.description_ar : p.description_en) ?? "",
       price: p.price_sar,
-    };
-  });
+      featured: Boolean((p as { featured?: boolean }).featured),
+      intro: isIntro(p),
+    }));
+  const packItems = packs
+    .filter((p) => firstTime || !isIntro(p))
+    .map((p) => {
+      const desc = (ar ? (p as { description_ar?: string }).description_ar : (p as { description_en?: string }).description_en) ?? "";
+      const line1 = `${t.memberships.credits.replace("{n}", String(p.credits))} · ${t.memberships.validDays.replace("{n}", String(p.valid_days))}`;
+      return {
+        id: p.id,
+        name: ar ? p.name_ar : p.name_en,
+        meta: desc ? `${line1}\n${desc}` : line1,
+        price: p.price_sar,
+        intro: isIntro(p),
+      };
+    });
 
   return (
     <section className="space-y-6 p-6">

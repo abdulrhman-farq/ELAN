@@ -154,7 +154,7 @@ export async function getMyBookings() {
     // when the booking existed). Fetch bookings, then resolve class/type/instructor
     // by id and join in JS. RLS already scopes bookings to the current member.
     const { data: bks, error } = await q(supabase, "bookings")
-      .select("id,status,waitlist_position,created_at,class_instance_id")
+      .select("id,status,waitlist_position,created_at,class_instance_id,is_guest,guest_name")
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[bookings] query error", error.message ?? error);
@@ -200,6 +200,7 @@ export async function getMyBookings() {
         starts_at: ci?.starts_at ?? "", ends_at: ci?.ends_at ?? "",
         name_ar: ct?.name_ar ?? "", name_en: ct?.name_en ?? "",
         instructor_ar: ins?.name_ar ?? null, instructor_en: ins?.name_en ?? null,
+        is_guest: Boolean(b.is_guest), guest_name: (b.guest_name as string | null) ?? null,
       };
     });
   } catch (e) {
@@ -279,6 +280,22 @@ export async function getMyPoints(): Promise<number> {
   } catch (e) {
     console.error("getMyPoints failed", e);
     return 0;
+  }
+}
+
+/** Is the current member eligible for first-visit-only intro offers?
+ *  True when they have never paid and never held a class seat. Unlinked /
+ *  demo viewers are treated as first-time so the intro offer is visible. */
+export async function getMyFirstTime(): Promise<boolean> {
+  const realId = await currentRealMemberId();
+  if (!realId) return true;
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await rpc<boolean>(supabase, "elan_is_first_time", { p_member: realId });
+    return data ?? false;
+  } catch (e) {
+    console.error("getMyFirstTime failed", e);
+    return false;
   }
 }
 
@@ -405,6 +422,63 @@ export async function getCatalogue() {
     console.error("getCatalogue failed", e);
     if (DEMO) return mockCatalogue();
     throw e;
+  }
+}
+
+export interface WorkshopCardData {
+  id: string;
+  title_ar: string;
+  title_en: string;
+  description_ar: string | null;
+  description_en: string | null;
+  starts_at: string;
+  ends_at: string;
+  capacity: number;
+  seats_left: number;
+  price_gross_halalas: number;
+  instructor_ar: string | null;
+  instructor_en: string | null;
+  location: string | null;
+  image_url: string | null;
+  my_registration_id: string | null;
+}
+
+/** Active upcoming workshops with seat counts + the member's own registration. */
+export async function getWorkshops(): Promise<WorkshopCardData[]> {
+  if (DEMO && !(await currentRealMemberId())) return [];
+  try {
+    const supabase = await getServerSupabase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await rpc<any[]>(supabase, "list_workshops");
+    if (error || !data) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = data as any[];
+    const instrIds = [...new Set(rows.map((w) => w.instructor_id).filter(Boolean))];
+    const { data: instrs } = instrIds.length
+      ? await q(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds)
+      : { data: [] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const im = new Map((instrs ?? []).map((i: any) => [i.id, i]));
+    return rows.map((w) => {
+      const net = Number(w.price_net_halalas) || 0;
+      const vatBps = Number(w.vat_bps) || 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ins = w.instructor_id ? (im.get(w.instructor_id) as any) : null;
+      return {
+        id: w.id, title_ar: w.title_ar, title_en: w.title_en,
+        description_ar: w.description_ar, description_en: w.description_en,
+        starts_at: w.starts_at, ends_at: w.ends_at,
+        capacity: Number(w.capacity) || 0,
+        seats_left: Math.max(0, (Number(w.capacity) || 0) - (Number(w.registered_count) || 0)),
+        price_gross_halalas: net + Math.round((net * vatBps) / 10000),
+        instructor_ar: ins?.name_ar ?? null, instructor_en: ins?.name_en ?? null,
+        location: w.location ?? null, image_url: w.image_url ?? null,
+        my_registration_id: w.my_registration_id ?? null,
+      };
+    });
+  } catch (e) {
+    console.error("getWorkshops failed", e);
+    return [];
   }
 }
 

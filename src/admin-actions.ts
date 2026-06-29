@@ -6,6 +6,8 @@ import {
   computePrice,
   grossFromNet,
   creditsGrantedFor,
+  netFromGross,
+  sarToHalalas,
   DEFAULT_CLASS_NET_HALALAS,
   type DiscountType,
   type DiscountKind,
@@ -1059,4 +1061,179 @@ export async function generateScheduleAction(
   revalidatePath("/admin");
   revalidatePath("/schedule");
   return { ok: true, created: rows.length, unassigned };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Catalogue offers: toggle active / featured / first-time-only on packs and
+   plans. Admin-gated; every change is written to the pricing_audit trail.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Toggle offer flags on a credit pack. */
+export async function setCreditPackOffersAction(
+  packId: string,
+  input: { active?: boolean; first_time_only?: boolean },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, boolean> = {};
+  if (typeof input.active === "boolean") patch.active = input.active;
+  if (typeof input.first_time_only === "boolean") patch.first_time_only = input.first_time_only;
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const { error } = await tbl(supabase, "credit_packs").update(patch).eq("id", packId);
+  if (error) return { ok: false, error: error.message };
+  for (const [field, value] of Object.entries(patch)) {
+    await writeAudit(supabase, userId, {
+      entity_type: "credit_pack", entity_id: packId, action: "update",
+      field, new_value: String(value), reason: "offer_toggle",
+    });
+  }
+  revalidatePath("/admin/offers");
+  revalidatePath("/memberships");
+  return { ok: true };
+}
+
+/** Toggle offer flags on a membership plan. */
+export async function setMembershipPlanOffersAction(
+  planId: string,
+  input: { active?: boolean; featured?: boolean; first_time_only?: boolean },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, boolean> = {};
+  if (typeof input.active === "boolean") patch.active = input.active;
+  if (typeof input.featured === "boolean") patch.featured = input.featured;
+  if (typeof input.first_time_only === "boolean") patch.first_time_only = input.first_time_only;
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const { error } = await tbl(supabase, "membership_plans").update(patch).eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  for (const [field, value] of Object.entries(patch)) {
+    await writeAudit(supabase, userId, {
+      entity_type: "membership_plan", entity_id: planId, action: "update",
+      field, new_value: String(value), reason: "offer_toggle",
+    });
+  }
+  revalidatePath("/admin/offers");
+  revalidatePath("/memberships");
+  return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Workshops (الورش): standalone paid events. Create/edit are admin-gated;
+   marking attendance/payment at the desk is staff-gated.
+   ────────────────────────────────────────────────────────────────────────── */
+
+export async function createWorkshopAction(input: {
+  title_ar: string; title_en: string;
+  description_ar?: string; description_en?: string;
+  starts_at: string; ends_at: string;
+  capacity: number; price_sar: number;
+  instructor_id?: string; location?: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const title_ar = input.title_ar?.trim(); const title_en = input.title_en?.trim();
+  if (!title_ar || !title_en) return { ok: false, error: "title_required" };
+  if (!input.starts_at || !input.ends_at) return { ok: false, error: "dates_required" };
+  if (new Date(input.ends_at) <= new Date(input.starts_at)) return { ok: false, error: "bad_dates" };
+  if (!(input.capacity > 0)) return { ok: false, error: "capacity_positive" };
+  const priceNet = netFromGross(sarToHalalas(Math.max(0, input.price_sar || 0)));
+  const { data, error } = await tbl(supabase, "workshops").insert({
+    title_ar, title_en,
+    description_ar: input.description_ar?.trim() || null,
+    description_en: input.description_en?.trim() || null,
+    starts_at: input.starts_at, ends_at: input.ends_at,
+    capacity: Math.floor(input.capacity),
+    price_net_halalas: priceNet,
+    instructor_id: input.instructor_id || null,
+    location: input.location?.trim() || null,
+    active: true,
+  }).select("id").single();
+  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
+  await writeAudit(supabase, userId, {
+    entity_type: "workshop", entity_id: data.id, action: "create",
+    field: "title", new_value: title_en, reason: "workshop_create",
+  });
+  revalidatePath("/admin/workshops");
+  revalidatePath("/workshops");
+  return { ok: true, id: data.id };
+}
+
+export async function setWorkshopActiveAction(workshopId: string, active: boolean): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { error } = await tbl(supabase, "workshops").update({ active }).eq("id", workshopId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, {
+    entity_type: "workshop", entity_id: workshopId, action: "update",
+    field: "active", new_value: String(active), reason: "workshop_toggle",
+  });
+  revalidatePath("/admin/workshops");
+  revalidatePath("/workshops");
+  return { ok: true };
+}
+
+/** Mark a workshop registration's attendance and/or payment (settled at desk). */
+export async function setWorkshopRegistrationStatusAction(
+  registrationId: string,
+  input: { status?: "registered" | "cancelled" | "attended" | "no_show"; payment_status?: "unpaid" | "paid" | "refunded" },
+): Promise<ActionResult> {
+  const ctx = await staffCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, string> = {};
+  if (input.status) patch.status = input.status;
+  if (input.payment_status) patch.payment_status = input.payment_status;
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const { error } = await tbl(supabase, "workshop_registrations").update(patch).eq("id", registrationId);
+  if (error) return { ok: false, error: error.message };
+  for (const [field, value] of Object.entries(patch)) {
+    await writeAudit(supabase, userId, {
+      entity_type: "workshop_registration", entity_id: registrationId, action: "update",
+      field, new_value: value, reason: "workshop_reg_update",
+    });
+  }
+  revalidatePath("/admin/workshops");
+  return { ok: true };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Credit rollover (تدوير الرصيد): per-plan carry-over cap + bank-at-renewal.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Set a plan's carry-over cap (unused classes banked at renewal; 0 = off). */
+export async function setMembershipPlanRolloverAction(planId: string, rolloverMax: number): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const max = Math.max(0, Math.floor(rolloverMax || 0));
+  const { error } = await tbl(supabase, "membership_plans").update({ rollover_max: max }).eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, {
+    entity_type: "membership_plan", entity_id: planId, action: "update",
+    field: "rollover_max", new_value: String(max), reason: "rollover_config",
+  });
+  revalidatePath("/admin/offers");
+  return { ok: true };
+}
+
+/** Bank a member's unused classes as carry-over credits (capped by plan). */
+export async function applyRolloverAction(memberId: string): Promise<{ ok: true; granted: number } | { ok: false; error: string }> {
+  const ctx = await staffCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { data, error } = await rpc<number>(supabase, "apply_membership_rollover", { p_member: memberId });
+  if (error) return { ok: false, error: error.message };
+  const granted = (data as number) ?? 0;
+  if (granted > 0) {
+    await writeAudit(supabase, userId, {
+      entity_type: "member", entity_id: memberId, action: "rollover",
+      field: "credits", new_value: String(granted), reason: "membership_rollover",
+    });
+  }
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true, granted };
 }

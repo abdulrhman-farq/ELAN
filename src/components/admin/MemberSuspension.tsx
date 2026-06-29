@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { suspendMemberAction, liftSuspensionAction, freezeMembershipAction, unfreezeMembershipAction } from "@/admin-actions";
+import { suspendMemberAction, liftSuspensionAction, freezeMembershipAction, unfreezeMembershipAction, applyRolloverAction } from "@/admin-actions";
 import { useToast } from "@/components/Toast";
 
 /** Admin control: shows suspension status + recent penalties, with suspend / lift,
- *  plus membership freeze/pause. */
+ *  plus membership freeze/pause and end-of-period credit rollover. */
 export function MemberSuspension({
   memberId, suspendedUntil, recentPenalties, ar, hasActiveMembership = false, frozenUntil = null,
+  unusedClasses = 0, rolloverMax = 0,
 }: {
   memberId: string;
   suspendedUntil: string | null;
@@ -16,6 +17,8 @@ export function MemberSuspension({
   ar: boolean;
   hasActiveMembership?: boolean;
   frozenUntil?: string | null;
+  unusedClasses?: number;
+  rolloverMax?: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -41,6 +44,18 @@ export function MemberSuspension({
       const res = await unfreezeMembershipAction(memberId);
       if (!res.ok) { toast.error(ar ? "تعذّر الإلغاء" : "Unfreeze failed"); return; }
       toast.success(ar ? "تم استئناف العضوية" : "Membership resumed");
+      router.refresh();
+    });
+
+  const rollover = () =>
+    start(async () => {
+      const res = await applyRolloverAction(memberId);
+      if (!res.ok) { toast.error(ar ? "تعذّر الترحيل" : "Rollover failed"); return; }
+      toast.success(
+        res.granted > 0
+          ? ar ? `تم ترحيل ${res.granted} حصة كرصيد` : `Banked ${res.granted} class(es) as credits`
+          : ar ? "لا توجد حصص للترحيل (أو تم الترحيل مسبقًا)" : "Nothing to roll over (or already banked)",
+      );
       router.refresh();
     });
 
@@ -125,6 +140,22 @@ export function MemberSuspension({
               </button>
             </div>
           )}
+        </div>
+      ) : null}
+
+      {/* End-of-period credit rollover (تدوير الرصيد) */}
+      {hasActiveMembership && rolloverMax > 0 ? (
+        <div className="border-t border-outline pt-3">
+          <p className="mb-1 text-meta font-medium text-primary-900">{ar ? "ترحيل الرصيد عند التجديد" : "Carry-over at renewal"}</p>
+          <p className="mb-2 text-caption text-status-full">
+            {ar
+              ? `حصص غير مستخدمة هذه الفترة: ${unusedClasses} · الحد الأقصى للترحيل: ${rolloverMax}`
+              : `Unused this period: ${unusedClasses} · cap: ${rolloverMax}`}
+          </p>
+          <button type="button" disabled={pending} onClick={rollover}
+            className="rounded-pill border border-outline px-3 py-1.5 text-caption text-primary-700 disabled:opacity-50">
+            {ar ? "ترحيل الحصص كرصيد" : "Bank unused as credits"}
+          </button>
         </div>
       ) : null}
     </section>

@@ -35,6 +35,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Admin-only items — finances, settings, audit, access management.
   const adminNav = [
     { href: "/admin/reports", label: ar ? "التقارير المالية" : "Reports" },
+    { href: "/admin/workshops", label: ar ? "الورش" : "Workshops" },
+    { href: "/admin/offers", label: ar ? "العروض والباقات" : "Offers" },
     { href: "/admin/promo", label: ar ? "أكواد الخصم" : "Promo codes" },
     { href: "/admin/managers", label: ar ? "الصلاحيات" : "Roles" },
     { href: "/admin/audit", label: ar ? "سجل التدقيق" : "Audit log" },

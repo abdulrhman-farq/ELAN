@@ -94,8 +94,19 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-3 p-4">
       <div className="min-w-0">
-        <p className="truncate font-medium text-primary-900">{e.full_name}</p>
-        <p className="truncate text-xs text-status-full">{e.phone ?? ""} · {levelLabel(e.level, locale)}</p>
+        <p className="truncate font-medium text-primary-900">
+          {e.full_name}
+          {e.is_guest ? (
+            <span className="ms-2 rounded-pill bg-primary-700/10 px-2 py-0.5 text-[11px] font-medium text-primary-700">
+              {ar ? "ضيفة" : "Guest"}
+            </span>
+          ) : null}
+        </p>
+        <p className="truncate text-xs text-status-full">
+          {e.is_guest
+            ? `${ar ? "بدعوة من" : "Hosted by"} ${e.host_name ?? "—"}`
+            : `${e.phone ?? ""} · ${levelLabel(e.level, locale)}`}
+        </p>
       </div>
       {actionable ? (
         <AttendanceButtons

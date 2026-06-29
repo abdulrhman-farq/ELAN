@@ -45,6 +45,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                   <h3 className="font-display text-lead font-medium text-primary-900">{name}</h3>
                   <span className="chip chip-outline">{(t.bstatus as Record<string, string>)[b.status] ?? b.status}</span>
                 </div>
+                {(b as { is_guest?: boolean }).is_guest ? (
+                  <p className="text-meta text-primary-700">
+                    {locale === "ar" ? "حجز ضيفة" : "Guest booking"}
+                    {(b as { guest_name?: string | null }).guest_name ? ` · ${(b as { guest_name?: string | null }).guest_name}` : ""}
+                  </p>
+                ) : null}
                 <p className="text-meta text-status-full">
                   {b.starts_at ? fmtLongDateTime(b.starts_at, b.ends_at, locale) : ""}{instructor ? ` · ${instructor}` : ""}
                 </p>

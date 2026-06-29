@@ -157,6 +157,10 @@ export interface RosterEntry {
   full_name: string;
   phone: string | null;
   level: "level_1" | "level_1_5" | "level_2";
+  /** Guest pass: this seat is a guest brought by the host member (تصاريح الضيوف). */
+  is_guest: boolean;
+  /** Host member's name when is_guest is true. */
+  host_name: string | null;
 }
 
 export interface ClassRoster {
@@ -186,7 +190,7 @@ export async function getClassRoster(id: string): Promise<ClassRoster | null> {
   const [ctR, insR, rowsR] = await Promise.all([
     c.class_type_id ? anyFrom(supabase, "class_types").select("name_ar,name_en").eq("id", c.class_type_id).maybeSingle() : Promise.resolve({ data: null }),
     c.instructor_id ? anyFrom(supabase, "instructors").select("name_ar,name_en").eq("id", c.instructor_id).maybeSingle() : Promise.resolve({ data: null }),
-    anyFrom(supabase, "bookings").select("id,status,waitlist_position,member_id").eq("class_instance_id", id).order("waitlist_position", { ascending: true }),
+    anyFrom(supabase, "bookings").select("id,status,waitlist_position,member_id,is_guest,guest_name,guest_phone").eq("class_instance_id", id).order("waitlist_position", { ascending: true }),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (rowsR.data ?? []) as any[];
@@ -200,14 +204,17 @@ export async function getClassRoster(id: string): Promise<ClassRoster | null> {
   const entries: RosterEntry[] = rows.map((b) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = mm.get(b.member_id) as any;
+    const guest = Boolean(b.is_guest);
     return {
       booking_id: b.id,
       status: b.status,
       waitlist_position: b.waitlist_position,
       member_id: b.member_id ?? "",
-      full_name: m?.full_name ?? "—",
-      phone: m?.phone ?? null,
+      full_name: guest ? (b.guest_name ?? "—") : (m?.full_name ?? "—"),
+      phone: guest ? (b.guest_phone ?? null) : (m?.phone ?? null),
       level: m?.level ?? "level_1",
+      is_guest: guest,
+      host_name: guest ? (m?.full_name ?? null) : null,
     };
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -277,6 +284,8 @@ export interface MemberDetail {
   points: number; // loyalty points balance
   hasActiveMembership: boolean;
   membershipFrozenUntil: string | null;
+  unusedClasses: number; // unused classes in the current subscription period
+  rolloverMax: number; // per-plan cap on carry-over classes (0 = disabled)
   notes: MemberNote[];
   bookings: {
     id: string;
@@ -332,10 +341,17 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
       .gte("created_at", penaltyWindowIso),
     rpc<number>(supabase, "elan_points_balance", { p_member: id }),
     anyFrom(supabase, "member_memberships")
-      .select("frozen_until,current_period_end")
+      .select("plan_id,frozen_until,current_period_end")
       .eq("member_id", id).eq("status", "active")
       .order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
   ]);
+
+  // Subscription carry-over (تدوير الرصيد): unused classes this period + plan cap.
+  const { data: unusedClasses } = await rpc<number>(supabase, "elan_unused_classes", { p_member: id });
+  const planId = (mmState as { plan_id?: string } | null)?.plan_id ?? null;
+  const { data: planRow } = planId
+    ? await anyFrom(supabase, "membership_plans").select("rollover_max").eq("id", planId).maybeSingle()
+    : { data: null };
 
   return {
     member: member as MemberRow & { locale: string | null },
@@ -351,6 +367,8 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     points: (points as number) ?? 0,
     hasActiveMembership: Boolean(mmState),
     membershipFrozenUntil: (mmState as { frozen_until?: string } | null)?.frozen_until ?? null,
+    unusedClasses: (unusedClasses as number) ?? 0,
+    rolloverMax: (planRow as { rollover_max?: number } | null)?.rollover_max ?? 0,
     notes: (notes ?? []) as MemberNote[],
     bookings: (bookings ?? []).map((b) => ({
       id: b.id,
@@ -1186,4 +1204,81 @@ export async function getOverdueTasks(): Promise<MemberTask[]> {
     member_id: t.member_id,
     member_name: t.members?.full_name ?? "—",
   }));
+}
+
+/* ── Workshops (الورش) ─────────────────────────────────────────────────────── */
+
+export interface AdminWorkshopReg {
+  id: string;
+  member_id: string;
+  member_name: string;
+  member_phone: string | null;
+  status: "registered" | "cancelled" | "attended" | "no_show";
+  payment_status: "unpaid" | "paid" | "refunded";
+}
+
+export interface AdminWorkshop {
+  id: string;
+  title_ar: string;
+  title_en: string;
+  starts_at: string;
+  ends_at: string;
+  capacity: number;
+  price_net_halalas: number;
+  vat_bps: number;
+  price_gross_halalas: number;
+  active: boolean;
+  location: string | null;
+  registered_count: number;
+  registrations: AdminWorkshopReg[];
+}
+
+/** All workshops (incl. inactive/past) with their registrations, for the admin console. */
+export async function getAdminWorkshops(): Promise<AdminWorkshop[]> {
+  const supabase = await getServerSupabase();
+  const { data: ws } = await anyFrom(supabase, "workshops")
+    .select("id,title_ar,title_en,starts_at,ends_at,capacity,price_net_halalas,vat_bps,active,location")
+    .order("starts_at", { ascending: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const workshops = (ws ?? []) as any[];
+  if (workshops.length === 0) return [];
+
+  const ids = workshops.map((w) => w.id);
+  const { data: regsData } = await anyFrom(supabase, "workshop_registrations")
+    .select("id,workshop_id,member_id,status,payment_status")
+    .in("workshop_id", ids);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const regs = (regsData ?? []) as any[];
+
+  const memberIds = [...new Set(regs.map((r) => r.member_id).filter(Boolean))];
+  const { data: mems } = memberIds.length
+    ? await anyFrom(supabase, "members").select("id,full_name,phone").in("id", memberIds)
+    : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mm = new Map((mems ?? []).map((m: any) => [m.id, m]));
+
+  return workshops.map((w) => {
+    const wRegs: AdminWorkshopReg[] = regs
+      .filter((r) => r.workshop_id === w.id)
+      .map((r) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const m = mm.get(r.member_id) as any;
+        return {
+          id: r.id, member_id: r.member_id,
+          member_name: m?.full_name ?? "—", member_phone: m?.phone ?? null,
+          status: r.status, payment_status: r.payment_status,
+        };
+      });
+    const net = Number(w.price_net_halalas) || 0;
+    return {
+      id: w.id, title_ar: w.title_ar, title_en: w.title_en,
+      starts_at: w.starts_at, ends_at: w.ends_at,
+      capacity: Number(w.capacity) || 0,
+      price_net_halalas: net, vat_bps: Number(w.vat_bps) || 0,
+      price_gross_halalas: grossFromNet(net, Number(w.vat_bps) || 0),
+      active: Boolean(w.active), location: w.location ?? null,
+      registered_count: wRegs.filter((r) => r.status === "registered" || r.status === "attended").length,
+      registrations: wRegs,
+    };
+  });
 }

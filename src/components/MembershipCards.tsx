@@ -14,6 +14,8 @@ export interface CatalogueItem {
   meta: string;
   price: number;
   featured?: boolean;
+  /** First-visit-only intro offer. */
+  intro?: boolean;
 }
 
 /** Client list of purchasable catalogue items. Tapping a card selects it (ring +
@@ -41,7 +43,11 @@ export function MembershipCards({
       const res = await purchaseAction(kind, id);
       setPendingId(null);
       if (res && "error" in res && res.error) {
-        toast.error(t.toast.purchaseFailed);
+        toast.error(
+          /NOT_FIRST_TIME/.test(res.error)
+            ? locale === "ar" ? "هذا العرض متاح للزيارة الأولى فقط" : "This offer is for first-time visitors only"
+            : t.toast.purchaseFailed,
+        );
         return;
       }
       // Purchase creates a pending payment; credits arrive once it is confirmed.
@@ -77,6 +83,10 @@ export function MembershipCards({
             {p.featured ? (
               <span className="absolute -top-2 end-4 rounded-pill bg-accent px-2.5 py-0.5 text-caption font-medium text-primary-900">
                 {t.memberships.mostPopular}
+              </span>
+            ) : p.intro ? (
+              <span className="absolute -top-2 end-4 rounded-pill bg-primary-700 px-2.5 py-0.5 text-caption font-medium text-white">
+                {locale === "ar" ? "عرض التجربة الأولى" : "First-visit offer"}
               </span>
             ) : null}
             <div className="min-w-0">
