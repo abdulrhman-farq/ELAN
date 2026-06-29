@@ -22,6 +22,8 @@ touches the live studio database.
 
 Schema was cloned 1:1 from production and parity-verified:
 **29 tables · 46 functions · 49 RLS policies · 4 triggers · 1 exclusion constraint.**
+Migrations `0020`–`0023` (first-trial offers, guest passes, workshops, credit
+rollover) are applied to both staging and production.
 
 ### Public keys (safe to commit / share — RLS-gated)
 - **Anon (legacy JWT):**
@@ -41,14 +43,16 @@ Schema was cloned 1:1 from production and parity-verified:
 - **3 instructors** (نورة / سارة / ليان)
 - **3 class types** (Reformer Flow, Mat Pilates, Reformer Advanced) @ 217.39 net halalas (= 250 SAR incl. VAT)
 - **5 membership plans** (Single Class 250 · Monthly Essential 1800 · Monthly Signature 2280 *featured* · Unlimited 2900 · Annual Signature 24600)
-- **4 credit packs** (ÉLAN Trial · Essential · Balance · Transformation)
+- **4 credit packs** (ÉLAN Trial — flagged *first-visit-only* · Essential · Balance · Transformation)
 - **~20 upcoming class instances** over the next 10 days (booking already open)
+- **2 workshops** (Breath & Movement · Reformer Fundamentals)
+- **Monthly Signature** plan has `rollover_max = 4` (carry-over cap demo)
 
 ### Test logins — password for all: `ElanStaging!2026`
 
 | Role | Email | Lands on | Notes |
 |---|---|---|---|
-| Member | `member@staging.elan.test` | `/` member app | Pre-loaded with **10 credits** |
+| Member | `member@staging.elan.test` | `/` member app | **10 credits** + active **Monthly Signature** membership |
 | Trainer | `trainer@staging.elan.test` | `/trainer` | Linked to instructor "نورة" |
 | Manager | `manager@staging.elan.test` | `/admin` (ops only) | No finance/provisioning access |
 | Admin (owner) | `admin@staging.elan.test` | `/admin` (full) | Full access |
