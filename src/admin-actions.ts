@@ -1199,3 +1199,41 @@ export async function setWorkshopRegistrationStatusAction(
   revalidatePath("/admin/workshops");
   return { ok: true };
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Credit rollover (تدوير الرصيد): per-plan carry-over cap + bank-at-renewal.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Set a plan's carry-over cap (unused classes banked at renewal; 0 = off). */
+export async function setMembershipPlanRolloverAction(planId: string, rolloverMax: number): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const max = Math.max(0, Math.floor(rolloverMax || 0));
+  const { error } = await tbl(supabase, "membership_plans").update({ rollover_max: max }).eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  await writeAudit(supabase, userId, {
+    entity_type: "membership_plan", entity_id: planId, action: "update",
+    field: "rollover_max", new_value: String(max), reason: "rollover_config",
+  });
+  revalidatePath("/admin/offers");
+  return { ok: true };
+}
+
+/** Bank a member's unused classes as carry-over credits (capped by plan). */
+export async function applyRolloverAction(memberId: string): Promise<{ ok: true; granted: number } | { ok: false; error: string }> {
+  const ctx = await staffCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const { data, error } = await rpc<number>(supabase, "apply_membership_rollover", { p_member: memberId });
+  if (error) return { ok: false, error: error.message };
+  const granted = (data as number) ?? 0;
+  if (granted > 0) {
+    await writeAudit(supabase, userId, {
+      entity_type: "member", entity_id: memberId, action: "rollover",
+      field: "credits", new_value: String(granted), reason: "membership_rollover",
+    });
+  }
+  revalidatePath(`/admin/members/${memberId}`);
+  return { ok: true, granted };
+}

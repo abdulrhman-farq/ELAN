@@ -15,7 +15,7 @@ export default async function AdminOffers() {
   const db = (supabase as unknown as { from: (t: string) => any });
   const [{ data: packs }, { data: plans }] = await Promise.all([
     db.from("credit_packs").select("id,name_ar,name_en,price_sar,credits,active,first_time_only").order("price_sar"),
-    db.from("membership_plans").select("id,name_ar,name_en,price_sar,active,featured,first_time_only").order("price_sar"),
+    db.from("membership_plans").select("id,name_ar,name_en,price_sar,active,featured,first_time_only,rollover_max,classes_per_period").order("price_sar"),
   ]);
 
   return (

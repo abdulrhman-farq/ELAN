@@ -284,6 +284,8 @@ export interface MemberDetail {
   points: number; // loyalty points balance
   hasActiveMembership: boolean;
   membershipFrozenUntil: string | null;
+  unusedClasses: number; // unused classes in the current subscription period
+  rolloverMax: number; // per-plan cap on carry-over classes (0 = disabled)
   notes: MemberNote[];
   bookings: {
     id: string;
@@ -339,10 +341,17 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
       .gte("created_at", penaltyWindowIso),
     rpc<number>(supabase, "elan_points_balance", { p_member: id }),
     anyFrom(supabase, "member_memberships")
-      .select("frozen_until,current_period_end")
+      .select("plan_id,frozen_until,current_period_end")
       .eq("member_id", id).eq("status", "active")
       .order("current_period_end", { ascending: false }).limit(1).maybeSingle(),
   ]);
+
+  // Subscription carry-over (تدوير الرصيد): unused classes this period + plan cap.
+  const { data: unusedClasses } = await rpc<number>(supabase, "elan_unused_classes", { p_member: id });
+  const planId = (mmState as { plan_id?: string } | null)?.plan_id ?? null;
+  const { data: planRow } = planId
+    ? await anyFrom(supabase, "membership_plans").select("rollover_max").eq("id", planId).maybeSingle()
+    : { data: null };
 
   return {
     member: member as MemberRow & { locale: string | null },
@@ -358,6 +367,8 @@ export async function getMemberDetail(id: string): Promise<MemberDetail | null> 
     points: (points as number) ?? 0,
     hasActiveMembership: Boolean(mmState),
     membershipFrozenUntil: (mmState as { frozen_until?: string } | null)?.frozen_until ?? null,
+    unusedClasses: (unusedClasses as number) ?? 0,
+    rolloverMax: (planRow as { rollover_max?: number } | null)?.rollover_max ?? 0,
     notes: (notes ?? []) as MemberNote[],
     bookings: (bookings ?? []).map((b) => ({
       id: b.id,
