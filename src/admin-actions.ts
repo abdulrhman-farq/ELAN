@@ -1060,3 +1060,59 @@ export async function generateScheduleAction(
   revalidatePath("/schedule");
   return { ok: true, created: rows.length, unassigned };
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Catalogue offers: toggle active / featured / first-time-only on packs and
+   plans. Admin-gated; every change is written to the pricing_audit trail.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Toggle offer flags on a credit pack. */
+export async function setCreditPackOffersAction(
+  packId: string,
+  input: { active?: boolean; first_time_only?: boolean },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, boolean> = {};
+  if (typeof input.active === "boolean") patch.active = input.active;
+  if (typeof input.first_time_only === "boolean") patch.first_time_only = input.first_time_only;
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const { error } = await tbl(supabase, "credit_packs").update(patch).eq("id", packId);
+  if (error) return { ok: false, error: error.message };
+  for (const [field, value] of Object.entries(patch)) {
+    await writeAudit(supabase, userId, {
+      entity_type: "credit_pack", entity_id: packId, action: "update",
+      field, new_value: String(value), reason: "offer_toggle",
+    });
+  }
+  revalidatePath("/admin/offers");
+  revalidatePath("/memberships");
+  return { ok: true };
+}
+
+/** Toggle offer flags on a membership plan. */
+export async function setMembershipPlanOffersAction(
+  planId: string,
+  input: { active?: boolean; featured?: boolean; first_time_only?: boolean },
+): Promise<ActionResult> {
+  const ctx = await adminCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { supabase, userId } = ctx;
+  const patch: Record<string, boolean> = {};
+  if (typeof input.active === "boolean") patch.active = input.active;
+  if (typeof input.featured === "boolean") patch.featured = input.featured;
+  if (typeof input.first_time_only === "boolean") patch.first_time_only = input.first_time_only;
+  if (Object.keys(patch).length === 0) return { ok: true };
+  const { error } = await tbl(supabase, "membership_plans").update(patch).eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  for (const [field, value] of Object.entries(patch)) {
+    await writeAudit(supabase, userId, {
+      entity_type: "membership_plan", entity_id: planId, action: "update",
+      field, new_value: String(value), reason: "offer_toggle",
+    });
+  }
+  revalidatePath("/admin/offers");
+  revalidatePath("/memberships");
+  return { ok: true };
+}

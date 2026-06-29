@@ -282,6 +282,22 @@ export async function getMyPoints(): Promise<number> {
   }
 }
 
+/** Is the current member eligible for first-visit-only intro offers?
+ *  True when they have never paid and never held a class seat. Unlinked /
+ *  demo viewers are treated as first-time so the intro offer is visible. */
+export async function getMyFirstTime(): Promise<boolean> {
+  const realId = await currentRealMemberId();
+  if (!realId) return true;
+  try {
+    const supabase = await getServerSupabase();
+    const { data } = await rpc<boolean>(supabase, "elan_is_first_time", { p_member: realId });
+    return data ?? false;
+  } catch (e) {
+    console.error("getMyFirstTime failed", e);
+    return false;
+  }
+}
+
 /** The current member's personal check-in code (shown at the studio). */
 export async function getMyCheckinCode(): Promise<string | null> {
   const realId = await currentRealMemberId();
