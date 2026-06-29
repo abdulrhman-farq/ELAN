@@ -1194,3 +1194,80 @@ export async function getOverdueTasks(): Promise<MemberTask[]> {
     member_name: t.members?.full_name ?? "—",
   }));
 }
+
+/* ── Workshops (الورش) ─────────────────────────────────────────────────────── */
+
+export interface AdminWorkshopReg {
+  id: string;
+  member_id: string;
+  member_name: string;
+  member_phone: string | null;
+  status: "registered" | "cancelled" | "attended" | "no_show";
+  payment_status: "unpaid" | "paid" | "refunded";
+}
+
+export interface AdminWorkshop {
+  id: string;
+  title_ar: string;
+  title_en: string;
+  starts_at: string;
+  ends_at: string;
+  capacity: number;
+  price_net_halalas: number;
+  vat_bps: number;
+  price_gross_halalas: number;
+  active: boolean;
+  location: string | null;
+  registered_count: number;
+  registrations: AdminWorkshopReg[];
+}
+
+/** All workshops (incl. inactive/past) with their registrations, for the admin console. */
+export async function getAdminWorkshops(): Promise<AdminWorkshop[]> {
+  const supabase = await getServerSupabase();
+  const { data: ws } = await anyFrom(supabase, "workshops")
+    .select("id,title_ar,title_en,starts_at,ends_at,capacity,price_net_halalas,vat_bps,active,location")
+    .order("starts_at", { ascending: false });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const workshops = (ws ?? []) as any[];
+  if (workshops.length === 0) return [];
+
+  const ids = workshops.map((w) => w.id);
+  const { data: regsData } = await anyFrom(supabase, "workshop_registrations")
+    .select("id,workshop_id,member_id,status,payment_status")
+    .in("workshop_id", ids);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const regs = (regsData ?? []) as any[];
+
+  const memberIds = [...new Set(regs.map((r) => r.member_id).filter(Boolean))];
+  const { data: mems } = memberIds.length
+    ? await anyFrom(supabase, "members").select("id,full_name,phone").in("id", memberIds)
+    : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mm = new Map((mems ?? []).map((m: any) => [m.id, m]));
+
+  return workshops.map((w) => {
+    const wRegs: AdminWorkshopReg[] = regs
+      .filter((r) => r.workshop_id === w.id)
+      .map((r) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const m = mm.get(r.member_id) as any;
+        return {
+          id: r.id, member_id: r.member_id,
+          member_name: m?.full_name ?? "—", member_phone: m?.phone ?? null,
+          status: r.status, payment_status: r.payment_status,
+        };
+      });
+    const net = Number(w.price_net_halalas) || 0;
+    return {
+      id: w.id, title_ar: w.title_ar, title_en: w.title_en,
+      starts_at: w.starts_at, ends_at: w.ends_at,
+      capacity: Number(w.capacity) || 0,
+      price_net_halalas: net, vat_bps: Number(w.vat_bps) || 0,
+      price_gross_halalas: grossFromNet(net, Number(w.vat_bps) || 0),
+      active: Boolean(w.active), location: w.location ?? null,
+      registered_count: wRegs.filter((r) => r.status === "registered" || r.status === "attended").length,
+      registrations: wRegs,
+    };
+  });
+}

@@ -50,6 +50,31 @@ export async function bookGuestAction(classInstanceId: string, guestName: string
   return error ? { error: error.message } : { ok: true as const, bookingId: data?.id ?? null };
 }
 
+/** Register the current member for a workshop (الورش). Reserves a seat; payment
+ *  is settled at the desk. */
+export async function registerWorkshopAction(workshopId: string) {
+  const supabase = await getServerSupabase();
+  if (DEMO && !(await isRealMember(supabase))) {
+    revalidatePath("/workshops");
+    return { ok: true as const };
+  }
+  const { error } = await rpc(supabase, "register_workshop", { p_workshop: workshopId });
+  revalidatePath("/workshops");
+  return error ? { error: error.message } : { ok: true as const };
+}
+
+/** Cancel the current member's workshop registration. */
+export async function cancelWorkshopRegistrationAction(registrationId: string) {
+  const supabase = await getServerSupabase();
+  if (DEMO && !(await isRealMember(supabase))) {
+    revalidatePath("/workshops");
+    return { ok: true as const };
+  }
+  const { error } = await rpc(supabase, "cancel_workshop_registration", { p_registration: registrationId });
+  revalidatePath("/workshops");
+  return error ? { error: error.message } : { ok: true as const };
+}
+
 /** Mark the member's in-app notifications as read (clears the unread badge). */
 export async function markNotificationsReadAction() {
   const supabase = await getServerSupabase();

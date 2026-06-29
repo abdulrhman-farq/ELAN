@@ -8,6 +8,7 @@ const TABS = [
   { href: "/schedule", key: "timetable", icon: "calendar_month" },
   { href: "/bookings", key: "bookings", icon: "event_available" },
   { href: "/memberships", key: "memberships", icon: "card_membership" },
+  { href: "/workshops", key: "workshops", icon: "auto_awesome" },
   { href: "/profile", key: "profile", icon: "person" },
 ] as const;
 
