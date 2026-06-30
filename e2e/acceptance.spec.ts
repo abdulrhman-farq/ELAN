@@ -53,7 +53,7 @@ test.describe("Admin journey", () => {
   test("generate schedule (create classes) is idempotent", async ({ page }) => {
     await signIn(page, ADMIN_EMAIL!, ADMIN_PASSWORD!);
     await page.goto("/admin/schedule");
-    await page.getByRole("button", { name: /توليد جدول|Generate schedule/ }).click();
+    await page.getByRole("button", { name: /توليد الأسبوع|Generate next week/ }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("button", { name: /^توليد$|^Generate$/ }).click();
     // Either created N classes or "already exist" — both are valid (idempotent).

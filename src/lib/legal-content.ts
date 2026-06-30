@@ -67,7 +67,7 @@ export const legalContent: Record<"privacy" | "terms", Record<Locale, LegalDocum
           title: "التواصل",
           body: [
             "ÉLAN — استوديو بيلاتس للسيدات · الرياض",
-            "البريد: privacy@elan.sa (يُستبدل ببريد الاستوديو الرسمي عند الإطلاق)",
+            "البريد: hello@elan.sa",
             "الهاتف: +966 11 234 5678",
           ],
         },
@@ -127,7 +127,7 @@ export const legalContent: Record<"privacy" | "terms", Record<Locale, LegalDocum
           title: "Contact",
           body: [
             "ÉLAN — Women's Pilates Studio · Riyadh",
-            "Email: privacy@elan.sa (replace with the studio's official address at launch)",
+            "Email: hello@elan.sa",
             "Phone: +966 11 234 5678",
           ],
         },
@@ -189,7 +189,7 @@ export const legalContent: Record<"privacy" | "terms", Record<Locale, LegalDocum
           title: "القانون والتواصل",
           body: [
             "تخضع هذه الشروط لأنظمة المملكة العربية السعودية.",
-            "للاستفسارات: privacy@elan.sa · +966 11 234 5678",
+            "للاستفسارات: hello@elan.sa · +966 11 234 5678",
           ],
         },
       ],
@@ -248,7 +248,7 @@ export const legalContent: Record<"privacy" | "terms", Record<Locale, LegalDocum
           title: "Governing law & contact",
           body: [
             "These terms are governed by the laws of the Kingdom of Saudi Arabia.",
-            "Questions: privacy@elan.sa · +966 11 234 5678",
+            "Questions: hello@elan.sa · +966 11 234 5678",
           ],
         },
       ],

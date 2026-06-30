@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "launch:verify": "node scripts/launch-cutover.mjs verify",
+    "launch:sql": "node scripts/launch-cutover.mjs sql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
