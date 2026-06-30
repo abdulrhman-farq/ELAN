@@ -51,12 +51,14 @@ export function GuestPassButton({ classInstanceId, ar }: { classInstanceId: stri
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={ar ? "اسم الضيفة" : "Guest name"}
+        aria-label={ar ? "اسم الضيفة" : "Guest name"}
         className="w-full rounded-md border border-outline px-3 py-2 text-body"
       />
       <input
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         placeholder={ar ? "جوال الضيفة (اختياري)" : "Guest phone (optional)"}
+        aria-label={ar ? "جوال الضيفة (اختياري)" : "Guest phone (optional)"}
         inputMode="tel"
         className="w-full rounded-md border border-outline px-3 py-2 text-body"
       />

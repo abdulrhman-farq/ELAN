@@ -50,7 +50,14 @@ export function MemberSuspension({
   const rollover = () =>
     start(async () => {
       const res = await applyRolloverAction(memberId);
-      if (!res.ok) { toast.error(ar ? "تعذّر الترحيل" : "Rollover failed"); return; }
+      if (!res.ok) {
+        toast.error(
+          /ROLLOVER_TOO_EARLY/.test(res.error)
+            ? ar ? "الترحيل متاح فقط قرب انتهاء الفترة (آخر ٧ أيام)" : "Rollover is only available near period end (last 7 days)"
+            : ar ? "تعذّر الترحيل" : "Rollover failed",
+        );
+        return;
+      }
       toast.success(
         res.granted > 0
           ? ar ? `تم ترحيل ${res.granted} حصة كرصيد` : `Banked ${res.granted} class(es) as credits`

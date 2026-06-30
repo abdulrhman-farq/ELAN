@@ -66,7 +66,9 @@ export function WorkshopList({ workshops, locale }: { workshops: WorkshopCardDat
                   ? ar ? "أنتِ مسجّلة" : "You're registered"
                   : full
                     ? ar ? "اكتملت المقاعد" : "Sold out"
-                    : ar ? `${w.seats_left} مقاعد متبقية` : `${w.seats_left} seats left`}
+                    : ar
+                      ? w.seats_left === 1 ? "بقي مقعد واحد" : w.seats_left === 2 ? "بقي مقعدان" : `بقي ${w.seats_left} مقاعد`
+                      : `${w.seats_left} ${w.seats_left === 1 ? "seat" : "seats"} left`}
               </span>
               {mine ? (
                 <button type="button" disabled={pending} onClick={() => cancel(w.my_registration_id!)}
