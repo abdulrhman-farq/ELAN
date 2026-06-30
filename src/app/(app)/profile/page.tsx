@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/locale-server";
 import { getMemberContext, getMyBookings, getMyCreditHistory, getMyNotifications, getMyUnreadCount, getMyCheckinCode, getMyPoints } from "@/lib/queries";
 import { LangToggle, LogoutButton } from "@/components/Buttons";
 import { MarkNotificationsRead } from "@/components/MarkNotificationsRead";
+import { LegalLinks } from "@/components/LegalLinks";
 import { HERO_IMAGE } from "@/lib/classColor";
 
 export const dynamic = "force-dynamic";
@@ -66,9 +67,8 @@ export default async function ProfilePage() {
       ) : null}
 
       <div className="card overflow-hidden">
-        <Row label={t.profile.personalData} />
-        <Row label={t.profile.payment} />
-        <Row label={t.profile.notifications} />
+        <RowLink label={t.legal.privacy} href="/privacy" />
+        <RowLink label={t.legal.terms} href="/terms" />
         <div className="flex items-center justify-between px-5 py-4">
           <span className="text-body">{t.profile.language}</span>
           <LangToggle current={locale} />
@@ -131,16 +131,17 @@ export default async function ProfilePage() {
       ) : null}
 
       <LogoutButton label={t.profile.logout} />
+      <LegalLinks locale={locale} className="pb-2" />
       <p className="text-center text-xs text-status-full">{t.profile.version} 0.1.0</p>
       </div>
     </section>
   );
 }
 
-function Row({ label }: { label: string }) {
+function RowLink({ label, href }: { label: string; href: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-outline px-5 py-4 text-body">
+    <Link href={href} className="flex items-center justify-between border-b border-outline px-5 py-4 text-body last:border-0">
       <span>{label}</span><span className="chevron text-status-full">›</span>
-    </div>
+    </Link>
   );
 }

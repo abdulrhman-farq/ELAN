@@ -62,6 +62,16 @@ export const dict = {
       noPast: "لا توجد حجوزات سابقة",
       noPastHint: "ستظهر حصصكِ المنتهية هنا.",
     },
+    legal: {
+      privacy: "سياسة الخصوصية",
+      terms: "الشروط والأحكام",
+      navLabel: "روابط قانونية",
+      back: "رجوع",
+      updated: "آخر تحديث: {d}",
+      footer: "باستخدامك التطبيق فإنك توافقين على سياسة الخصوصية والشروط أعلاه.",
+      magicLink: "دخول العميلة برابط عبر البريد",
+      magicLinkSent: "تم إرسال رابط الدخول إلى بريدك ✦ افتحيه من جوالك للدخول.",
+    },
   },
   en: {
     appName: "ÉLAN",
@@ -116,6 +126,16 @@ export const dict = {
       noMembershipsHint: "We'll add memberships and credit packs soon.",
       noPast: "No past bookings",
       noPastHint: "Your completed classes will appear here.",
+    },
+    legal: {
+      privacy: "Privacy policy",
+      terms: "Terms of service",
+      navLabel: "Legal links",
+      back: "Back",
+      updated: "Last updated: {d}",
+      footer: "By using the app you agree to the privacy policy and terms above.",
+      magicLink: "Sign in with email link",
+      magicLinkSent: "We sent a sign-in link to your email — open it on your phone to continue.",
     },
   },
 } as const;
