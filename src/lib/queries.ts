@@ -515,3 +515,40 @@ export async function getBooking(id: string) {
  if (DEMO) return mockBooking(id);
  notFound(); // booking not found -> localized 404
 }
+
+export type StudioSettings = {
+  name_ar: string;
+  name_en: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  cancellation_window_hours: number;
+  booking_open_window_hours: number;
+  max_waitlist_size: number;
+};
+
+const DEFAULT_STUDIO: StudioSettings = {
+  name_ar: "ÉLAN — استوديو بيلاتس للسيدات",
+  name_en: "ÉLAN — Women's Pilates Studio",
+  phone: "+966 11 234 5678",
+  email: "hello@elan.sa",
+  address: "الرياض، المملكة العربية السعودية",
+  cancellation_window_hours: 12,
+  booking_open_window_hours: 168,
+  max_waitlist_size: 10,
+};
+
+export async function getStudioSettings(): Promise<StudioSettings> {
+  try {
+    const supabase = await getServerSupabase();
+    const { data, error } = await q(supabase, "studio_settings")
+      .select("name_ar,name_en,phone,email,address,cancellation_window_hours,booking_open_window_hours,max_waitlist_size")
+      .eq("id", true)
+      .maybeSingle();
+    if (error || !data) return DEFAULT_STUDIO;
+    return data as StudioSettings;
+  } catch (e) {
+    console.error("getStudioSettings failed", e);
+    return DEFAULT_STUDIO;
+  }
+}

@@ -12,8 +12,8 @@ test.describe("login page", () => {
     await expect(page.getByText("ÉLAN").first()).toBeVisible();
     await expect(page.getByPlaceholder("you@email.com")).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
-    // The login container is explicitly RTL.
-    await expect(page.locator('div[dir="rtl"]').first()).toBeVisible();
+    // Login inherits dir from root layout (locale-aware).
+    await expect(page.locator("html")).toHaveAttribute("dir", /rtl|ltr/);
     // Security: demo entry buttons must never render when DEMO is off.
     await expect(page.getByText("دخول كعضوة تجريبية")).toHaveCount(0);
     await expect(page.getByText("دخول كمسؤولة")).toHaveCount(0);
@@ -36,6 +36,22 @@ test.describe("auth gating (DEMO off)", () => {
   test("admin route redirects to /login", async ({ page }) => {
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login$/);
+  });
+});
+
+test.describe("legal pages", () => {
+  for (const path of ["/privacy", "/terms"]) {
+    test(`${path} is public and localized`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).not.toHaveURL(/\/login$/);
+      await expect(page.locator("h1")).toBeVisible();
+    });
+  }
+
+  test("login page links to legal pages", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.getByRole("link", { name: /سياسة الخصوصية|Privacy policy/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /الشروط|Terms of service/ })).toBeVisible();
   });
 });
 

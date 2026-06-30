@@ -1237,3 +1237,36 @@ export async function applyRolloverAction(memberId: string): Promise<{ ok: true;
   revalidatePath(`/admin/members/${memberId}`);
   return { ok: true, granted };
 }
+
+export async function updateStudioSettingsAction(input: {
+  name_ar: string;
+  name_en: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  cancellation_window_hours: number;
+  booking_open_window_hours: number;
+  max_waitlist_size: number;
+}): Promise<ActionResult> {
+  const supabase = await adminClient();
+  if (!supabase) return { ok: false, error: "forbidden" };
+
+  const { error } = await supabase
+    .from("studio_settings")
+    .update({
+      name_ar: input.name_ar.trim(),
+      name_en: input.name_en.trim(),
+      phone: input.phone?.trim() || null,
+      email: input.email?.trim() || null,
+      address: input.address?.trim() || null,
+      cancellation_window_hours: input.cancellation_window_hours,
+      booking_open_window_hours: input.booking_open_window_hours,
+      max_waitlist_size: input.max_waitlist_size,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", true);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/settings");
+  return { ok: true };
+}

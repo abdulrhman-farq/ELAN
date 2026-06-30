@@ -1,0 +1,6 @@
+# Minimal Supabase CLI config for migration workflows.
+# Link with: supabase link --project-ref <ref>
+project_id = "knldyssbwygrkxamttez"
+
+[db]
+major_version = 15

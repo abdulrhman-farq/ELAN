@@ -1,19 +1,21 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright e2e config for ÉLAN.
  *
- * The app ships public-safe Supabase defaults (anon key, RLS-enforced) so it
- * runs with zero env config. DEMO is forced off, so unauthenticated routes
- * redirect to /login — the deterministic, network-free flows the default suite
- * covers. Authenticated specs are gated behind E2E_EMAIL / E2E_PASSWORD.
- *
- * Chromium is pre-installed in the managed environment; we point at it directly
- * via executablePath instead of downloading (PLAYWRIGHT_CHROMIUM overrides it).
+ * Chromium path: set PLAYWRIGHT_CHROMIUM to override. Otherwise Playwright
+ * uses its default browser install (run `npx playwright install chromium`).
  */
 const PORT = Number(process.env.PORT ?? 3000);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
-const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+
+const CHROMIUM =
+  process.env.PLAYWRIGHT_CHROMIUM && existsSync(process.env.PLAYWRIGHT_CHROMIUM)
+    ? process.env.PLAYWRIGHT_CHROMIUM
+    : existsSync("/opt/pw-browsers/chromium")
+      ? "/opt/pw-browsers/chromium"
+      : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,16 +26,14 @@ export default defineConfig({
   reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   timeout: 45_000,
   expect: { timeout: 10_000 },
-  // Full evidence capture for acceptance runs: trace, video, screenshots.
   use: {
     baseURL: BASE_URL,
     trace: "on",
-    video: "on",
+    video: process.env.CI ? "retain-on-failure" : "on",
     screenshot: "on",
-    launchOptions: { executablePath: CHROMIUM },
+    ...(CHROMIUM ? { launchOptions: { executablePath: CHROMIUM } } : {}),
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  // Skip the managed server when pointing at an already-running URL.
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {

@@ -2,6 +2,8 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale-server";
 import { DEMO } from "@/lib/demo";
 import { requireAdmin } from "@/lib/admin-guard";
+import { isEmailConfigured, isMessagingConfigured, isPaymentGatewayConfigured } from "@/lib/providers";
+import { isMonitoringConfigured } from "@/lib/monitoring";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ export default async function HealthPage() {
     }
   }
 
-  const [types, upcoming, trainers, packs, plans, members, admins, pendingPays] = await Promise.all([
+  const [types, upcoming, trainers, packs, plans, members, admins, pendingPays, studio] = await Promise.all([
     count("class_types"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     count("class_instances", (q: any) => q.gte("starts_at", nowIso).eq("status", "scheduled")),
@@ -43,10 +45,12 @@ export default async function HealthPage() {
     count("admin_users", (q: any) => q.eq("active", true)),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     count("payments", (q: any) => q.eq("status", "initiated")),
+    count("studio_settings"),
   ]);
 
   const ref = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "default").replace(/^https?:\/\//, "").split(".")[0];
   const gatewayReady = Boolean(process.env.PAYMENT_WEBHOOK_SECRET && (process.env.SUPABASE_SERVICE_ROLE_KEY));
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
   const t = (a: string, e: string) => (ar ? a : e);
   const checks: Check[] = [
@@ -87,8 +91,42 @@ export default async function HealthPage() {
     },
     {
       label: t("بوابة الدفع الآلية", "Automatic payment gateway"),
-      status: gatewayReady ? "ok" : "info",
-      detail: gatewayReady ? t("مهيّأة", "Configured") : t("غير مهيّأة — التأكيد يدوي من الإدارة", "Not configured — admin confirms manually"),
+      status: gatewayReady || isPaymentGatewayConfigured() ? "ok" : "info",
+      detail: gatewayReady
+        ? t("مهيّأة (Webhook + service role)", "Configured (webhook + service role)")
+        : isPaymentGatewayConfigured()
+          ? t("ميسر مفعّل — أضيفي Webhook", "Moyasar on — add webhook secret")
+          : t("غير مهيّأة — التأكيد يدوي من الإدارة", "Not configured — admin confirms manually"),
+    },
+    {
+      label: t("إعدادات الاستوديو", "Studio settings row"),
+      status: studio.n === null ? "warn" : studio.n > 0 ? "ok" : "warn",
+      detail: studio.n ? t("موجودة", "Present") : t("غير موجودة — طبّقي migration 0024", "Missing — apply migration 0024"),
+    },
+    {
+      label: t("الصفحات القانونية", "Legal pages"),
+      status: "ok",
+      detail: "/privacy · /terms",
+    },
+    {
+      label: t("رابط الموقع العام", "Public site URL"),
+      status: siteUrl ? "ok" : "warn",
+      detail: siteUrl ?? t("غير مضبوط — NEXT_PUBLIC_SITE_URL", "Unset — set NEXT_PUBLIC_SITE_URL"),
+    },
+    {
+      label: t("مراقبة الأخطاء (Sentry)", "Error monitoring (Sentry)"),
+      status: isMonitoringConfigured() ? "ok" : "info",
+      detail: isMonitoringConfigured() ? t("مهيّأة", "Configured") : t("اختياري — أضيفي SENTRY_DSN", "Optional — set SENTRY_DSN"),
+    },
+    {
+      label: t("البريد (Resend)", "Email (Resend)"),
+      status: isEmailConfigured() ? "ok" : "info",
+      detail: isEmailConfigured() ? t("مهيّأ", "Configured") : t("اختياري — أضيفي RESEND_API_KEY", "Optional — set RESEND_API_KEY"),
+    },
+    {
+      label: t("واتساب", "WhatsApp"),
+      status: isMessagingConfigured() ? "ok" : "info",
+      detail: isMessagingConfigured() ? t("مهيّأ", "Configured") : t("اختياري", "Optional"),
     },
   ];
 
