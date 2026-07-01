@@ -72,7 +72,7 @@ async function fetchBetween(startIso: string, endIso: string): Promise<ClassCard
     typeIds.length ? q(supabase, "class_types").select("id,name_ar,name_en,description_ar,description_en,duration_minutes").in("id", typeIds) : Promise.resolve({ data: [] }),
     instrIds.length ? q(supabase, "instructors").select("id,name_ar,name_en").in("id", instrIds) : Promise.resolve({ data: [] }),
     q(supabase, "class_instance_availability").select("*").in("class_instance_id", ids),
-    q(supabase, "bookings").select("id,status,class_instance_id").in("class_instance_id", ids).in("status", ["confirmed", "waitlisted"]),
+    q(supabase, "bookings").select("id,status,class_instance_id").in("class_instance_id", ids).in("status", ["confirmed", "waitlisted"]).eq("is_guest", false),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tm = new Map((types.data ?? []).map((t: any) => [t.id, t]));
